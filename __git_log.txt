@@ -1,0 +1,418 @@
+commit 81165e1491aee313bf54590c4f185e8774f82277
+Author: Developer <dev@example.com>
+Date:   Mon Mar 30 15:09:07 2026 +0900
+
+    Update rental application UI, PDF styling, and sync prod env
+
+diff --git a/src/components/AdminPage.jsx b/src/components/AdminPage.jsx
+index a12172d..ffa9d11 100644
+--- a/src/components/AdminPage.jsx
++++ b/src/components/AdminPage.jsx
+@@ -1336,7 +1336,7 @@ const AdminPage = () => {
+                                                             >
+                                                                 <FileText size={12} />
+                                                                 <span className="text-[9px] font-black whitespace-nowrap">
+-                                                                    {file.category === 'registry' ? '등기' : (file.category === 'contract' ? '계약' : (file.category === 'id_card' ? '신분증' : (file.category === 'family' ? '가족' : '기타')))}
++                                                                    {file.category === 'registry' ? '등기' : (file.category === 'contract' ? '계약' : (file.category === 'id_card' ? '신분증' : (file.category === 'family' ? '가족' : (file.category === 'agreementsPdf' ? '동의서' : '기타'))))}
+                                                                 </span>
+                                                             </a>
+                                                         ))}
+@@ -1459,7 +1459,7 @@ const AdminPage = () => {
+                                                                 >
+                                                                     <FileText size={12} />
+                                                                     <span className="text-[9px] font-black whitespace-nowrap">
+-                                                                        {file.category === 'registry' ? '등기' : (file.category === 'contract' ? '계약' : (file.category === 'id_card' ? '신분증' : (file.category === 'family' ? '가족' : (file.category === 'bank_book' ? '통장' : '기타'))))}
++                                                                        {file.category === 'registry' ? '등기' : (file.category === 'contract' ? '계약' : (file.category === 'id_card' ? '신분증' : (file.category === 'family' ? '가족' : (file.category === 'bank_book' ? '통장' : (file.category === 'agreementsPdf' ? '동의서' : '기타')))))}
+                                                                     </span>
+                                                                 </a>
+                                                             ))}
+
+commit 4c3bc2d9a0d14262807cce516b66b72585b8f9ec
+Author: Developer <dev@example.com>
+Date:   Wed Mar 25 16:11:41 2026 +0900
+
+    Admin table improvement: document labels restored, financial data population enhanced with quote lookup fallback
+
+diff --git a/src/components/AdminPage.jsx b/src/components/AdminPage.jsx
+index 6da7fef..a12172d 100644
+--- a/src/components/AdminPage.jsx
++++ b/src/components/AdminPage.jsx
+@@ -1324,7 +1324,7 @@ const AdminPage = () => {
+                                                     {item.monthlyAmount ? Number(item.monthlyAmount).toLocaleString() + '원' : (item.selectedAmount >= 11 && item.selectedAmount <= 33 ? Number(item.selectedAmount * 10000).toLocaleString() + '원' : '0원')}
+                                                 </td>
+                                                 <td className="px-2 py-3.5 text-left">
+-                                                    <div className="flex flex-wrap gap-1 min-w-[80px]">
++                                                    <div className="flex flex-wrap gap-1 min-w-[100px]">
+                                                         {item.files.map((file, fIdx) => (
+                                                             <a
+                                                                 key={fIdx}
+@@ -1332,9 +1332,12 @@ const AdminPage = () => {
+                                                                 target="_blank"
+                                                                 rel="noopener noreferrer"
+                                                                 title={file.name}
+-                                                                className="flex items-center justify-center w-8 h-8 bg-gray-50 hover:bg-blue-50 text-gray-400 hover:text-blue-600 rounded-lg transition-all border border-gray-100"
++                                                                className="flex items-center gap-1 px-1.5 py-1 bg-gray-50 hover:bg-blue-50 text-gray-400 hover:text-blue-600 rounded-lg transition-all border border-gray-100"
+                                                             >
+-                                                                <FileText size={16} />
++                                                                <FileText size={12} />
++                                                                <span className="text-[9px] font-black whitespace-nowrap">
++                                                                    {file.category === 'registry' ? '등기' : (file.category === 'contract' ? '계약' : (file.category === 'id_card' ? '신분증' : (file.category === 'family' ? '가족' : '기타')))}
++                                                                </span>
+                                                             </a>
+                                                         ))}
+                                                     </div>
+@@ -1444,7 +1447,7 @@ const AdminPage = () => {
+                                                         {item.monthlyAmount ? Number(item.monthlyAmount).toLocaleString() + '원' : '-'}
+                                                     </td>
+                                                     <td className="px-2 py-3.5 text-left">
+-                                                        <div className="flex flex-wrap gap-1.5 min-w-[120px]">
++                                                        <div className="flex flex-wrap gap-1 min-w-[100px]">
+                                                             {item.files.map((file, fIdx) => (
+                                                                 <a
+                                                                     key={fIdx}
+@@ -1452,9 +1455,12 @@ const AdminPage = () => {
+                                                                     target="_blank"
+                                                                     rel="noopener noreferrer"
+                                                                     title={file.name}
+-                                                                    className="flex items-center justify-center w-8 h-8 bg-gray-50 hover:bg-teal-50 text-gray-400 hover:text-teal-600 rounded-lg transition-all border border-gray-100"
++                                                                    className="flex items-center gap-1 px-1.5 py-1 bg-gray-50 hover:bg-teal-50 text-gray-400 hover:text-teal-600 rounded-lg transition-all border border-gray-100"
+                                                                 >
+-                                                                    <FileText size={16} />
++                                                                    <FileText size={12} />
++                                                                    <span className="text-[9px] font-black whitespace-nowrap">
++                                                                        {file.category === 'registry' ? '등기' : (file.category === 'contract' ? '계약' : (file.category === 'id_card' ? '신분증' : (file.category === 'family' ? '가족' : (file.category === 'bank_book' ? '통장' : '기타'))))}
++                                                                    </span>
+                                                                 </a>
+                                                             ))}
+                                                         </div>
+
+commit 62b6885b2fee9f0b55ad1201f8e465ddc73ea5b8
+Author: Developer <dev@example.com>
+Date:   Wed Mar 25 16:07:15 2026 +0900
+
+    Admin table refinement: further compact headers to minimize scrolling
+
+diff --git a/src/components/AdminPage.jsx b/src/components/AdminPage.jsx
+index 6e74c25..6da7fef 100644
+--- a/src/components/AdminPage.jsx
++++ b/src/components/AdminPage.jsx
+@@ -1271,7 +1271,7 @@ const AdminPage = () => {
+                                 <thead className="bg-[#2c3e50] text-white">
+                                     <tr>
+                                         {[
+-                                            "순번", "상태", "신청일", "고객명", "전화번호", "생년월일", "성별", "소유형태", "최종할인가", "선납금", "잔금", "구분", "개월", "월 구독료", "서류목록"
++                                            "순번", "상태", "일자", "고객명", "전화번호", "생일", "성", "소유", "할인가", "선납금", "잔금", "구분", "개월", "구독료", "서류"
+                                         ].map((th, i) => (
+                                             <th key={i} className="px-2 py-3.5 font-black whitespace-nowrap text-[11px] uppercase tracking-tighter first:pl-6 last:pr-6 text-center">{th}</th>
+                                         ))}
+@@ -1391,7 +1391,7 @@ const AdminPage = () => {
+                                     <thead className="bg-[#1a3a3a] text-white">
+                                         <tr>
+                                             {[
+-                                                "순번", "상태", "신청일", "고객명", "전화번호", "생년월일", "성별", "소유형태", "최종할인가", "선납금", "잔금", "구분", "개월", "월 구독료", "서류목록"
++                                                "순번", "상태", "일자", "고객명", "전화번호", "생일", "성", "소유", "할인가", "선납금", "잔금", "구분", "개월", "구독료", "서류"
+                                             ].map((th, i) => (
+                                                 <th key={i} className="px-2 py-3.5 font-black whitespace-nowrap text-[11px] uppercase tracking-tighter first:pl-6 last:pr-6 text-center">{th}</th>
+                                             ))}
+
+commit 7463108df2728e618ce0739963d7fd619b14bc94
+Author: Developer <dev@example.com>
+Date:   Wed Mar 25 16:06:50 2026 +0900
+
+    Admin table refinement: compact columns, date format update, and data population fixes
+
+diff --git a/src/components/AdminPage.jsx b/src/components/AdminPage.jsx
+index ab41de2..6e74c25 100644
+--- a/src/components/AdminPage.jsx
++++ b/src/components/AdminPage.jsx
+@@ -1273,58 +1273,58 @@ const AdminPage = () => {
+                                         {[
+                                             "순번", "상태", "신청일", "고객명", "전화번호", "생년월일", "성별", "소유형태", "최종할인가", "선납금", "잔금", "구분", "개월", "월 구독료", "서류목록"
+                                         ].map((th, i) => (
+-                                            <th key={i} className="px-4 py-4 font-black whitespace-nowrap text-xs uppercase tracking-tight first:pl-8 last:pr-8 text-center">{th}</th>
++                                            <th key={i} className="px-2 py-3.5 font-black whitespace-nowrap text-[11px] uppercase tracking-tighter first:pl-6 last:pr-6 text-center">{th}</th>
+                                         ))}
+                                     </tr>
+                                 </thead>
+                                 <tbody className="divide-y divide-gray-100">
+                                     {filteredRentalList.length === 0 ? (
+                                         <tr>
+-                                            <td colSpan="9" className="text-center py-20 text-gray-400 font-bold">렌탈 신청 내역이 없습니다.</td>
++                                            <td colSpan="15" className="text-center py-20 text-gray-400 font-bold">렌탈 신청 내역이 없습니다.</td>
+                                         </tr>
+                                     ) : (
+                                         filteredRentalList.map((item, idx) => (
+                                             <tr key={idx} className="hover:bg-blue-50/30 transition-colors">
+-                                                <td className="px-4 py-4 text-center font-bold text-gray-300">{filteredRentalList.length - idx}</td>
+-                                                <td className="px-4 py-4 text-center whitespace-nowrap">
++                                                <td className="px-2 py-3.5 text-center font-bold text-gray-300">{filteredRentalList.length - idx}</td>
++                                                <td className="px-2 py-3.5 text-center whitespace-nowrap">
+                                                     <select
+                                                         value={item.status || '접수'}
+                                                         onChange={(e) => handleRentalStatusChange(item, e.target.value)}
+-                                                        className={`text-[10px] font-black px-2 py-1 rounded-lg border-none cursor-pointer focus:ring-2 focus:ring-[#2c3e50]/30 transition-all ${RENTAL_STATUS_OPTIONS.find(opt => opt.value === (item.status || '접수'))?.color || 'bg-gray-100 text-gray-600'}`}
++                                                        className={`text-[9px] font-black px-1.5 py-0.5 rounded-lg border-none cursor-pointer focus:ring-1 focus:ring-[#2c3e50]/30 transition-all ${RENTAL_STATUS_OPTIONS.find(opt => opt.value === (item.status || '접수'))?.color || 'bg-gray-100 text-gray-600'}`}
+                                                     >
+                                                         {RENTAL_STATUS_OPTIONS.map(opt => (
+                                                             <option key={opt.value} value={opt.value} className="bg-white text-gray-700">{opt.label}</option>
+                                                         ))}
+                                                     </select>
+                                                 </td>
+-                                                <td className="px-4 py-4 text-center whitespace-nowrap font-medium text-gray-400 text-[11px]">{new Date(item.createdAt || Date.now()).toLocaleString()}</td>
+-                                                <td className="px-4 py-4 text-center whitespace-nowrap font-bold text-blue-600 hover:text-blue-800 cursor-pointer underline decoration-wavy underline-offset-4" onClick={() => handleRentalNameClick(item)}>{item.name}</td>
+-                                                <td className="px-4 py-4 text-center whitespace-nowrap text-gray-500 font-mono text-xs">{item.phone}</td>
+-                                                <td className="px-4 py-4 text-center whitespace-nowrap text-gray-500 text-xs">{item.birthDate}</td>
+-                                                <td className="px-4 py-4 text-center whitespace-nowrap text-gray-500 text-xs">{item.gender === 'male' ? '남성' : '여성'}</td>
+-                                                <td className="px-4 py-4 text-center whitespace-nowrap text-gray-500 text-xs">
+-                                                    {item.ownershipType === 'own_own' ? '본인소유' : (item.ownershipType === 'family_own' ? '가족소유' : '이사예정')}
++                                                <td className="px-2 py-3.5 text-center whitespace-nowrap font-medium text-gray-400 text-[10px]">{item.createdAt ? item.createdAt.split('T')[0].replace(/-/g, '.') : '-'}</td>
++                                                <td className="px-2 py-3.5 text-center whitespace-nowrap font-bold text-blue-600 hover:text-blue-800 cursor-pointer underline decoration-wavy underline-offset-4" onClick={() => handleRentalNameClick(item)}>{item.name}</td>
++                                                <td className="px-2 py-3.5 text-center whitespace-nowrap text-gray-500 font-mono text-[10px]">{item.phone}</td>
++                                                <td className="px-2 py-3.5 text-center whitespace-nowrap text-gray-500 text-[10px]">{item.birthDate}</td>
++                                                <td className="px-2 py-3.5 text-center whitespace-nowrap text-gray-500 text-[10px]">{item.gender === 'male' ? '남' : '여'}</td>
++                                                <td className="px-2 py-3.5 text-center whitespace-nowrap text-gray-500 text-[10px]">
++                                                    {item.ownershipType === 'own_own' ? '본인' : (item.ownershipType === 'family_own' ? '가족' : '이사')}
+                                                 </td>
+-                                                <td className="px-4 py-4 text-right whitespace-nowrap text-gray-700 text-xs">
++                                                <td className="px-2 py-3.5 text-right whitespace-nowrap text-gray-700 text-[10px]">
+                                                     {item.finalBenefit ? Number(item.finalBenefit).toLocaleString() + '원' : '-'}
+                                                 </td>
+-                                                <td className="px-4 py-4 text-right whitespace-nowrap text-[#001a3d] font-bold text-xs">
++                                                <td className="px-2 py-3.5 text-right whitespace-nowrap text-[#001a3d] font-bold text-[10px]">
+                                                     {item.downPayment ? Number(item.downPayment).toLocaleString() + '원' : '0원'}
+                                                 </td>
+-                                                <td className="px-4 py-4 text-right whitespace-nowrap text-gray-600 text-xs">
++                                                <td className="px-2 py-3.5 text-right whitespace-nowrap text-gray-600 text-[10px]">
+                                                     {item.balance ? Number(item.balance).toLocaleString() + '원' : '-'}
+                                                 </td>
+-                                                <td className="px-4 py-4 text-center whitespace-nowrap text-gray-600 text-xs font-bold">
+-                                                    {item.conversionMode === 'full' ? '전액구독' : (item.conversionMode === 'balance' ? '잔금구독' : item.conversionMode || '전액구독')}
++                                                <td className="px-2 py-3.5 text-center whitespace-nowrap text-gray-600 text-[10px] font-bold">
++                                                    {item.conversionMode === 'full' ? '전액' : (item.conversionMode === 'balance' ? '잔금' : item.conversionMode?.replace('구독','') || '전액')}
+                                                 </td>
+-                                                <td className="px-4 py-4 text-center whitespace-nowrap text-blue-600 font-bold text-xs">
++                                                <td className="px-2 py-3.5 text-center whitespace-nowrap text-blue-600 font-bold text-[10px]">
+                                                     60개월
+                                                 </td>
+-                                                <td className="px-4 py-4 text-right whitespace-nowrap font-bold text-blue-600 text-xs">
++                                                <td className="px-2 py-3.5 text-right whitespace-nowrap font-bold text-blue-600 text-[10px]">
+                                                     {item.monthlyAmount ? Number(item.monthlyAmount).toLocaleString() + '원' : (item.selectedAmount >= 11 && item.selectedAmount <= 33 ? Number(item.selectedAmount * 10000).toLocaleString() + '원' : '0원')}
+                                                 </td>
+-                                                <td className="px-4 py-4 text-left">
+-                                                    <div className="flex flex-wrap gap-1.5 min-w-[120px]">
++                                                <td className="px-2 py-3.5 text-left">
++                                                    <div className="flex flex-wrap gap-1 min-w-[80px]">
+                                                         {item.files.map((file, fIdx) => (
+                                                             <a
+                                                                 key={fIdx}
+@@ -1393,57 +1393,57 @@ const AdminPage = () => {
+                                             {[
+                                                 "순번", "상태", "신청일", "고객명", "전화번호", "생년월일", "성별", "소유형태", "최종할인가", "선납금", "잔금", "구분", "개월", "월 구독료", "서류목록"
+                                             ].map((th, i) => (
+-                                                <th key={i} className="px-4 py-4 font-black whitespace-nowrap text-xs uppercase tracking-tight first:pl-8 last:pr-8 text-center">{th}</th>
++                                                <th key={i} className="px-2 py-3.5 font-black whitespace-nowrap text-[11px] uppercase tracking-tighter first:pl-6 last:pr-6 text-center">{th}</th>
+                                             ))}
+                                         </tr>
+                                     </thead>
+                                     <tbody className="divide-y divide-gray-100">
+                                         {filteredSubscriptionList.length === 0 ? (
+                                             <tr>
+-                                                <td colSpan="9" className="text-center py-20 text-gray-400 font-bold">할부 신청 내역이 없습니다.</td>
++                                                <td colSpan="15" className="text-center py-20 text-gray-400 font-bold">할부 신청 내역이 없습니다.</td>
+                                             </tr>
+                                         ) : (
+                                             filteredSubscriptionList.map((item, idx) => (
+                                                 <tr key={idx} className="hover:bg-teal-50/30 transition-colors">
+-                                                    <td className="px-4 py-4 text-center font-bold text-gray-300">{filteredSubscriptionList.length - idx}</td>
+-                                                    <td className="px-4 py-4 text-center whitespace-nowrap">
++                                                    <td className="px-2 py-3.5 text-center font-bold text-gray-300">{filteredSubscriptionList.length - idx}</td>
++                                                    <td className="px-2 py-3.5 text-center whitespace-nowrap">
+                                                         <select
+                                                             value={item.status || '접수'}
+                                                             onChange={(e) => handleSubscriptionStatusChange(item, e.target.value)}
+-                                                            className={`text-[10px] font-black px-2 py-1 rounded-lg border-none cursor-pointer focus:ring-2 focus:ring-[#1a3a3a]/30 transition-all ${SUBSCRIPTION_STATUS_OPTIONS.find(opt => opt.value === (item.status || '접수'))?.color || 'bg-gray-100 text-gray-600'}`}
++                                                            className={`text-[9px] font-black px-1.5 py-0.5 rounded-lg border-none cursor-pointer focus:ring-1 focus:ring-[#1a3a3a]/30 transition-all ${SUBSCRIPTION_STATUS_OPTIONS.find(opt => opt.value === (item.status || '접수'))?.color || 'bg-gray-100 text-gray-600'}`}
+                                                         >
+                                                             {SUBSCRIPTION_STATUS_OPTIONS.map(opt => (
+                                                                 <option key={opt.value} value={opt.value} className="bg-white text-gray-700">{opt.label}</option>
+                                                             ))}
+                                                         </select>
+                                                     </td>
+-                                                    <td className="px-4 py-4 text-center whitespace-nowrap font-medium text-gray-400 text-[11px]">{new Date(item.createdAt || Date.now()).toLocaleString()}</td>
+-                                                    <td className="px-4 py-4 text-center whitespace-nowrap font-bold text-teal-600 hover:text-teal-800 cursor-pointer underline decoration-wavy underline-offset-4" onClick={() => handleRentalNameClick(item)}>{item.name}</td>
+-                                                    <td className="px-4 py-4 text-center whitespace-nowrap text-gray-500 font-mono text-xs">{item.phone}</td>
+-                                                    <td className="px-4 py-4 text-center whitespace-nowrap text-gray-500 text-xs">{item.birthDate}</td>
+-                                                    <td className="px-4 py-4 text-center whitespace-nowrap text-gray-500 text-xs">{item.gender === 'male' ? '남성' : '여성'}</td>
+-                                                    <td className="px-4 py-4 text-center whitespace-nowrap text-gray-500 text-xs">
+-                                                        {item.ownershipType === 'own_own' ? '본인소유' : (item.ownershipType === 'family_own' ? '가족소유' : '이사예정')}
++                                                    <td className="px-2 py-3.5 text-center whitespace-nowrap font-medium text-gray-400 text-[10px]">{item.createdAt ? item.createdAt.split('T')[0].replace(/-/g, '.') : '-'}</td>
++                                                    <td className="px-2 py-3.5 text-center whitespace-nowrap font-bold text-teal-600 hover:text-teal-800 cursor-pointer underline decoration-wavy underline-offset-4" onClick={() => handleRentalNameClick(item)}>{item.name}</td>
++                                                    <td className="px-2 py-3.5 text-center whitespace-nowrap text-gray-500 font-mono text-[10px]">{item.phone}</td>
++                                                    <td className="px-2 py-3.5 text-center whitespace-nowrap text-gray-500 text-[10px]">{item.birthDate}</td>
++                                                    <td className="px-2 py-3.5 text-center whitespace-nowrap text-gray-500 text-[10px]">{item.gender === 'male' ? '남' : '여'}</td>
++                                                    <td className="px-2 py-3.5 text-center whitespace-nowrap text-gray-500 text-[10px]">
++                                                        {item.ownershipType === 'own_own' ? '본인' : (item.ownershipType === 'family_own' ? '가족' : '이사')}
+                                                     </td>
+-                                                    <td className="px-4 py-4 text-right whitespace-nowrap text-gray-700 text-xs">
++                                                    <td className="px-2 py-3.5 text-right whitespace-nowrap text-gray-700 text-[10px]">
+                                                         {item.finalBenefit ? Number(item.finalBenefit).toLocaleString() + '원' : '-'}
+                                                     </td>
+-                                                    <td className="px-4 py-4 text-right whitespace-nowrap text-teal-800 font-bold text-xs">
++                                                    <td className="px-2 py-3.5 text-right whitespace-nowrap text-teal-800 font-bold text-[10px]">
+                                                         {item.downPayment ? Number(item.downPayment).toLocaleString() + '원' : '0원'}
+                                                     </td>
+-                                                    <td className="px-4 py-4 text-right whitespace-nowrap text-gray-600 text-xs">
++                                                    <td className="px-2 py-3.5 text-right whitespace-nowrap text-gray-600 text-[10px]">
+                                                         {item.balance ? Number(item.balance).toLocaleString() + '원' : '-'}
+                                                     </td>
+-                                                    <td className="px-4 py-4 text-center whitespace-nowrap text-gray-600 text-xs font-bold">
+-                                                        {item.conversionMode === 'full' ? '전액구독' : (item.conversionMode === 'balance' ? '잔금구독' : item.conversionMode || '전액구독')}
++                                                    <td className="px-2 py-3.5 text-center whitespace-nowrap text-gray-600 text-[10px] font-bold">
++                                                        {item.conversionMode === 'full' ? '전액' : (item.conversionMode === 'balance' ? '잔금' : item.conversionMode?.replace('구독','') || '전액')}
+                                                     </td>
+-                                                    <td className="px-4 py-4 text-center whitespace-nowrap text-teal-600 font-bold text-xs">
++                                                    <td className="px-2 py-3.5 text-center whitespace-nowrap text-teal-600 font-bold text-[10px]">
+                                                         {item.selectedAmount}개월
+                                                     </td>
+-                                                    <td className="px-4 py-4 text-right whitespace-nowrap font-bold text-teal-600 text-xs">
++                                                    <td className="px-2 py-3.5 text-right whitespace-nowrap font-bold text-teal-600 text-[10px]">
+                                                         {item.monthlyAmount ? Number(item.monthlyAmount).toLocaleString() + '원' : '-'}
+                                                     </td>
+-                                                    <td className="px-4 py-4 text-left">
++                                                    <td className="px-2 py-3.5 text-left">
+                                                         <div className="flex flex-wrap gap-1.5 min-w-[120px]">
+                                                             {item.files.map((file, fIdx) => (
+                                                                 <a
+
+commit 9bed750620738f55b480eecf4c2851dec7adb6cf
+Author: Developer <dev@example.com>
+Date:   Wed Mar 25 16:03:35 2026 +0900
+
+    Enhance Admin table with detailed financial info & toggle file list view
+
+diff --git a/src/components/AdminPage.jsx b/src/components/AdminPage.jsx
+index 11dd878..ab41de2 100644
+--- a/src/components/AdminPage.jsx
++++ b/src/components/AdminPage.jsx
+@@ -1271,7 +1271,7 @@ const AdminPage = () => {
+                                 <thead className="bg-[#2c3e50] text-white">
+                                     <tr>
+                                         {[
+-                                            "순번", "상태", "신청일", "고객명", "전화번호", "생년월일", "성별", "소유형태", "신청금액", "서류목록 (파일명)"
++                                            "순번", "상태", "신청일", "고객명", "전화번호", "생년월일", "성별", "소유형태", "최종할인가", "선납금", "잔금", "구분", "개월", "월 구독료", "서류목록"
+                                         ].map((th, i) => (
+                                             <th key={i} className="px-4 py-4 font-black whitespace-nowrap text-xs uppercase tracking-tight first:pl-8 last:pr-8 text-center">{th}</th>
+                                         ))}
+@@ -1302,28 +1302,39 @@ const AdminPage = () => {
+                                                 <td className="px-4 py-4 text-center whitespace-nowrap text-gray-500 font-mono text-xs">{item.phone}</td>
+                                                 <td className="px-4 py-4 text-center whitespace-nowrap text-gray-500 text-xs">{item.birthDate}</td>
+                                                 <td className="px-4 py-4 text-center whitespace-nowrap text-gray-500 text-xs">{item.gender === 'male' ? '남성' : '여성'}</td>
+-                                                <td className="px-4 py-4 text-center whitespace-nowrap font-bold text-blue-600">
+-                                                    {item.selectedAmount === 11 ? '111,000' : item.selectedAmount === 22 ? '222,000' : item.selectedAmount === 33 ? '333,000' : item.selectedAmount}{item.selectedAmount >= 11 && item.selectedAmount <= 33 ? '원' : '만원'}
++                                                <td className="px-4 py-4 text-center whitespace-nowrap text-gray-500 text-xs">
++                                                    {item.ownershipType === 'own_own' ? '본인소유' : (item.ownershipType === 'family_own' ? '가족소유' : '이사예정')}
+                                                 </td>
+-                                                <td className="px-4 py-4">
+-                                                    <div className="space-y-1.5 min-w-[240px]">
++                                                <td className="px-4 py-4 text-right whitespace-nowrap text-gray-700 text-xs">
++                                                    {item.finalBenefit ? Number(item.finalBenefit).toLocaleString() + '원' : '-'}
++                                                </td>
++                                                <td className="px-4 py-4 text-right whitespace-nowrap text-[#001a3d] font-bold text-xs">
++                                                    {item.downPayment ? Number(item.downPayment).toLocaleString() + '원' : '0원'}
++                                                </td>
++                                                <td className="px-4 py-4 text-right whitespace-nowrap text-gray-600 text-xs">
++                                                    {item.balance ? Number(item.balance).toLocaleString() + '원' : '-'}
++                                                </td>
++                                                <td className="px-4 py-4 text-center whitespace-nowrap text-gray-600 text-xs font-bold">
++                                                    {item.conversionMode === 'full' ? '전액구독' : (item.conversionMode === 'balance' ? '잔금구독' : item.conversionMode || '전액구독')}
++                                                </td>
++                                                <td className="px-4 py-4 text-center whitespace-nowrap text-blue-600 font-bold text-xs">
++                                                    60개월
++                                                </td>
++                                                <td className="px-4 py-4 text-right whitespace-nowrap font-bold text-blue-600 text-xs">
++                                                    {item.monthlyAmount ? Number(item.monthlyAmount).toLocaleString() + '원' : (item.selectedAmount >= 11 && item.selectedAmount <= 33 ? Number(item.selectedAmount * 10000).toLocaleString() + '원' : '0원')}
++                                                </td>
++                                                <td className="px-4 py-4 text-left">
++                                                    <div className="flex flex-wrap gap-1.5 min-w-[120px]">
+                                                         {item.files.map((file, fIdx) => (
+                                                             <a
+                                                                 key={fIdx}
+                                                                 href={file.url}
+                                                                 target="_blank"
+                                                                 rel="noopener noreferrer"
+-                                                                className="flex items-center justify-between gap-2 px-3 py-1.5 bg-gray-50 hover:bg-blue-50 rounded-lg group transition-all border border-gray-100"
++                                                                title={file.name}
++                                                                className="flex items-center justify-center w-8 h-8 bg-gray-50 hover:bg-blue-50 text-gray-400 hover:text-blue-600 rounded-lg transition-all border border-gray-100"
+                                                             >
+-                                                                <div className="flex items-center gap-2 overflow-hidden">
+-                                                                    <span className="text-[10px] font-black text-white bg-[#c5a059] px-1.5 py-0.5 rounded shrink-0">
+-                                                                        {file.category === 'registry' ? '등기' : (file.category === 'contract' ? '계약' : (file.category === 'id_card' ? '신분증' : (file.category === 'family' ? '가족' : '기타')))}
+-                                                                    </span>
+-                                                                    <span className="text-[11px] font-bold text-gray-600 truncate group-hover:text-blue-600 underline-offset-2 group-hover:underline">
+-                                                                        {file.name}
+-                                                                    </span>
+-                                                                </div>
+-                                                                <Download size={12} className="text-gray-300 group-hover:text-blue-500 shrink-0" />
++                                                                <FileText size={16} />
+                                                             </a>
+                                                         ))}
+                                                     </div>
+@@ -1380,7 +1391,7 @@ const AdminPage = () => {
+                                     <thead className="bg-[#1a3a3a] text-white">
+                                         <tr>
+                                             {[
+-                                                "순번", "상태", "신청일", "고객명", "전화번호", "생년월일", "성별", "소유형태", "신청금액", "서류목록 (파일명)"
++                                                "순번", "상태", "신청일", "고객명", "전화번호", "생년월일", "성별", "소유형태", "최종할인가", "선납금", "잔금", "구분", "개월", "월 구독료", "서류목록"
+                                             ].map((th, i) => (
+                                                 <th key={i} className="px-4 py-4 font-black whitespace-nowrap text-xs uppercase tracking-tight first:pl-8 last:pr-8 text-center">{th}</th>
+                                             ))}
+@@ -1414,26 +1425,36 @@ const AdminPage = () => {
+                                                     <td className="px-4 py-4 text-center whitespace-nowrap text-gray-500 text-xs">
+                                                         {item.ownershipType === 'own_own' ? '본인소유' : (item.ownershipType === 'family_own' ? '가족소유' : '이사예정')}
+                                                     </td>
+-                                                    <td className="px-4 py-4 text-center whitespace-nowrap font-bold text-teal-600">{item.selectedAmount}개월 ({formatKrw(item.monthlyAmount || 0)})</td>
+-                                                    <td className="px-4 py-4">
+-                                                        <div className="space-y-1.5 min-w-[240px]">
++                                                    <td className="px-4 py-4 text-right whitespace-nowrap text-gray-700 text-xs">
++                                                        {item.finalBenefit ? Number(item.finalBenefit).toLocaleString() + '원' : '-'}
++                                                    </td>
++                                                    <td className="px-4 py-4 text-right whitespace-nowrap text-teal-800 font-bold text-xs">
++                                                        {item.downPayment ? Number(item.downPayment).toLocaleString() + '원' : '0원'}
++                                                    </td>
++                                                    <td className="px-4 py-4 text-right whitespace-nowrap text-gray-600 text-xs">
++                                                        {item.balance ? Number(item.balance).toLocaleString() + '원' : '-'}
++                                                    </td>
++                                                    <td className="px-4 py-4 text-center whitespace-nowrap text-gray-600 text-xs font-bold">
++                                                        {item.conversionMode === 'full' ? '전액구독' : (item.conversionMode === 'balance' ? '잔금구독' : item.conversionMode || '전액구독')}
++                                                    </td>
++                                                    <td className="px-4 py-4 text-center whitespace-nowrap text-teal-600 font-bold text-xs">
++                                                        {item.selectedAmount}개월
++                                                    </td>
++                                                    <td className="px-4 py-4 text-right whitespace-nowrap font-bold text-teal-600 text-xs">
++                                                        {item.monthlyAmount ? Number(item.monthlyAmount).toLocaleString() + '원' : '-'}
++                                                    </td>
++                                                    <td className="px-4 py-4 text-left">
++                                                        <div className="flex flex-wrap gap-1.5 min-w-[120px]">
+                                                             {item.files.map((file, fIdx) => (
+                                                                 <a
+                                                                     key={fIdx}
+                                                                     href={file.url}
+                                                                     target="_blank"
+                                                                     rel="noopener noreferrer"
+-                                                                    className="flex items-center justify-between gap-2 px-3 py-1.5 bg-gray-50 hover:bg-teal-50 rounded-lg group transition-all border border-gray-100"
++                                                                    title={file.name}
++                                                                    className="flex items-center justify-center w-8 h-8 bg-gray-50 hover:bg-teal-50 text-gray-400 hover:text-teal-600 rounded-lg transition-all border border-gray-100"
+                                                                 >
+-                                                                    <div className="flex items-center gap-2 overflow-hidden">
+-                                                                        <span className="text-[10px] font-black text-white bg-[#c5a059] px-1.5 py-0.5 rounded shrink-0">
+-                                                                            {file.category === 'registry' ? '등기' : (file.category === 'contract' ? '계약' : (file.category === 'id_card' ? '신분증' : (file.category === 'family' ? '가족' : (file.category === 'bank_book' ? '통장' : '기타'))))}
+-                                                                        </span>
+-                                                                        <span className="text-[11px] font-bold text-gray-600 truncate group-hover:text-teal-600 underline-offset-2 group-hover:underline">
+-                                                                            {file.name}
+-                                                                        </span>
+-                                                                    </div>
+-                                                                    <Download size={12} className="text-gray-300 group-hover:text-teal-500 shrink-0" />
++                                                                    <FileText size={16} />
+                                                                 </a>
+                                                             ))}
+                                                         </div>
