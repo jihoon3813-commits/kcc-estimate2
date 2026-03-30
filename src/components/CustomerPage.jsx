@@ -1,6 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Search, User, Phone, MapPin, Download, Gift, ShieldCheck, ChevronRight, MessageCircle, ExternalLink, X, Calendar, CheckCircle2, CheckCircle, Loader2, Upload, Calculator, ArrowRightLeft, Wallet, Clock, Sparkles } from 'lucide-react';
-import { searchQuote, submitRentalApplication, submitSubscriptionApplication, getRentalDraft, saveRentalDraft, getSubscriptionDraft, saveSubscriptionDraft, uploadSingleFile } from '../lib/api';
+import { searchQuote, submitRentalApplication, submitSubscriptionApplication, getRentalDraft, saveRentalDraft, getSubscriptionDraft, saveSubscriptionDraft, uploadSingleFile, getTemplatePdfUrl } from '../lib/api';
+import { PDFDocument, rgb } from 'pdf-lib';
+import fontkit from '@pdf-lib/fontkit';
+import SignatureCanvas from 'react-signature-canvas';
+// Vite/CJS 호환성 대응
+const SignaturePad = SignatureCanvas.default || SignatureCanvas;
+
 
 const CustomerPage = () => {
     const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -19,6 +25,10 @@ const CustomerPage = () => {
 
     const [statusType, setStatusType] = useState('가견적'); // Default to final quote
     const [showContactMenu, setShowContactMenu] = useState(false);
+    
+    // Signature
+    const sigCanvas = useRef(null);
+    const [signatureImg, setSignatureImg] = useState(null);
 
     // === MODAL & ALERT STATE ===
     const [toast, setToast] = useState({ show: false, message: '' });
@@ -356,6 +366,277 @@ const CustomerPage = () => {
         // Save draft after removal
         const apiFunc = applicationType === 'subscription' ? saveSubscriptionDraft : saveRentalDraft;
         await apiFunc(data, updatedForm);
+    };
+
+    const generateSignedPdf = async () => {
+        if (!sigCanvas.current || sigCanvas.current.isEmpty()) {
+            alert("하단 [서명/날인] 영역에 전자서명을 진행해주세요.");
+            return null;
+        }
+        try {
+            let signatureDataUrl;
+            try {
+                signatureDataUrl = sigCanvas.current.getTrimmedCanvas().toDataURL("image/png");
+            } catch (sigErr) {
+                console.warn("getTrimmedCanvas failed, falling back to getCanvas:", sigErr);
+                signatureDataUrl = sigCanvas.current.getCanvas().toDataURL("image/png");
+            }
+            // Create a new PDFDocument
+            const pdfDoc = await PDFDocument.create();
+            pdfDoc.registerFontkit(fontkit.default || fontkit);
+
+            // Fetch font
+            const fontRes = await fetch(`${import.meta.env.BASE_URL}fonts/NanumGothic.ttf`);
+            if (!fontRes.ok) {
+                alert(`폰트 파일을 불러오는데 실패했습니다: ${fontRes.status}`);
+                return null;
+            }
+            const fontBytes = await fontRes.arrayBuffer();
+            const customFont = await pdfDoc.embedFont(fontBytes);
+
+            // Embed signature image
+            const sigImgBytes = await fetch(signatureDataUrl).then(r => r.arrayBuffer());
+            const sigImage = await pdfDoc.embedPng(sigImgBytes);
+
+            const pagesContent = [
+                {
+                    title: "개인(신용)정보 수집 이용 동의서",
+                    sections: [
+                        { text: "(주)비에스온 귀하", bold: true, size: 11 },
+                        { text: "" },
+                        { text: "귀사와의 상거래와 관련하여 귀사가 본인의 개인(신용)정보를 수집·이용하고자 하는 경우에는 「개인 정보" },
+                        { text: "보호법」 제15조 및 제22조, 「신용정보의 이용 및 보호에 관한 법률」 제32조, 제33조 및 제34조에 따라" },
+                        { text: "동의를 얻어야 합니다. 이에 본인은 귀사가 아래의 내용과 같이 본인의 개인(신용)정보를 수집·이용하는데" },
+                        { text: "동의합니다." },
+                        { text: "" },
+                        { text: "1. 개인(신용)정보의 필수적 수집 · 이용에 관한 사항", bold: true, size: 11 },
+                        { text: "" },
+                        { text: "1 개인(신용)정보의 수집 · 이용 목적", bold: true },
+                        { text: "• 상거래 관계의 설정·이행·유지·관리, 법령상 의무이행, 분쟁처리, 민원처리, 본인여부확인 등" },
+                        { text: "2 수집·이용할 개인(신용)정보의 내용", bold: true },
+                        { text: "• 개인식별정보 : 성명, 주소, 연락처, E-mail, 출생등록지, 성별, 국적, 본인인증정보, 기타 식별정보 등", color: rgb(0.9, 0.1, 0.1) },
+                        { text: "• 기타 계약의 설정·이행·유지·관리 등과 관련하여 본인이 제공한 정보 등", color: rgb(0.9, 0.1, 0.1) },
+                        { text: "3 개인(신용)정보의 보유 및 이용기간", bold: true },
+                        { text: "• 동의일로부터 개인(신용)정보의 수집·이용 목적을 달성할 때까지" },
+                        { text: "• 다만, 관련법규에 별도 규정이 있는 경우 그 기간을 따름" },
+                        { text: "※ 귀하는 동의를 거부할 권리가 있으나, 동의하지 않는 경우 계약의 설정·이행·유지·관리 등이 불가능할" },
+                        { text: "  수 있음을 알려드립니다." },
+                        { text: "" },
+                        { text: "2. 개인(신용)정보의 선택적 수집 · 이용에 관한 사항 (동의함 [V]  동의하지 않음 [  ])", bold: true, size: 11 },
+                        { text: "" },
+                        { text: "1 개인(신용)정보의 수집 · 이용 목적", bold: true },
+                        { text: "• 고객 편의제공, 상품·서비스 안내 및 이용권유, 마케팅 활동, 시장조사 등", color: rgb(0.9, 0.1, 0.1) },
+                        { text: "2 수집·이용할 개인(신용)정보의 내용", bold: true },
+                        { text: "• 상기 이용목적 달성을 위하여 필요한 정보 (개인식별정보, 신용거래정보 등)", color: rgb(0.9, 0.1, 0.1) },
+                        { text: "• 기타 계약의 설정·이행·유지·관리 등과 관련하여 본인이 제공한 정보 등", color: rgb(0.9, 0.1, 0.1) },
+                        { text: "3 개인(신용)정보의 보유 및 이용기간", bold: true },
+                        { text: "• 동의일로부터 개인(신용)정보의 수집·이용 목적을 달성할 때까지" },
+                        { text: "• 다만, 관련법규에 별도 규정이 있는 경우 그 기간을 따름" },
+                        { text: "※ 귀하는 동의를 거부할 권리가 있으나, 동의하지 않는 경우 관련 편의제공(사은품, 할인쿠폰 제공 등에" },
+                        { text: "  일부 제한이 있을 수 있습니다." },
+                        { text: "※ 동의한 경우에도 귀하는 동의를 철회하거나 마케팅 목적으로 귀하에게 연락하는 것을 중지하도록" },
+                        { text: "  요청할 수 있습니다." },
+                    ]
+                },
+                {
+                    title: "개인(신용)정보의 조회 동의서",
+                    sections: [
+                        { text: "(주)비에스온 귀하", bold: true, size: 11 },
+                        { text: "" },
+                        { text: "본인은 귀사가 「신용정보의 이용 및 보호에 관한 법률」 제32조 제2항에 따라 아래와 같은 내용으로" },
+                        { text: "신용조회회사, 신용정보집중기관 등으로부터 본인의 개인(신용)정보를 조회하는 것에 동의합니다." },
+                        { text: "" },
+                        { text: "1. 조회 대상 기관", bold: true, size: 11 },
+                        { text: "• 종합신용정보집중기관 : 한국신용정보원, 여신금융협회 등" },
+                        { text: "• 신용조회회사 : 코리아크레딧뷰로(주), NICE평가정보(주)" },
+                        { text: "2. 조회할 개인(신용)정보", bold: true, size: 11 },
+                        { text: "• 개인식별정보 : 성명, 주소, 연락처(휴대폰 등), E-mail, 성별, 국적, 본인인증 및 식별정보 등" },
+                        { text: "• 신용거래정보 : 대출, 보증, 담보제공, 당좌거래, 신용카드, 할부금융과 관련한 금융거래 등," },
+                        { text: "  상거래와 관련하여 그 거래의 종류, 기간, 금액 및 한도 등에 관한 사항" },
+                        { text: "• 신용도판단정보 : 연체, 부도, 대위변제, 대지급, 신용질서 문란행위와 관련된 금액 및 발생 · 해소의" },
+                        { text: "  시기 등에 관한 사항" },
+                        { text: "• 신용능력정보 : 직업, 재산, 채무, 소득의 총액, 납세실적 등 신용거래능력을 판단할 수 있는 정보" },
+                        { text: "• 공공기관정보 : 개인회생, 파산, 면책 등에 관한 신청 및 법원의 결정 관련정보, 채무불이행자명부" },
+                        { text: "  등재·말소 결정, 체납정보, 신용회복관련정보 등" },
+                        { text: "• 신용평가정보 : 신용등급, 신용평점 등" },
+                        { text: "• 기타 본인의 신용을 판단할 수 있는 정보 등" },
+                        { text: "3. 조회목적", bold: true, size: 11 },
+                        { text: "• 상거래 관계의 설정·이행·유지·관리, 법령상 의무이행, 분쟁처리, 민원처리, 본인여부확인 등" },
+                        { text: "4. 조회동의 효력기간", bold: true, size: 11 },
+                        { text: "• 동의일로부터 당해 계약의 종료일(예 : 기간만기, 계약해지 등) 또는 동의철회 시 까지 동의의" },
+                        { text: "  효력이 유지 됨" },
+                        { text: "• 다만, 관련법규에 별도 규정이 있는 경우 그 기간을 따르며, 귀하가 신청한 계약이 체결되지 아니한" },
+                        { text: "  경우에는 그 시점부터 동의의 효력은 소멸합니다." },
+                        { text: "5. 조회자의 개인(신용)정보의 보유 및 이용기간", bold: true, size: 11 },
+                        { text: "• 개인(신용)정보를 제공받는 날로부터 조회목적을 달성할 때까지" },
+                        { text: "• 다만, 관련법규에 별도 규정이 있는 경우 그 기간을 따름" },
+                        { text: "" },
+                        { text: "※ 귀하는 동의를 거부할 권리가 있으나, 동의하지 않는 경우 계약의 설정·이행·유지·관리 등이 불가능할" },
+                        { text: "  수 있음을 알려드립니다." },
+                        { text: "※ 신용조회기록은 무등급자에 대한 신용등급산정 이외에는 신용등급에 영향을 미치지 않습니다." }
+                    ]
+                },
+                {
+                    title: "개인(신용)정보 제공 동의서 [1/2]",
+                    hideSignature: true,
+                    sections: [
+                        { text: "(주)비에스온 귀하", bold: true, size: 11 },
+                        { text: "" },
+                        { text: "귀사와의 상거래와 관련하여 귀사가 본인의 개인(신용)정보를 「개인정보 보호법」 제17조 및 제22조," },
+                        { text: "「신용정보의 이용 및 보호에 관한 법률」 제32조, 제33조 및 제34조에 따라 제3자에게 제공할 경우" },
+                        { text: "본인의 동의를 얻어야 합니다. 이에 본인은 귀사가 본인의 개인(신용)정보를 아래와 같이 제3자에게" },
+                        { text: "제공하는데 동의합니다." },
+                        { text: "" },
+                        { text: "1. 개인(신용)정보의 필수적 제공에 관한 사항", bold: true, size: 11 },
+                        { text: "" },
+                        { text: "(1) 신용정보집중기관 및 신용조회회사에 개인(신용)정보 제공", bold: true },
+                        { text: "1 개인(신용)정보를 제공받는 자", bold: true },
+                        { text: "• 종합신용정보집중기관 : 한국신용정보원, 여신금융협회 등", color: rgb(0.9, 0.1, 0.1) },
+                        { text: "• 신용조회회사 : 코리아크레딧뷰로(주), NICE평가정보(주)" },
+                        { text: "2 제공받는 자의 이용 목적", bold: true },
+                        { text: "• 신용정보의 집중·관리 및 활용 등 신용정보집중기관의 업무" },
+                        { text: "• 본인의 신용판단 자료 및 공공기관 정책자료로 활용" },
+                        { text: "• 신용평가, 실명확인 등 신용조회회사의 업무" },
+                        { text: "3 제공할 개인(신용)정보의 내용", bold: true },
+                        { text: "• 개인식별정보 : 성명, 주소, 연락처(휴대폰 등), E-mail, 성별, 국적, 본인인증 및 식별정보 등" },
+                        { text: "• 기타 본인의 신용을 판단할 수 있는 정보 등" },
+                        { text: "4 제공받는 자의 개인(신용)정보 보유 및 이용기간", bold: true },
+                        { text: "• 개인(신용)정보를 제공받는 자의 이용목적을 달성할 때까지" },
+                        { text: "• 다만, 관련법규에 별도 규정이 있는 경우 그 기간을 따름" },
+                        { text: "" },
+                        { text: "(2) 거래목적 달성을 위한 개인(신용)정보 제공", bold: true },
+                        { text: "1 개인(신용)정보를 제공받는 자", bold: true },
+                        { text: "• 계약 이행에 필요한 업무를 위탁받은 자 및 공동사업자 등", color: rgb(0.9, 0.1, 0.1) },
+                        { text: "• 부가/제휴서비스를 제공하기 위해 필요한 부가/제휴서비스 업체 등", color: rgb(0.9, 0.1, 0.1) },
+                        { text: "※ 수탁업체·제휴업체의 현황 및 변경내용은 당사의 인터넷 홈페이지를 통해 안내해 드립니다.", color: rgb(0.9, 0.1, 0.1) },
+                        { text: "2 제공받는 자의 이용목적", bold: true },
+                        { text: "• 상거래의 설정·이행·유지·관리, 금융사고 조사, 법령상 의무이행, 분쟁해결, 범죄의 고소·고발,", color: rgb(0.9, 0.1, 0.1) },
+                        { text: "  대금청구(SMS제공포함) 및 채권추심, 부가/제휴서비스 제공 및 각종 포인트제공·정산 등", color: rgb(0.9, 0.1, 0.1) },
+                        { text: "3 제공할 개인(신용)정보의 내용", bold: true },
+                        { text: "• 개인식별정보 : 성명, 주소, 연락처(휴대폰 등), E-mail, 성별, 국적, 본인인증 및 식별정보 등" },
+                        { text: "• 기타 본인의 신용을 판단할 수 있는 정보 등" }
+                    ]
+                },
+                {
+                    title: "개인(신용)정보 제공 동의서 [2/2]",
+                    sections: [
+                        { text: "4 제공받는 자의 개인(신용)정보 보유 및 이용기간", bold: true },
+                        { text: "• 개인(신용)정보를 제공받는 자의 이용목적을 달성할 때까지" },
+                        { text: "• 다만, 관련법규에 별도 규정이 있는 경우 그 기간을 따름" },
+                        { text: "※ 귀하는 동의를 거부할 권리가 있으나, 동의하지 않는 경우 계약의 설정·이행·유지·관리 등이 불가능할" },
+                        { text: "  수 있음을 알려드립니다." },
+                        { text: "" },
+                        { text: "2. 개인(신용)정보의 선택적 제공에 관한 사항 (동의함 [V]  동의하지 않음 [  ])", bold: true, size: 11 },
+                        { text: "" },
+                        { text: "1 개인(신용)정보를 제공받는 자", bold: true },
+                        { text: "• 업체명 (이용목적과 관련한 업무를 위탁받은 자)", color: rgb(0.9, 0.1, 0.1) },
+                        { text: "※ 수탁업체·제휴업체의 현황 및 변경내용은 당사의 인터넷 홈페이지를 통해 안내해 드립니다.", color: rgb(0.9, 0.1, 0.1) },
+                        { text: "2 제공받는 자의 이용목적", bold: true },
+                        { text: "• 고객 편의제공, 이용권유, 상품·서비스 안내 및 이용권유, 마케팅 활동, 시장조사 등", color: rgb(0.9, 0.1, 0.1) },
+                        { text: "3 제공할 개인(신용)정보의 내용", bold: true },
+                        { text: "• 상기 이용목적 달성을 위하여 필요한 정보 (개인식별정보, 신용거래정보 등)" },
+                        { text: "4 제공받는 자의 개인(신용)정보 보유 및 이용기간", bold: true },
+                        { text: "• 개인(신용)정보를 제공받는 자의 수집·이용 목적을 달성할 때까지" },
+                        { text: "• 다만, 관련법규에 별도 규정이 있는 경우 그 기간을 따름" },
+                        { text: "※ 귀하는 동의를 거부할 권리가 있으나, 동의하지 않는 경우 관련 편의제공(사은품, 할인쿠폰 제공 등에" },
+                        { text: "  일부 제한이 있을 수 있습니다." },
+                        { text: "※ 동의한 경우에도 귀하는 동의를 철회하거나 마케팅 목적으로 귀하에게 연락하는 것을 중지하도록" },
+                        { text: "  요청할 수 있습니다." }
+                    ]
+                }
+            ];
+
+            const dateObj = new Date();
+            const curYear = String(dateObj.getFullYear());
+            const curMonth = String(dateObj.getMonth() + 1).padStart(2, '0');
+            const curDate = String(dateObj.getDate()).padStart(2, '0');
+            const cleanBirth = rentalForm.birthDate ? rentalForm.birthDate.replace(/-/g, '.') : "";
+            
+            // 연락처 로드 시 searchForm 활용 (못 불러오는 문제 해결)
+            const customerPhone = searchForm.phone || data?.contact || rentalForm.phone || "";
+
+            const drawAgreementPage = (pageContent) => {
+                const page = pdfDoc.addPage([595.28, 841.89]); // A4 Size
+                const { width, height } = page.getSize();
+                
+                // Draw Title Box
+                page.drawRectangle({
+                    x: 40, y: height - 100, width: width - 80, height: 40,
+                    color: rgb(0.95, 0.95, 0.95),
+                    borderColor: rgb(0, 0, 0),
+                    borderWidth: 1,
+                });
+                
+                const titleWidth = pageContent.title.length * 8; // approximate width
+                // Title Center & Bold (두 번 그려 굵게 표현)
+                page.drawText(pageContent.title, { x: width / 2 - titleWidth, y: height - 85, size: 16, font: customFont, color: rgb(0, 0, 0) });
+                page.drawText(pageContent.title, { x: width / 2 - titleWidth + 0.3, y: height - 85, size: 16, font: customFont, color: rgb(0, 0, 0) });
+                
+                // Draw Main Border Box
+                page.drawRectangle({
+                    x: 40, y: 150, width: width - 80, height: height - 250,
+                    borderColor: rgb(0, 0, 0),
+                    borderWidth: 1,
+                });
+                
+                // Draw Sections inside
+                let currentY = height - 125;
+                pageContent.sections.forEach(item => {
+                    if (item.text) {
+                        const fontSize = item.size || 10;
+                        page.drawText(item.text, {
+                            x: 55, y: currentY, size: fontSize, font: customFont, color: item.color || rgb(0.1, 0.1, 0.1)
+                        });
+                        if (item.bold) {
+                            page.drawText(item.text, {
+                                x: 55 + 0.3, y: currentY, size: fontSize, font: customFont, color: item.color || rgb(0.1, 0.1, 0.1)
+                            });
+                        }
+                    }
+                    currentY -= 16; // Increased line height to 16 for better readability and spacing
+                });
+                
+                // Signature Box below
+                if (!pageContent.hideSignature) {
+                    const boxY = 40;
+                    
+                    page.drawRectangle({
+                        x: 40, y: boxY, width: width - 80, height: 100,
+                        borderColor: rgb(0, 0, 0),
+                        borderWidth: 1,
+                    });
+
+                    page.drawText("상기 내용이 변동하는 경우 당사의 인터넷 홈페이지 게시 등을 통해 그 내용을 공시합니다.", {
+                        x: 70, y: boxY + 75, size: 10, font: customFont, color: rgb(0.9, 0.1, 0.1)
+                    });
+
+                    page.drawText(`${curYear} 년   ${curMonth} 월   ${curDate} 일`, { x: 80, y: boxY + 45, size: 12, font: customFont });
+                    
+                    page.drawText(`본인 성명 :  ${data.name || ""}`, { x: 260, y: boxY + 50, size: 10, font: customFont });
+                    page.drawText(`(서명/날인)`, { x: 420, y: boxY + 50, size: 10, font: customFont });
+                    page.drawImage(sigImage, { x: 480, y: boxY + 40, width: 45, height: 22 });
+                    
+                    page.drawText(`연락처 :  ${customerPhone}`, { x: 260, y: boxY + 25, size: 10, font: customFont });
+                    page.drawText(`생년월일 :  ${cleanBirth}`, { x: 420, y: boxY + 25, size: 10, font: customFont });
+
+                    // Signature Box Lines
+                    page.drawLine({ start: { x: 310, y: boxY + 48 }, end: { x: 400, y: boxY + 48 }, thickness: 0.5, color: rgb(0.5, 0.5, 0.5) });
+                    page.drawLine({ start: { x: 470, y: boxY + 48 }, end: { x: 535, y: boxY + 48 }, thickness: 0.5, color: rgb(0.5, 0.5, 0.5) });
+                    page.drawLine({ start: { x: 300, y: boxY + 23 }, end: { x: 400, y: boxY + 23 }, thickness: 0.5, color: rgb(0.5, 0.5, 0.5) });
+                    page.drawLine({ start: { x: 465, y: boxY + 23 }, end: { x: 535, y: boxY + 23 }, thickness: 0.5, color: rgb(0.5, 0.5, 0.5) });
+                }
+            };
+
+            pagesContent.forEach(drawAgreementPage);
+
+            const filledPdfBytes = await pdfDoc.save();
+            return new File([filledPdfBytes], `정보동의서_${data.name}.pdf`, { type: "application/pdf" });
+
+        } catch (error) {
+            console.error("PDF 생성 전체 오류:", error);
+            alert("PDF 생성 중 오류가 발생했습니다:\n" + (error.message || error));
+            return null;
+        }
     };
 
     if (!isLoggedIn) {
@@ -1381,15 +1662,16 @@ const CustomerPage = () => {
                                         <div className="bg-white p-2 rounded-2xl shadow-sm border border-gray-100 flex gap-1">
                                             {[
                                                 { id: 'own_own', label: '본인 소유' },
-                                                { id: 'family_own', label: '가족 소유' },
-                                                { id: 'move_own', label: '이사 예정' }
+                                                { id: 'family_own', label: '가족소유(불가)', disabled: true },
+                                                { id: 'move_own', label: '이사예정(불가)', disabled: true }
                                             ].map(t => (
                                                 <button
                                                     key={t.id}
-                                                    onClick={() => setRentalForm({ ...rentalForm, ownershipType: t.id })}
+                                                    onClick={() => !t.disabled && setRentalForm({ ...rentalForm, ownershipType: t.id })}
+                                                    disabled={t.disabled}
                                                     className={`flex-1 py-3 text-[11px] font-black rounded-xl transition-all ${rentalForm.ownershipType === t.id
                                                         ? 'bg-[#001a3d] text-white shadow-md'
-                                                        : 'text-gray-400 hover:text-gray-600'
+                                                        : t.disabled ? 'text-gray-300 cursor-not-allowed bg-gray-50' : 'text-gray-400 hover:text-gray-600'
                                                         }`}
                                                 >
                                                     {t.label}
@@ -1405,8 +1687,7 @@ const CustomerPage = () => {
                                                 <div className="space-y-6">
                                                     {[
                                                         { key: 'registry', label: '등기부등본', desc: '본인 명의의 부동산임을 증명해야 합니다.', icon: <Upload size={18} /> },
-                                                        { key: 'id_card', label: '신분증 사본', desc: '신원을 확인하기 위한 서류입니다.', icon: <ShieldCheck size={18} /> },
-                                                        { key: 'bank_book', label: '통장사본(자동이체용)', desc: '구독/렌탈료 자동이체 설정을 위한 서류입니다.', icon: <Upload size={18} /> }
+                                                        { key: 'id_card', label: '신분증 사본', desc: '신원을 확인하기 위한 서류입니다.', icon: <ShieldCheck size={18} /> }
                                                     ].map(doc => (
                                                         <div key={doc.key} className="space-y-4">
                                                             <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 text-blue-800 text-xs font-bold leading-relaxed">
@@ -1525,11 +1806,32 @@ const CustomerPage = () => {
                                                     </p>
                                                     <button
                                                         onClick={async () => {
+                                                            const pdfFile = await generateSignedPdf();
+                                                            if (!pdfFile) return;
+
                                                             if (window.confirm(`${applicationType === 'subscription' ? '구독' : '렌탈'} 신청을 완료하시겠습니까?\n제출된 정보로 신용조회가 진행됩니다.`)) {
-                                                                setIsSubmitting(true);
-                                                                const res = applicationType === 'subscription'
-                                                                    ? await submitSubscriptionApplication(data, rentalForm, draftId)
-                                                                    : await submitRentalApplication(data, rentalForm, draftId);
+                                                                 setIsSubmitting(true);
+                                                                 
+                                                                 // 1. PDF 파일 업로드 (스토리지 저장)
+                                                                 let newStorageId;
+                                                                 try {
+                                                                     newStorageId = await uploadSingleFile(pdfFile);
+                                                                 } catch(e) {
+                                                                     console.error("PDF 업로드 실패:", e);
+                                                                 }
+
+                                                                 // 2. 신청 폼 데이터 구성 (PDF 파일 포함)
+                                                                 const updatedForm = {
+                                                                     ...rentalForm,
+                                                                     files: {
+                                                                         ...rentalForm.files,
+                                                                         agreementsPdf: newStorageId ? [{ name: pdfFile.name, storageId: newStorageId }] : []
+                                                                     }
+                                                                 };
+
+                                                                 const res = applicationType === 'subscription'
+                                                                     ? await submitSubscriptionApplication(data, updatedForm, draftId)
+                                                                     : await submitRentalApplication(data, updatedForm, draftId);
                                                                 setIsSubmitting(false);
 
                                                                 if (res.success) {
@@ -1668,6 +1970,29 @@ const CustomerPage = () => {
                                             </div>
                                         </div>
                                     )}
+
+                                    {/* 전자서명 (공통) */}
+                                    <div className="bg-gray-50 p-6 rounded-[2rem] border border-gray-200 shadow-sm relative overflow-hidden text-left mt-6">
+                                        <div className="mb-4">
+                                            <h4 className="text-sm font-black text-[#001a3d] flex items-center gap-2">
+                                                <div className="w-6 h-6 bg-[#001a3d] text-white rounded-md flex items-center justify-center shadow-md"><ShieldCheck size={14} /></div>
+                                                전자 서명 <span className="text-red-500">*</span>
+                                            </h4>
+                                            <p className="text-[11px] text-gray-500 font-bold mt-1">위에 정자로 서명해주세요. 입력하신 서명은 정보동의서에 자동 표기됩니다.</p>
+                                        </div>
+                                        <div className="bg-white border-2 border-dashed border-gray-300 rounded-[1.5rem] relative overflow-hidden transition-all hover:border-[#c5a059]/50">
+                                            <SignaturePad 
+                                                ref={sigCanvas} 
+                                                canvasProps={{ className: 'w-full h-40 bg-white cursor-crosshair' }} 
+                                            />
+                                            <button 
+                                                onClick={() => { sigCanvas.current.clear(); setSignatureImg(null); }} 
+                                                className="absolute top-3 right-3 text-[10px] bg-gray-100 text-gray-600 px-3 py-1.5 rounded-lg shadow-sm font-black hover:bg-gray-200 active:scale-95 transition-all outline-none"
+                                            >
+                                                다시 쓰기
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
                             )}
                         </div>
@@ -1714,8 +2039,29 @@ const CustomerPage = () => {
                                             showConfirm(
                                                 '렌탈 신청을 완료하시겠습니까?\n제출된 정보로 신용조회가 진행됩니다.',
                                                 async () => {
+                                                    const pdfFile = await generateSignedPdf();
+                                                    if (!pdfFile) return;
+
                                                     setIsSubmitting(true);
-                                                    const res = await submitRentalApplication(data, rentalForm, draftId);
+
+                                                    // 1. PDF 파일 업로드 (스토리지 저장)
+                                                    let newStorageId;
+                                                    try {
+                                                        newStorageId = await uploadSingleFile(pdfFile);
+                                                    } catch(e) { 
+                                                        console.error("PDF 업로드 실패:", e); 
+                                                    }
+
+                                                    // 2. 신청 폼 데이터 구성 (PDF 파일 포함)
+                                                    const updatedForm = {
+                                                        ...rentalForm,
+                                                        files: {
+                                                            ...rentalForm.files,
+                                                            agreementsPdf: newStorageId ? [{ name: pdfFile.name, storageId: newStorageId }] : []
+                                                        }
+                                                    };
+
+                                                    const res = await submitRentalApplication(data, updatedForm, draftId);
                                                     setIsSubmitting(false);
 
                                                     if (res.success) {

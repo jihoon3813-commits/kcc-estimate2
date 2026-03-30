@@ -423,3 +423,12 @@ export const saveSubscriptionDraft = async (customerData, form) => {
         return { success: false, message: error.message };
     }
 };
+
+export const getTemplatePdfUrl = async (storageId) => {
+    try {
+        const url = await convex.query(api.rentals.getTemplateUrl, { storageId });
+        return { success: true, url };
+    } catch (error) {
+        return { success: false, message: error.message };
+    }
+};

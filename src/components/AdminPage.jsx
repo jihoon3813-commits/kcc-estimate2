@@ -1336,7 +1336,7 @@ const AdminPage = () => {
                                                             >
                                                                 <FileText size={12} />
                                                                 <span className="text-[9px] font-black whitespace-nowrap">
-                                                                    {file.category === 'registry' ? '등기' : (file.category === 'contract' ? '계약' : (file.category === 'id_card' ? '신분증' : (file.category === 'family' ? '가족' : '기타')))}
+                                                                    {file.category === 'registry' ? '등기' : (file.category === 'contract' ? '계약' : (file.category === 'id_card' ? '신분증' : (file.category === 'family' ? '가족' : (file.category === 'agreementsPdf' ? '동의서' : '기타'))))}
                                                                 </span>
                                                             </a>
                                                         ))}
@@ -1459,7 +1459,7 @@ const AdminPage = () => {
                                                                 >
                                                                     <FileText size={12} />
                                                                     <span className="text-[9px] font-black whitespace-nowrap">
-                                                                        {file.category === 'registry' ? '등기' : (file.category === 'contract' ? '계약' : (file.category === 'id_card' ? '신분증' : (file.category === 'family' ? '가족' : (file.category === 'bank_book' ? '통장' : '기타'))))}
+                                                                        {file.category === 'registry' ? '등기' : (file.category === 'contract' ? '계약' : (file.category === 'id_card' ? '신분증' : (file.category === 'family' ? '가족' : (file.category === 'bank_book' ? '통장' : (file.category === 'agreementsPdf' ? '동의서' : '기타')))))}
                                                                     </span>
                                                                 </a>
                                                             ))}
