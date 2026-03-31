@@ -135,6 +135,16 @@ const AdminPage = () => {
         return Math.floor(val).toLocaleString() + "원";
     };
 
+    const formatDate = (isoString) => {
+        if (!isoString) return '-';
+        const d = new Date(isoString);
+        if (isNaN(d.getTime())) return isoString;
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}.${month}.${day}`;
+    };
+
     const calculatePackage = (basePrice, rentalMonthly, subtractAmount) => {
         const advancePayment = (basePrice || 0) - (subtractAmount || 0);
         return advancePayment < 0 ? "해당없음" : formatKrw(advancePayment);
@@ -1166,7 +1176,7 @@ const AdminPage = () => {
                                         filteredList.map((item, idx) => (
                                             <tr key={idx} className="hover:bg-blue-50/30 transition-colors">
                                                 <td className="px-4 py-4 text-center font-bold text-gray-400">{filteredList.length - idx}</td>
-                                                <td className="px-4 py-4 text-center whitespace-nowrap font-medium text-gray-600">{item.date}</td>
+                                                <td className="px-4 py-4 text-center whitespace-nowrap font-medium text-gray-600">{item.date?.replace(/-/g, '.')}</td>
                                                 <td className="px-4 py-4 text-center whitespace-nowrap font-bold text-[#001a3d]">{item.branch}</td>
                                                 <td className="px-4 py-4 text-center whitespace-nowrap">
                                                     <span className={`px-2 py-0.5 rounded-md text-[10px] font-black ${item.type === '최종견적' ? 'bg-[#001a3d] text-[#c5a059]' :
@@ -1297,7 +1307,7 @@ const AdminPage = () => {
                                                         ))}
                                                     </select>
                                                 </td>
-                                                <td className="px-2 py-3.5 text-center whitespace-nowrap font-medium text-gray-400 text-[10px]">{item.createdAt ? item.createdAt.split('T')[0].replace(/-/g, '.') : '-'}</td>
+                                                <td className="px-2 py-3.5 text-center whitespace-nowrap font-medium text-gray-400 text-[10px]">{formatDate(item.createdAt)}</td>
                                                 <td className="px-2 py-3.5 text-center whitespace-nowrap font-bold text-blue-600 hover:text-blue-800 cursor-pointer underline decoration-wavy underline-offset-4" onClick={() => handleRentalNameClick(item)}>{item.name}</td>
                                                 <td className="px-2 py-3.5 text-center whitespace-nowrap text-gray-500 font-mono text-[10px]">{item.phone}</td>
                                                 <td className="px-2 py-3.5 text-center whitespace-nowrap text-gray-500 text-[10px]">{item.birthDate}</td>
@@ -1420,7 +1430,7 @@ const AdminPage = () => {
                                                             ))}
                                                         </select>
                                                     </td>
-                                                    <td className="px-2 py-3.5 text-center whitespace-nowrap font-medium text-gray-400 text-[10px]">{item.createdAt ? item.createdAt.split('T')[0].replace(/-/g, '.') : '-'}</td>
+                                                    <td className="px-2 py-3.5 text-center whitespace-nowrap font-medium text-gray-400 text-[10px]">{formatDate(item.createdAt)}</td>
                                                     <td className="px-2 py-3.5 text-center whitespace-nowrap font-bold text-teal-600 hover:text-teal-800 cursor-pointer underline decoration-wavy underline-offset-4" onClick={() => handleRentalNameClick(item)}>{item.name}</td>
                                                     <td className="px-2 py-3.5 text-center whitespace-nowrap text-gray-500 font-mono text-[10px]">{item.phone}</td>
                                                     <td className="px-2 py-3.5 text-center whitespace-nowrap text-gray-500 text-[10px]">{item.birthDate}</td>

@@ -36,7 +36,7 @@ export const saveQuote = async (data, file) => {
     }
 
     const params = {
-        date: new Date().toISOString().split('T')[0],
+        date: new Date().toLocaleDateString('en-CA'), // Returns YYYY-MM-DD in local time
         branch: data.branch || "",
         type: data.statusType || "가견적",
         name: data.customerName || "",

@@ -1806,38 +1806,15 @@ const CustomerPage = () => {
                                                     </p>
                                                     <button
                                                         onClick={async () => {
-                                                            const pdfFile = await generateSignedPdf();
-                                                            if (!pdfFile) return;
-
                                                             if (window.confirm(`${applicationType === 'subscription' ? '구독' : '렌탈'} 신청을 완료하시겠습니까?\n제출된 정보로 신용조회가 진행됩니다.`)) {
                                                                  setIsSubmitting(true);
                                                                  
-                                                                 // 1. PDF 파일 업로드 (스토리지 저장)
-                                                                 let newStorageId;
-                                                                 try {
-                                                                     newStorageId = await uploadSingleFile(pdfFile);
-                                                                 } catch(e) {
-                                                                     console.error("PDF 업로드 실패:", e);
-                                                                 }
-
-                                                                 // 2. 신청 폼 데이터 구성 (PDF 파일 포함)
-                                                                 const updatedForm = {
-                                                                     ...rentalForm,
-                                                                     files: {
-                                                                         ...rentalForm.files,
-                                                                         agreementsPdf: newStorageId ? [{ name: pdfFile.name, storageId: newStorageId }] : []
-                                                                     }
-                                                                 };
-
-                                                                 const res = applicationType === 'subscription'
-                                                                     ? await submitSubscriptionApplication(data, updatedForm, draftId)
-                                                                     : await submitRentalApplication(data, updatedForm, draftId);
+                                                                 // 구독은 전자서명 없이 신청 데이터만 저장
+                                                                 const res = await submitSubscriptionApplication(data, rentalForm, draftId);
                                                                 setIsSubmitting(false);
 
                                                                 if (res.success) {
-                                                                    const successMsg = applicationType === 'subscription'
-                                                                        ? `구독 신청이 정상적으로 저장되었습니다.\n이어서 열리는 페이지를 통해 모바일 신용조회 동의를 반드시 진행해주세요.\n신용조회 동의 확인 후 담당자가 별도 연락 드릴 예정입니다.(1~2일 소요)`
-                                                                        : `렌탈 신청이 정상적으로 완료되었습니다.\n신청 가능 여부를 확인한 후 담당자를 통해 연락드리겠습니다.\n감사합니다.(1~2일 소요)`;
+                                                                    const successMsg = `구독 신청이 정상적으로 저장되었습니다.\n이어서 열리는 페이지를 통해 모바일 신용조회 동의를 반드시 진행해주세요.\n신용조회 동의 확인 후 담당자가 별도 연락 드릴 예정입니다.(1~2일 소요)`;
                                                                     alert(successMsg);
                                                                     window.open("https://m.hankookcapital.co.kr/ib20/mnu/HKMUCR010101", "_blank");
                                                                     setIsRentalMode(false);
@@ -1971,28 +1948,30 @@ const CustomerPage = () => {
                                         </div>
                                     )}
 
-                                    {/* 전자서명 (공통) */}
-                                    <div className="bg-gray-50 p-6 rounded-[2rem] border border-gray-200 shadow-sm relative overflow-hidden text-left mt-6">
-                                        <div className="mb-4">
-                                            <h4 className="text-sm font-black text-[#001a3d] flex items-center gap-2">
-                                                <div className="w-6 h-6 bg-[#001a3d] text-white rounded-md flex items-center justify-center shadow-md"><ShieldCheck size={14} /></div>
-                                                전자 서명 <span className="text-red-500">*</span>
-                                            </h4>
-                                            <p className="text-[11px] text-gray-500 font-bold mt-1">위에 정자로 서명해주세요. 입력하신 서명은 정보동의서에 자동 표기됩니다.</p>
+                                    {/* 전자서명 (렌탈 전용) */}
+                                    {applicationType === 'rental' && (
+                                        <div className="bg-gray-50 p-6 rounded-[2rem] border border-gray-200 shadow-sm relative overflow-hidden text-left mt-6">
+                                            <div className="mb-4">
+                                                <h4 className="text-sm font-black text-[#001a3d] flex items-center gap-2">
+                                                    <div className="w-6 h-6 bg-[#001a3d] text-white rounded-md flex items-center justify-center shadow-md"><ShieldCheck size={14} /></div>
+                                                    전자 서명 <span className="text-red-500">*</span>
+                                                </h4>
+                                                <p className="text-[11px] text-gray-500 font-bold mt-1">위에 정자로 서명해주세요. 입력하신 서명은 정보동의서에 자동 표기됩니다.</p>
+                                            </div>
+                                            <div className="bg-white border-2 border-dashed border-gray-300 rounded-[1.5rem] relative overflow-hidden transition-all hover:border-[#c5a059]/50">
+                                                <SignaturePad 
+                                                    ref={sigCanvas} 
+                                                    canvasProps={{ className: 'w-full h-40 bg-white cursor-crosshair' }} 
+                                                />
+                                                <button 
+                                                    onClick={() => { sigCanvas.current.clear(); setSignatureImg(null); }} 
+                                                    className="absolute top-3 right-3 text-[10px] bg-gray-100 text-gray-600 px-3 py-1.5 rounded-lg shadow-sm font-black hover:bg-gray-200 active:scale-95 transition-all outline-none"
+                                                >
+                                                    다시 쓰기
+                                                </button>
+                                            </div>
                                         </div>
-                                        <div className="bg-white border-2 border-dashed border-gray-300 rounded-[1.5rem] relative overflow-hidden transition-all hover:border-[#c5a059]/50">
-                                            <SignaturePad 
-                                                ref={sigCanvas} 
-                                                canvasProps={{ className: 'w-full h-40 bg-white cursor-crosshair' }} 
-                                            />
-                                            <button 
-                                                onClick={() => { sigCanvas.current.clear(); setSignatureImg(null); }} 
-                                                className="absolute top-3 right-3 text-[10px] bg-gray-100 text-gray-600 px-3 py-1.5 rounded-lg shadow-sm font-black hover:bg-gray-200 active:scale-95 transition-all outline-none"
-                                            >
-                                                다시 쓰기
-                                            </button>
-                                        </div>
-                                    </div>
+                                    )}
                                 </div>
                             )}
                         </div>
