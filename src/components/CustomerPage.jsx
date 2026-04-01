@@ -126,7 +126,9 @@ const CustomerPage = () => {
             agree1: false,
             agree2: false,
             agree3: false
-        }
+        },
+        transferDate: '',
+        jobCategory: ''
     });
 
     // Lock body scroll when modal is open
@@ -263,7 +265,9 @@ const CustomerPage = () => {
                         selectedAmount: draft.selectedAmount || null,
                         ownershipType: draft.ownershipType || 'own_own',
                         files: filesObj,
-                        agreements: draft.agreements || { agree1: false, agree2: false, agree3: false }
+                        agreements: draft.agreements || { agree1: false, agree2: false, agree3: false },
+                        transferDate: draft.transferDate || '',
+                        jobCategory: draft.jobCategory || ''
                     });
                 }
             };
@@ -290,13 +294,11 @@ const CustomerPage = () => {
                 setTimeout(() => setShowSaveToast(false), 2000);
             } else {
                 console.error("Auto-save failed:", res.message);
-                // We typically don't alert on auto-save unless it's critical,
-                // but for debugging the user's issue, we'll log it clearly.
             }
         }, 3000); // 3 seconds debounce
 
         return () => clearTimeout(timer);
-    }, [rentalForm.birthDate, rentalForm.gender, rentalForm.selectedAmount, rentalForm.ownershipType, rentalForm.agreements]);
+    }, [rentalForm.birthDate, rentalForm.gender, rentalForm.selectedAmount, rentalForm.ownershipType, rentalForm.agreements, rentalForm.transferDate, rentalForm.jobCategory]);
 
     const handleSearch = (e) => {
         e.preventDefault();
@@ -1569,6 +1571,100 @@ const CustomerPage = () => {
                                             </div>
                                         </div>
                                     </div>
+ 
+                                    {/* Subscription Exclusive: Installment Details & Transfer/Job Info */}
+                                    {applicationType === 'subscription' && (
+                                        <div className="space-y-6 animate-in fade-in slide-in-from-top-4">
+                                            <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-gray-100 space-y-6">
+                                                <div>
+                                                    <label className="text-[11px] font-black text-[#001a3d] uppercase tracking-widest mb-2 block">이체일자 선택</label>
+                                                    <div className="relative">
+                                                        <select
+                                                            value={rentalForm.transferDate}
+                                                            onChange={(e) => setRentalForm({ ...rentalForm, transferDate: e.target.value })}
+                                                            className="w-full bg-white border border-gray-200 focus:border-[#c5a059] rounded-xl px-4 py-3.5 font-black text-sm text-[#001a3d] outline-none appearance-none transition-all cursor-pointer"
+                                                        >
+                                                            <option value="">이체일자를 선택하세요</option>
+                                                            {[...Array(28)].map((_, i) => (
+                                                                <option key={i + 1} value={`${i + 1}일`}>{i + 1}일</option>
+                                                            ))}
+                                                            <option value="말일">말일</option>
+                                                        </select>
+                                                        <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
+                                                            <ChevronRight size={18} className="rotate-90 text-gray-300" />
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div>
+                                                    <label className="text-[11px] font-black text-[#001a3d] uppercase tracking-widest mb-2 block">직군선택</label>
+                                                    <div className="space-y-3">
+                                                        <div className="relative">
+                                                            <select
+                                                                value={[
+                                                                    "건설관련직", "기계관련직", "섬유및의복관련직", "식품가공관련직", 
+                                                                    "재료관련직", "전기·전자관련직", "정보통신관련직", "화학관련직", 
+                                                                    "환경·인쇄·목재·가구·공예및생산단순직", "경영·회계·사무관련직", 
+                                                                    "금융·보험관련직", "관리직", "군인", "농립어업관련직", 
+                                                                    "교육및자연과학·사회과학연구관련직", "문화·예술·디자인·방송관련직", 
+                                                                    "법률·경찰·소방·교도관련직", "보건·의료관련직", "사회복지및종교관련직", 
+                                                                    "경비및청소관련직", "미용·숙박·여행·오락·스포츠관련직", 
+                                                                    "영업및판매관련직", "운전및운송관련직", "음식서비스관련직", "주부", "무직"
+                                                                ].includes(rentalForm.jobCategory) ? rentalForm.jobCategory : (rentalForm.jobCategory ? '직접입력' : '')}
+                                                                onChange={(e) => {
+                                                                    const val = e.target.value;
+                                                                    if (val === '직접입력') {
+                                                                        setRentalForm({ ...rentalForm, jobCategory: '직접입력' });
+                                                                    } else {
+                                                                        setRentalForm({ ...rentalForm, jobCategory: val });
+                                                                    }
+                                                                }}
+                                                                className="w-full bg-white border border-gray-200 focus:border-[#c5a059] rounded-xl px-4 py-3.5 font-black text-sm text-[#001a3d] outline-none appearance-none transition-all cursor-pointer"
+                                                            >
+                                                                <option value="">직군을 선택하세요</option>
+                                                                {[
+                                                                    "건설관련직", "기계관련직", "섬유및의복관련직", "식품가공관련직", 
+                                                                    "재료관련직", "전기·전자관련직", "정보통신관련직", "화학관련직", 
+                                                                    "환경·인쇄·목재·가구·공예및생산단순직", "경영·회계·사무관련직", 
+                                                                    "금융·보험관련직", "관리직", "군인", "농립어업관련직", 
+                                                                    "교육및자연과학·사회과학연구관련직", "문화·예술·디자인·방송관련직", 
+                                                                    "법률·경찰·소방·교도관련직", "보건·의료관련직", "사회복지및종교관련직", 
+                                                                    "경비및청소관련직", "미용·숙박·여행·오락·스포츠관련직", 
+                                                                    "영업및판매관련직", "운전및운송관련직", "음식서비스관련직", "주부", "무직"
+                                                                ].map(job => (
+                                                                    <option key={job} value={job}>{job}</option>
+                                                                ))}
+                                                                <option value="직접입력">직접입력</option>
+                                                            </select>
+                                                            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
+                                                                <ChevronRight size={18} className="rotate-90 text-gray-300" />
+                                                            </div>
+                                                        </div>
+
+                                                        {/* 직접입력 선택 시 또는 리스트에 없는 값일 경우 입력 필드 표시 */}
+                                                        {(![
+                                                            "건설관련직", "기계관련직", "섬유및의복관련직", "식품가공관련직", 
+                                                            "재료관련직", "전기·전자관련직", "정보통신관련직", "화학관련직", 
+                                                            "환경·인쇄·목재·가구·공예및생산단순직", "경영·회계·사무관련직", 
+                                                            "금융·보험관련직", "관리직", "군인", "농립어업관련직", 
+                                                            "교육및자연과학·사회과학연구관련직", "문화·예술·디자인·방송관련직", 
+                                                            "법률·경찰·소방·교도관련직", "보건·의료관련직", "사회복지및종교관련직", 
+                                                            "경비및청소관련직", "미용·숙박·여행·오락·스포츠관련직", 
+                                                            "영업및판매관련직", "운전및운송관련직", "음식서비스관련직", "주부", "무직", ""
+                                                        ].includes(rentalForm.jobCategory) || rentalForm.jobCategory === '직접입력') && (
+                                                            <input
+                                                                type="text"
+                                                                placeholder="직군을 직접 입력해주세요"
+                                                                value={rentalForm.jobCategory === '직접입력' ? '' : rentalForm.jobCategory}
+                                                                onChange={(e) => setRentalForm({ ...rentalForm, jobCategory: e.target.value })}
+                                                                className="w-full bg-white border border-gray-200 focus:border-[#c5a059] rounded-xl px-4 py-3.5 font-black text-sm text-[#001a3d] outline-none transition-all animate-in fade-in slide-in-from-top-2"
+                                                            />
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             )}
 

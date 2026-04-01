@@ -66,6 +66,8 @@ export default defineSchema({
             agree3: v.boolean(),
         }),
         status: v.string(), // pending
+        transferDate: v.optional(v.string()),
+        jobCategory: v.optional(v.string()),
         createdAt: v.string(),
     }).index("by_quoteId", ["quoteId"])
       .index("by_name_phone", ["name", "phone"]),
@@ -95,6 +97,8 @@ export default defineSchema({
             agree3: v.boolean(),
         }),
         status: v.string(), // pending
+        transferDate: v.optional(v.string()),
+        jobCategory: v.optional(v.string()),
         createdAt: v.string(),
     }).index("by_quoteId", ["quoteId"])
       .index("by_name_phone", ["name", "phone"]),

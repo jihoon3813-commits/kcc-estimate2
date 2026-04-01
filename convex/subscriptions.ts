@@ -28,6 +28,8 @@ export const submitApplication = mutation({
             agree2: v.boolean(),
             agree3: v.boolean(),
         }),
+        transferDate: v.optional(v.string()),
+        jobCategory: v.optional(v.string()), // Added for job category
     },
     handler: async (ctx, args) => {
         const { id, ...data } = args;
@@ -107,6 +109,8 @@ export const saveDraft = mutation({
             agree2: v.boolean(),
             agree3: v.boolean(),
         }),
+        transferDate: v.optional(v.string()),
+        jobCategory: v.optional(v.string()), // Added for job category
     },
     handler: async (ctx, args) => {
         let existingDraft;

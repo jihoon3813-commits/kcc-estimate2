@@ -1281,7 +1281,7 @@ const AdminPage = () => {
                                 <thead className="bg-[#2c3e50] text-white">
                                     <tr>
                                         {[
-                                            "순번", "상태", "일자", "고객명", "전화번호", "생일", "성", "소유", "할인가", "선납금", "잔금", "구분", "개월", "구독료", "서류"
+                                            "순번", "상태", "일자", "고객명", "전화번호", "생일", "성", "이체", "직군", "소유", "할인가", "선납금", "잔금", "구분", "개월", "구독료", "서류"
                                         ].map((th, i) => (
                                             <th key={i} className="px-2 py-3.5 font-black whitespace-nowrap text-[11px] uppercase tracking-tighter first:pl-6 last:pr-6 text-center">{th}</th>
                                         ))}
@@ -1290,7 +1290,7 @@ const AdminPage = () => {
                                 <tbody className="divide-y divide-gray-100">
                                     {filteredRentalList.length === 0 ? (
                                         <tr>
-                                            <td colSpan="15" className="text-center py-20 text-gray-400 font-bold">렌탈 신청 내역이 없습니다.</td>
+                                            <td colSpan="17" className="text-center py-20 text-gray-400 font-bold">렌탈 신청 내역이 없습니다.</td>
                                         </tr>
                                     ) : (
                                         filteredRentalList.map((item, idx) => (
@@ -1312,6 +1312,8 @@ const AdminPage = () => {
                                                 <td className="px-2 py-3.5 text-center whitespace-nowrap text-gray-500 font-mono text-[10px]">{item.phone}</td>
                                                 <td className="px-2 py-3.5 text-center whitespace-nowrap text-gray-500 text-[10px]">{item.birthDate}</td>
                                                 <td className="px-2 py-3.5 text-center whitespace-nowrap text-gray-500 text-[10px]">{item.gender === 'male' ? '남' : '여'}</td>
+                                                <td className="px-2 py-3.5 text-center whitespace-nowrap text-gray-500 text-[10px] font-bold text-blue-700">{item.transferDate || '-'}</td>
+                                                <td className="px-2 py-3.5 text-center whitespace-nowrap text-gray-500 text-[10px] font-bold">{item.jobCategory || '-'}</td>
                                                 <td className="px-2 py-3.5 text-center whitespace-nowrap text-gray-500 text-[10px]">
                                                     {item.ownershipType === 'own_own' ? '본인' : (item.ownershipType === 'family_own' ? '가족' : '이사')}
                                                 </td>
@@ -1404,7 +1406,7 @@ const AdminPage = () => {
                                     <thead className="bg-[#1a3a3a] text-white">
                                         <tr>
                                             {[
-                                                "순번", "상태", "일자", "고객명", "전화번호", "생일", "성", "소유", "할인가", "선납금", "잔금", "구분", "개월", "구독료", "서류"
+                                                "순번", "상태", "일자", "고객명", "전화번호", "생일", "성", "이체", "직군", "소유", "할인가", "선납금", "잔금", "구분", "개월", "구독료", "서류"
                                             ].map((th, i) => (
                                                 <th key={i} className="px-2 py-3.5 font-black whitespace-nowrap text-[11px] uppercase tracking-tighter first:pl-6 last:pr-6 text-center">{th}</th>
                                             ))}
@@ -1413,7 +1415,7 @@ const AdminPage = () => {
                                     <tbody className="divide-y divide-gray-100">
                                         {filteredSubscriptionList.length === 0 ? (
                                             <tr>
-                                                <td colSpan="15" className="text-center py-20 text-gray-400 font-bold">할부 신청 내역이 없습니다.</td>
+                                                <td colSpan="17" className="text-center py-20 text-gray-400 font-bold">할부 신청 내역이 없습니다.</td>
                                             </tr>
                                         ) : (
                                             filteredSubscriptionList.map((item, idx) => (
@@ -1435,6 +1437,8 @@ const AdminPage = () => {
                                                     <td className="px-2 py-3.5 text-center whitespace-nowrap text-gray-500 font-mono text-[10px]">{item.phone}</td>
                                                     <td className="px-2 py-3.5 text-center whitespace-nowrap text-gray-500 text-[10px]">{item.birthDate}</td>
                                                     <td className="px-2 py-3.5 text-center whitespace-nowrap text-gray-500 text-[10px]">{item.gender === 'male' ? '남' : '여'}</td>
+                                                    <td className="px-2 py-3.5 text-center whitespace-nowrap text-gray-500 text-[10px] font-bold text-teal-700">{item.transferDate || '-'}</td>
+                                                    <td className="px-2 py-3.5 text-center whitespace-nowrap text-gray-500 text-[10px] font-bold">{item.jobCategory || '-'}</td>
                                                     <td className="px-2 py-3.5 text-center whitespace-nowrap text-gray-500 text-[10px]">
                                                         {item.ownershipType === 'own_own' ? '본인' : (item.ownershipType === 'family_own' ? '가족' : '이사')}
                                                     </td>

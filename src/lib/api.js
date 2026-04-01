@@ -369,6 +369,8 @@ export const submitSubscriptionApplication = async (customerData, form, draftId)
             monthlyAmount: (form.conversionSubs && form.selectedAmount) ? form.conversionSubs[form.selectedAmount] : 0,
             files: uploadedFiles,
             agreements: { ...form.agreements },
+            transferDate: form.transferDate,
+            jobCategory: form.jobCategory,
         };
 
         const id = await convex.mutation(api.subscriptions.submitApplication, params);
@@ -415,7 +417,9 @@ export const saveSubscriptionDraft = async (customerData, form) => {
                 agree1: form.agreements?.agree1 || false,
                 agree2: form.agreements?.agree2 || false,
                 agree3: form.agreements?.agree3 || false
-            }
+            },
+            transferDate: form.transferDate,
+            jobCategory: form.jobCategory,
         };
         const id = await convex.mutation(api.subscriptions.saveDraft, params);
         return { success: true, id };
