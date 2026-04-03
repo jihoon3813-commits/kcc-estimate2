@@ -1814,7 +1814,8 @@ const CustomerPage = () => {
                                                 <div className="space-y-6">
                                                     {[
                                                         { key: 'registry', label: '등기부등본', desc: '본인 명의의 부동산임을 증명해야 합니다.', icon: <Upload size={18} /> },
-                                                        { key: 'id_card', label: '신분증 사본', desc: '신원을 확인하기 위한 서류입니다.', icon: <ShieldCheck size={18} /> }
+                                                        { key: 'id_card', label: '신분증 사본', desc: '신원을 확인하기 위한 서류입니다.', icon: <ShieldCheck size={18} /> },
+                                                        ...(applicationType === 'subscription' ? [{ key: 'bank_book', label: '통장사본(자동이체용)', desc: '구독료 자동이체 설정을 위한 서류입니다.', icon: <Upload size={18} /> }] : [])
                                                     ].map(doc => (
                                                         <div key={doc.key} className="space-y-4">
                                                             <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 text-blue-800 text-xs font-bold leading-relaxed">
