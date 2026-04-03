@@ -213,7 +213,7 @@ export const submitRentalApplication = async (customerData, rentalForm, draftId)
             finalBenefit: customerData.finalBenefit || 0,
             downPayment: rentalForm.downPaymentToReport || 0,
             balance: (customerData.finalBenefit || 0) - (rentalForm.downPaymentToReport || 0),
-            conversionMode: rentalForm.conversionMode || '전액구독',
+            conversionMode: rentalForm.conversionMode || 'full',
             monthlyAmount: rentalForm.selectedAmount ? (rentalForm.selectedAmount === 11 ? 111000 : rentalForm.selectedAmount === 22 ? 222000 : rentalForm.selectedAmount === 33 ? 333000 : 0) : 0,
             files: uploadedFiles,
             agreements: rentalForm.agreements
@@ -271,7 +271,7 @@ export const saveRentalDraft = async (customerData, rentalForm) => {
             finalBenefit: customerData.finalBenefit || 0,
             downPayment: rentalForm.downPaymentToReport || 0,
             balance: (customerData.finalBenefit || 0) - (rentalForm.downPaymentToReport || 0),
-            conversionMode: rentalForm.conversionMode || '전액구독',
+            conversionMode: rentalForm.conversionMode || 'full',
             monthlyAmount: rentalForm.selectedAmount ? (rentalForm.selectedAmount === 11 ? 111000 : rentalForm.selectedAmount === 22 ? 222000 : rentalForm.selectedAmount === 33 ? 333000 : 0) : 0,
             files: (rentalForm.files ? Object.entries(rentalForm.files).flatMap(([cat, files]) => 
                 files.filter(f => f.storageId).map(f => ({ category: cat, name: f.name, storageId: f.storageId }))
@@ -365,7 +365,7 @@ export const submitSubscriptionApplication = async (customerData, form, draftId)
             finalBenefit: customerData.finalBenefit || 0,
             downPayment: form.downPaymentToReport || 0,
             balance: (customerData.finalBenefit || 0) - (form.downPaymentToReport || 0),
-            conversionMode: form.conversionMode || '전액구독',
+            conversionMode: form.conversionMode || 'full',
             monthlyAmount: (form.conversionSubs && form.selectedAmount) ? form.conversionSubs[form.selectedAmount] : 0,
             files: uploadedFiles,
             agreements: { ...form.agreements },
@@ -408,7 +408,7 @@ export const saveSubscriptionDraft = async (customerData, form) => {
             finalBenefit: customerData.finalBenefit || 0,
             downPayment: form.downPaymentToReport || 0,
             balance: (customerData.finalBenefit || 0) - (form.downPaymentToReport || 0),
-            conversionMode: form.conversionMode || '전액구독',
+            conversionMode: form.conversionMode || 'full',
             monthlyAmount: (form.conversionSubs && form.selectedAmount) ? form.conversionSubs[form.selectedAmount] : 0,
             files: (form.files ? Object.entries(form.files).flatMap(([cat, files]) => 
                 files.filter(f => f.storageId).map(f => ({ category: cat, name: f.name, storageId: f.storageId }))

@@ -259,15 +259,38 @@ const CustomerPage = () => {
                         });
                     }
 
-                    setRentalForm({
-                        birthDate: draft.birthDate || '',
-                        gender: draft.gender || '',
-                        selectedAmount: draft.selectedAmount || null,
-                        ownershipType: draft.ownershipType || 'own_own',
-                        files: filesObj,
-                        agreements: draft.agreements || { agree1: false, agree2: false, agree3: false },
-                        transferDate: draft.transferDate || '',
-                        jobCategory: draft.jobCategory || ''
+                    setRentalForm(prev => {
+                        const updated = {
+                            ...prev,
+                            birthDate: draft.birthDate || prev.birthDate || '',
+                            gender: draft.gender || prev.gender || '',
+                            selectedAmount: draft.selectedAmount || prev.selectedAmount || null,
+                            ownershipType: draft.ownershipType || prev.ownershipType || 'own_own',
+                            files: filesObj,
+                            agreements: draft.agreements || prev.agreements || { agree1: false, agree2: false, agree3: false },
+                            transferDate: draft.transferDate || prev.transferDate || '',
+                            jobCategory: draft.jobCategory || prev.jobCategory || '',
+                            // Restore conversion info if exists in draft
+                            conversionMode: draft.conversionMode || prev.conversionMode,
+                            downPaymentToReport: draft.downPayment !== undefined ? draft.downPayment : prev.downPaymentToReport,
+                            isConversion: draft.conversionMode ? true : prev.isConversion
+                        };
+
+                        // If we have conversionMode but no conversionSubs yet (e.g. from draft load), recalculate
+                        if (updated.isConversion && !updated.conversionSubs) {
+                            const isFull = updated.conversionMode === 'full' || updated.conversionMode === '전액구독';
+                            const amount = isFull ? data.finalBenefit : (data.finalBenefit - (updated.downPaymentToReport || 0));
+                            const annualRate = 0.1;
+                            const subs = {};
+                            for (const m of [24, 36, 48, 60]) {
+                                const r = annualRate / 12;
+                                const pmt = (amount * r) / (1 - Math.pow(1 + r, -m));
+                                subs[m] = Math.floor(pmt / 10) * 10;
+                            }
+                            updated.conversionSubs = subs;
+                        }
+
+                        return updated;
                     });
                 }
             };
@@ -1758,8 +1781,16 @@ const CustomerPage = () => {
                                         <div className="bg-white p-2 rounded-2xl shadow-sm border border-gray-100 flex gap-1">
                                             {[
                                                 { id: 'own_own', label: '본인 소유' },
-                                                { id: 'family_own', label: '가족소유(불가)', disabled: true },
-                                                { id: 'move_own', label: '이사예정(불가)', disabled: true }
+                                                { 
+                                                    id: 'family_own', 
+                                                    label: applicationType === 'subscription' ? '가족소유' : '가족소유(불가)', 
+                                                    disabled: applicationType === 'subscription' ? false : true 
+                                                },
+                                                { 
+                                                    id: 'move_own', 
+                                                    label: applicationType === 'subscription' ? '이사예정' : '이사예정(불가)', 
+                                                    disabled: applicationType === 'subscription' ? false : true 
+                                                }
                                             ].map(t => (
                                                 <button
                                                     key={t.id}
