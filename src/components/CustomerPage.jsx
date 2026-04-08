@@ -750,9 +750,10 @@ const CustomerPage = () => {
     if (!data) return <div className="min-h-screen flex items-center justify-center text-[#001a3d] font-bold text-xs uppercase tracking-widest">Loading Premium Data...</div>;
 
     return (
-        <div className="bg-[#f7f9fc] min-h-screen pb-16 font-sans selection:bg-[#c5a059]/30 text-sm">
-            <header className="bg-white sticky top-0 z-50 border-b border-gray-100 shadow-sm">
-                <div className="max-w-4xl mx-auto px-5 py-3.5 flex justify-between items-center">
+        <div className="min-h-screen bg-slate-900 flex justify-center selection:bg-[#c5a059]/30">
+            <div className="w-full max-w-[480px] bg-[#f7f9fc] min-h-screen pb-16 font-sans text-sm relative shadow-2xl overflow-x-hidden flex flex-col">
+                <header className="bg-white sticky top-0 z-50 border-b border-gray-100 shadow-sm">
+                    <div className="w-full px-5 py-3.5 flex justify-between items-center">
                     <img src="https://cdn.imweb.me/upload/S20250904697320f4fd9ed/5b115594e9a66.png" alt="KCC Logo" className="h-6 object-contain" />
                     <div className="flex items-center gap-1.5">
                         <span className={`text-white text-[9px] font-black px-2.5 py-1.5 rounded-md shadow-sm ${data.type === '최종견적' ? 'bg-red-500' :
@@ -769,7 +770,7 @@ const CustomerPage = () => {
                 </div>
             </header>
 
-            <div className="max-w-4xl mx-auto p-4 md:p-6 space-y-8">
+            <div className="w-full p-4 md:p-6 space-y-8">
             <div className="bg-[#001a3d] -mx-4 md:-mx-6 -mt-4 md:-mt-6 px-4 md:px-6 py-12 md:py-16 space-y-8 relative overflow-hidden">
                 {/* Background Decorative Elements */}
                 <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/5 rounded-full blur-3xl -mr-32 -mt-32"></div>
@@ -928,7 +929,7 @@ const CustomerPage = () => {
                                     </div>
                                     <div className="bg-white/[0.03] backdrop-blur-md rounded-2xl p-8 md:p-10 border border-white/5 text-center space-y-3 shadow-inner">
                                         <p className="text-white/30 text-[11px] font-black uppercase tracking-[0.2em]">최종 할인 적용금액</p>
-                                        <div className="text-4xl md:text-5xl font-black text-[#facc15] font-outfit tracking-tighter">
+                                        <div className="text-3xl md:text-4xl font-black text-[#facc15] font-outfit tracking-tighter">
                                             {formatKrw(data.finalBenefit)}
                                         </div>
                                     </div>
@@ -981,7 +982,7 @@ const CustomerPage = () => {
                                         </div>
                                     </div>
 
-                                    <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <div className="space-y-2">
                                             <label className="text-[10px] font-black text-white/40 uppercase tracking-widest ml-1">선납금 설정</label>
                                             <div className="relative">
@@ -1077,18 +1078,61 @@ const CustomerPage = () => {
                             <div className="absolute top-0 right-0 w-64 h-64 bg-slate-500/5 rounded-full blur-3xl -mr-32 -mt-32"></div>
                             
                             <div className="relative z-10 space-y-8">
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                    {[11, 22, 33].map(val => (
-                                        <div key={val} className="bg-black/20 backdrop-blur-md border border-white/5 p-6 rounded-xl space-y-3 group hover:border-[#c5a059]/30 transition-all">
-                                            <div className="text-[#c5a059] text-base font-black tracking-tight">
-                                                월 {val === 11 ? '111,000' : val === 22 ? '222,000' : '333,000'}원
-                                            </div>
-                                            <div className="space-y-0.5">
-                                                <p className="text-[10px] text-white/30 font-black uppercase tracking-widest">본인 부담 선납금</p>
-                                                <p className="text-xl font-black text-white font-outfit">{calculatePackage(data.finalBenefit, val * 10000, val * 500000 / 1.1)}</p>
-                                            </div>
+                                <div className="space-y-3">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center text-white/80 shadow-inner shrink-0">
+                                            <Clock size={20} />
                                         </div>
-                                    ))}
+                                        <h4 className="text-xl md:text-2xl font-black text-white tracking-tight whitespace-nowrap">60개월 렌탈 고정 패키지</h4>
+                                    </div>
+                                    <p className="text-white/40 text-xs md:text-sm font-medium leading-relaxed break-keep">월 렌탈료를 고정하고 잔액만 먼저 납입하는 실속형 프로그램 입니다.</p>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                    {[
+                                        { id: 'A', val: 11, amount: '111,000' },
+                                        { id: 'B', val: 22, amount: '222,000' },
+                                        { id: 'C', val: 33, amount: '333,000' }
+                                    ].map((pkg) => {
+                                        const pkgAmount = calculatePackage(data.finalBenefit, pkg.val * 10000, pkg.val * 500000 / 1.1);
+                                        const isNotAvailable = pkgAmount === '해당없음';
+
+                                        return (
+                                            <div key={pkg.id} className={`bg-black/20 backdrop-blur-md border border-white/5 p-8 rounded-2xl space-y-6 group transition-all text-center relative overflow-hidden ${isNotAvailable ? 'pointer-events-none' : 'hover:border-[#c5a059]/30'}`}>
+                                                {/* Sharply rendered overlay */}
+                                                {isNotAvailable && (
+                                                    <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/40">
+                                                        <div className="bg-[#facc15] px-6 py-2 rounded-xl shadow-[0_0_30px_rgba(250,204,21,0.4)] transform -rotate-12 border-2 border-white/20">
+                                                            <span className="text-[#001a3d] font-black text-base tracking-[0.2em] uppercase">해당없음</span>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                                
+                                                {/* Blurred content container */}
+                                                <div className={`space-y-6 transition-all duration-500 ${isNotAvailable ? 'blur-[3px] grayscale opacity-30 select-none' : ''}`}>
+                                                    <div className="bg-white/5 border border-white/5 py-1.5 rounded-lg relative z-10">
+                                                        <span className="text-[10px] font-black text-[#c5a059] uppercase tracking-widest">패키지 {pkg.id}</span>
+                                                    </div>
+
+                                                    <div className="space-y-1 relative z-10">
+                                                        <div className="text-white text-3xl font-black tracking-tighter font-outfit">
+                                                            월 {pkg.amount}원
+                                                        </div>
+                                                        <p className="text-[10px] text-white/30 font-bold uppercase tracking-widest">X 60개월</p>
+                                                    </div>
+
+                                                    <div className="border-t border-dashed border-white/10 w-full px-4 relative z-10"></div>
+
+                                                    <div className="space-y-2 relative z-10">
+                                                        <p className="text-[10px] text-white/40 font-black uppercase tracking-widest">초기 납입액 (잔액)</p>
+                                                        <p className="text-2xl font-black text-[#c5a059] font-outfit">
+                                                            {isNotAvailable ? '-' : pkgAmount}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
                                 </div>
 
                                 <button
@@ -1450,13 +1494,14 @@ const CustomerPage = () => {
         </div>
     </div>
 
-
-            {/* Contact Menu */}
-            <div className="fixed bottom-8 right-8 z-[60] flex flex-col items-end gap-3">
-                {showContactMenu && (
-                    <div className="flex flex-col gap-2 animate-in slide-in-from-bottom-4 fade-in duration-200 mb-2">
-                        <a href="tel:01046057977" className="bg-white text-[#001a3d] p-3 rounded-xl shadow-xl flex items-center justify-between gap-2 min-w-[130px] border border-gray-100 hover:bg-gray-50 transition-colors">
-                            <span className="font-bold text-xs">전화걸기</span>
+            {/* Contact Menu - Centered for PC inside the 480px frame bounds */}
+            <div className="fixed inset-x-0 bottom-0 z-[60] flex justify-center pointer-events-none">
+                <div className="w-full max-w-[480px] relative h-24 pointer-events-none">
+                    <div className="absolute bottom-8 right-6 flex flex-col items-end gap-3 pointer-events-auto">
+                        {showContactMenu && (
+                            <div className="flex flex-col gap-2 animate-in slide-in-from-bottom-4 fade-in duration-200 mb-2">
+                                <a href="tel:01046057977" className="bg-white text-[#001a3d] p-3 rounded-xl shadow-xl flex items-center justify-between gap-2 min-w-[130px] border border-gray-100 hover:bg-gray-50 transition-colors">
+                                    <span className="font-bold text-xs">전화걸기</span>
                             <div className="w-6 h-6 bg-green-500 text-white rounded-full flex items-center justify-center shadow-md"><Phone size={12} fill="currentColor" /></div>
                         </a>
                         <a href="sms:01046057977" className="bg-white text-[#001a3d] p-3 rounded-xl shadow-xl flex items-center justify-between gap-2 min-w-[130px] border border-gray-100 hover:bg-gray-50 transition-colors">
@@ -1484,6 +1529,8 @@ const CustomerPage = () => {
                         {showContactMenu ? '닫기' : '문의하기'}
                     </span>
                 </button>
+                    </div>
+                </div>
             </div>
 
 
@@ -2344,6 +2391,7 @@ const CustomerPage = () => {
                     </div>
                 </div>
             )}
+            </div>
         </div>
     );
 };
