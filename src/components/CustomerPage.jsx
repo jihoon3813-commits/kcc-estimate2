@@ -1088,7 +1088,7 @@ const CustomerPage = () => {
                                     <p className="text-white/40 text-xs md:text-sm font-medium leading-relaxed break-keep">월 렌탈료를 고정하고 잔액만 먼저 납입하는 실속형 프로그램 입니다.</p>
                                 </div>
 
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <div className="grid grid-cols-1 gap-6">
                                     {[
                                         { id: 'A', val: 11, amount: '111,000' },
                                         { id: 'B', val: 22, amount: '222,000' },
