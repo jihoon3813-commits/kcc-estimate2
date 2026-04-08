@@ -771,7 +771,7 @@ const CustomerPage = () => {
             </header>
 
             <div className="w-full p-4 md:p-6 space-y-8">
-            <div className="bg-[#001a3d] -mx-4 md:-mx-6 -mt-4 md:-mt-6 px-4 md:px-6 py-20 md:py-28 space-y-12 relative overflow-hidden flex flex-col items-center justify-center min-h-[500px]">
+            <div className="bg-[#001a3d] -mx-4 md:-mx-6 -mt-4 md:-mt-6 px-4 md:px-6 py-6 md:py-10 space-y-4 relative overflow-hidden flex flex-col items-center justify-center">
                 {/* Background Image with Overlay */}
                 <div className="absolute inset-0 z-0">
                     <img 
@@ -779,33 +779,33 @@ const CustomerPage = () => {
                         alt="Hero Background" 
                         className="w-full h-full object-cover opacity-60"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-b from-[#001a3d]/80 via-[#001a3d]/60 to-[#001a3d]"></div>
+                    <div className="absolute inset-0 bg-gradient-to-b from-[#001a3d]/80 via-[#001a3d]/50 to-[#001a3d]"></div>
                 </div>
 
                 {/* Decorative Elements */}
-                <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl -mr-32 -mt-32"></div>
-                <div className="absolute bottom-0 left-0 w-64 h-64 bg-[#c5a059]/10 rounded-full blur-3xl -ml-32 -mb-32"></div>
+                <div className="absolute top-0 right-0 w-48 h-48 bg-blue-500/10 rounded-full blur-3xl -mr-24 -mt-24"></div>
+                <div className="absolute bottom-0 left-0 w-48 h-48 bg-[#c5a059]/10 rounded-full blur-3xl -ml-24 -mb-24"></div>
 
-                <div className="text-center space-y-6 relative z-10 w-full max-w-lg">
-                    <div className="inline-block border border-[#c5a059]/40 bg-[#c5a059]/10 px-4 py-1.5 rounded-full backdrop-blur-md">
-                        <span className="text-[#c5a059] text-[10px] font-black tracking-[0.2em] uppercase">OFFICIAL QUOTATION</span>
+                <div className="text-center space-y-3 relative z-10 w-full max-w-lg">
+                    <div className="inline-block border border-[#c5a059]/40 bg-[#c5a059]/10 px-3 py-1 rounded-full backdrop-blur-md">
+                        <span className="text-[#c5a059] text-[9px] font-black tracking-[0.2em] uppercase">OFFICIAL QUOTATION</span>
                     </div>
                     
-                    <div className="space-y-4">
-                        <h2 className="text-3xl md:text-5xl font-extrabold text-white leading-[1.2] tracking-tight break-keep">
+                    <div className="space-y-2">
+                        <h2 className="text-2xl md:text-3xl font-extrabold text-white leading-[1.2] tracking-tight break-keep">
                             결제는 더 유연하게,<br />
                             창호는 더 <span className="text-[#facc15]">프리미엄하게</span>
                         </h2>
                         
-                        <div className="flex flex-col items-center gap-3 pt-6 w-full max-w-xs mx-auto">
+                        <div className="flex flex-col items-center gap-2 pt-2 w-full max-w-xs mx-auto">
                             {[
                                 '60개월 구독/렌탈/일시불 할인',
                                 'KCC홈씨씨 본사 시공 13년 보증',
                                 '유리 · 방충망 무료 업그레이드'
                             ].map((text, idx) => (
-                                <div key={idx} className="flex items-center gap-3 px-6 py-2.5 bg-black/30 backdrop-blur-md rounded-xl border border-white/10 w-full group/item hover:bg-white/5 transition-all">
-                                    <div className="w-1.5 h-1.5 bg-[#facc15] rounded-full shadow-[0_0_10px_rgba(250,204,21,0.8)]"></div>
-                                    <span className="text-white/90 text-xs md:text-sm font-black tracking-tight flex-1 text-left">{text}</span>
+                                <div key={idx} className="flex items-center gap-2.5 px-4 py-1.5 bg-black/30 backdrop-blur-md rounded-lg border border-white/10 w-full group/item hover:bg-white/5 transition-all">
+                                    <div className="w-1 h-1 bg-[#facc15] rounded-full shadow-[0_0_8px_rgba(250,204,21,0.8)]"></div>
+                                    <span className="text-white/90 text-[11px] md:text-xs font-black tracking-tight flex-1 text-left">{text}</span>
                                 </div>
                             ))}
                         </div>
@@ -813,16 +813,16 @@ const CustomerPage = () => {
                 </div>
 
                 <div className="max-w-xl mx-auto">
-                    <div className="bg-white/5 backdrop-blur-xl border border-white/10 p-6 md:p-10 rounded-2xl shadow-2xl relative overflow-hidden group">
+                    <div className="bg-white/5 backdrop-blur-xl border border-white/10 p-4 rounded-2xl shadow-2xl relative overflow-hidden group">
                         <div className="absolute top-0 right-0 w-32 h-32 bg-[#c5a059]/10 rounded-full blur-2xl -mr-16 -mt-16 group-hover:bg-[#c5a059]/20 transition-all duration-700"></div>
                         
-                        <div className="relative z-10 space-y-8">
-                            <div className="flex justify-between items-center">
+                        <div className="relative z-10 space-y-4">
+                            <div className="flex justify-between items-center px-1">
                                 <div>
-                                    <p className="text-[10px] font-black text-[#c5a059] uppercase tracking-[0.15em] mb-2">Customer details</p>
-                                    <h3 className="text-2xl md:text-3xl font-black text-white leading-none">{data.name} 고객님</h3>
+                                    <p className="text-[9px] font-black text-[#c5a059] uppercase tracking-[0.1em] mb-1">Customer details</p>
+                                    <h3 className="text-xl md:text-2xl font-black text-white leading-none">{data.name} 고객님</h3>
                                 </div>
-                                <div className={`px-5 py-2.5 rounded-xl text-[11px] font-black shadow-lg transition-all ${data.type === '최종견적' ? 'bg-[#c5a059] text-[#001a3d]' :
+                                <div className={`px-4 py-2 rounded-lg text-[10px] font-black shadow-lg transition-all ${data.type === '최종견적' ? 'bg-[#c5a059] text-[#001a3d]' :
                                     data.type === '책임견적' ? 'bg-[#c5a059] text-[#001a3d]' :
                                         'bg-white/10 text-white/50 border border-white/10'
                                     }`}>
@@ -832,29 +832,21 @@ const CustomerPage = () => {
 
                             <div className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
 
-                            <div className="grid grid-cols-1 gap-4">
-                                <div className="flex items-start gap-4 p-5 bg-white/5 rounded-xl border border-white/5 group/info hover:bg-white/10 transition-all">
-                                    <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center text-[#c5a059] group-hover/info:scale-110 transition-transform shadow-inner">
-                                        <MapPin size={22} />
+                            <div className="grid grid-cols-1 gap-3">
+                                <div className="flex items-start gap-4 p-3 bg-white/5 rounded-xl border border-white/5 group/info hover:bg-white/10 transition-all">
+                                    <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center text-[#c5a059] group-hover/info:scale-110 transition-transform shadow-inner shrink-0">
+                                        <MapPin size={18} />
                                     </div>
-                                    <div className="min-w-0 flex-1 pt-1">
-                                        <p className="text-[9px] text-white/30 font-bold uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
-                                            <div className="w-1 h-1 bg-[#c5a059] rounded-full"></div>
-                                            Address
-                                        </p>
-                                        <p className="text-[13px] md:text-sm font-bold text-white/90 leading-relaxed break-keep">{data.address}</p>
+                                    <div className="min-w-0 flex-1 flex items-center h-10">
+                                        <p className="text-[12px] md:text-sm font-bold text-white/90 leading-normal break-keep">{data.address}</p>
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-4 p-5 bg-white/5 rounded-xl border border-white/5 group/info hover:bg-white/10 transition-all">
-                                    <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center text-[#c5a059] group-hover/info:scale-110 transition-transform shadow-inner">
-                                        <Phone size={22} />
+                                <div className="flex items-center gap-4 p-3 bg-white/5 rounded-xl border border-white/5 group/info hover:bg-white/10 transition-all">
+                                    <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center text-[#c5a059] group-hover/info:scale-110 transition-transform shadow-inner shrink-0">
+                                        <Phone size={18} />
                                     </div>
-                                    <div className="pt-1">
-                                        <p className="text-[9px] text-white/30 font-bold uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
-                                            <div className="w-1 h-1 bg-[#c5a059] rounded-full"></div>
-                                            Contact
-                                        </p>
-                                        <p className="text-[13px] md:text-sm font-bold text-white/90 font-outfit tracking-wide">{formatPhoneNumber(data.phone || searchForm.phone)}</p>
+                                    <div className="flex-1 flex items-center h-10">
+                                        <p className="text-[12px] md:text-sm font-bold text-white/90 font-outfit tracking-wide">{formatPhoneNumber(data.phone || searchForm.phone)}</p>
                                     </div>
                                 </div>
                             </div>
@@ -864,12 +856,12 @@ const CustomerPage = () => {
             </div>
 
             {/* New Navigation Section */}
-            <div className="space-y-8 py-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-                <div className="text-center space-y-4">
-                    <div className="inline-block bg-[#001a3d] px-6 py-2 rounded-full shadow-xl border border-[#c5a059]/30">
-                        <span className="text-[#c5a059] text-[11px] font-black tracking-[0.2em] uppercase">결제 방식 안내</span>
+            <div className="space-y-4 py-2 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                <div className="text-center space-y-2">
+                    <div className="inline-block bg-[#001a3d] px-4 py-1.5 rounded-full shadow-xl border border-[#c5a059]/30">
+                        <span className="text-[#c5a059] text-[9px] font-black tracking-[0.1em] uppercase">결제 방식 안내</span>
                     </div>
-                    <h3 className="text-3xl md:text-4xl font-black text-[#001a3d] tracking-tight">결제 방식별 상세 제안</h3>
+                    <h3 className="text-2xl md:text-3xl font-black text-[#001a3d] tracking-tight">결제 방식별 상세 제안</h3>
                 </div>
 
                 <div className="grid grid-cols-1 gap-4 max-w-lg mx-auto">
@@ -878,14 +870,14 @@ const CustomerPage = () => {
                         { id: 2, title: '스마트 구독 서비스' },
                         { id: 3, title: '60개월 렌탈 패키지' }
                     ].map((item) => (
-                        <div key={item.id} className="bg-white p-6 rounded-xl shadow-lg shadow-gray-200/50 border border-gray-100 flex items-center gap-6 hover:shadow-2xl hover:scale-[1.02] transition-all cursor-pointer group relative overflow-hidden">
+                        <div key={item.id} className="bg-white p-3.5 rounded-xl shadow-lg shadow-gray-200/50 border border-gray-100 flex items-center gap-4 hover:shadow-2xl hover:scale-[1.02] transition-all cursor-pointer group relative overflow-hidden">
                             <div className="absolute inset-0 w-[200%] h-full bg-gradient-to-r from-transparent via-[#c5a059]/5 to-transparent -translate-x-full group-hover:animate-[shimmer_2s_infinite] pointer-events-none"></div>
-                            <div className="w-12 h-12 bg-[#001a3d] text-white rounded-full flex items-center justify-center font-black text-lg shadow-lg group-hover:bg-[#c5a059] group-hover:text-[#001a3d] transition-all duration-300 shrink-0">
+                            <div className="w-8 h-8 bg-[#001a3d] text-white rounded-full flex items-center justify-center font-black text-sm shadow-lg group-hover:bg-[#c5a059] group-hover:text-[#001a3d] transition-all duration-300 shrink-0">
                                 {item.id}
                             </div>
-                            <span className="text-lg font-black text-[#001a3d] tracking-tight group-hover:translate-x-1 transition-transform duration-300">{item.title}</span>
-                            <div className="ml-auto w-10 h-10 bg-gray-50 rounded-full flex items-center justify-center text-gray-300 group-hover:text-[#c5a059] group-hover:bg-[#001a3d]/5 transition-all duration-300">
-                                <ChevronRight size={20} />
+                            <span className="text-base font-black text-[#001a3d] tracking-tight group-hover:translate-x-1 transition-transform duration-300">{item.title}</span>
+                            <div className="ml-auto w-8 h-8 bg-gray-50 rounded-full flex items-center justify-center text-gray-300 group-hover:text-[#c5a059] group-hover:bg-[#001a3d]/5 transition-all duration-300">
+                                <ChevronRight size={16} />
                             </div>
                         </div>
                     ))}
@@ -929,88 +921,88 @@ const CustomerPage = () => {
                         결제 방식별 상세 제안
                     </h3>
 
-                    <div className="grid grid-cols-1 gap-10">
-                        <div className="bg-[#001a3d] rounded-2xl p-6 md:p-10 shadow-2xl relative overflow-hidden border border-white/5">
+                    <div className="grid grid-cols-1 gap-4">
+                        <div className="bg-[#001a3d] rounded-2xl p-4 md:p-8 shadow-2xl relative overflow-hidden border border-white/5">
                             <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/5 rounded-full blur-3xl -mr-32 -mt-32"></div>
                             
-                            <div className="relative z-10 space-y-8">
+                            <div className="relative z-10 space-y-6">
                                 <div className="flex items-center gap-4">
-                                    <div className="w-14 h-14 bg-white/10 rounded-xl flex items-center justify-center text-blue-400 shadow-inner">
-                                        <Wallet size={28} />
+                                    <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center text-blue-400 shadow-inner">
+                                        <Wallet size={24} />
                                     </div>
                                     <div>
-                                        <h4 className="text-xl md:text-2xl font-black text-white tracking-tight">일시불 특별 할인</h4>
-                                        <p className="text-white/40 text-xs font-medium">현금 또는 카드 일시불 결제 시 제공되는 혜택입니다.</p>
+                                        <h4 className="text-lg md:text-xl font-black text-white tracking-tight">일시불 특별 할인</h4>
+                                        <p className="text-white/40 text-[10px] font-medium">현금 또는 카드 일시불 결제 시 제공되는 혜택입니다.</p>
                                     </div>
                                 </div>
 
-                                <div className="space-y-4">
+                                <div className="space-y-3">
                                     <div className="flex justify-between items-center px-4 py-2 bg-white/5 rounded-xl border border-white/5">
-                                        <span className="text-white/50 text-xs font-bold">최종견적가</span>
+                                        <span className="text-white/50 text-[10px] font-bold">최종견적가</span>
                                         <span className="text-white/80 font-black text-sm font-outfit">{formatKrw(data.finalQuote)}</span>
                                     </div>
                                     <div className="flex justify-between items-center px-4 py-2 bg-blue-500/10 rounded-xl border border-blue-500/10">
-                                        <span className="text-blue-400 text-xs font-bold">할인금액</span>
+                                        <span className="text-blue-400 text-[10px] font-bold">할인금액</span>
                                         <span className="text-blue-400 font-black text-sm font-outfit">-{formatKrw(data.finalQuote - data.finalBenefit)}</span>
                                     </div>
-                                    <div className="bg-white/[0.03] backdrop-blur-md rounded-2xl p-8 md:p-10 border border-white/5 text-center space-y-3 shadow-inner">
-                                        <p className="text-white/30 text-[11px] font-black uppercase tracking-[0.2em]">최종 할인 적용금액</p>
-                                        <div className="text-3xl md:text-4xl font-black text-[#facc15] font-outfit tracking-tighter">
+                                    <div className="bg-white/[0.03] backdrop-blur-md rounded-2xl p-6 md:p-8 border border-white/5 text-center space-y-2 shadow-inner">
+                                        <p className="text-white/30 text-[9px] font-black uppercase tracking-[0.2em]">최종 할인 적용금액</p>
+                                        <div className="text-2xl md:text-3xl font-black text-[#facc15] font-outfit tracking-tighter">
                                             {formatKrw(data.finalBenefit)}
                                         </div>
                                     </div>
                                 </div>
 
-                                <div className="space-y-3 px-2">
-                                    <div className="flex items-center gap-3 py-4 border-b border-white/5">
-                                        <div className="w-6 h-6 bg-blue-500/20 text-blue-400 rounded-full flex items-center justify-center">
-                                            <CheckCircle2 size={16} />
+                                <div className="space-y-2 px-1">
+                                    <div className="flex items-center gap-3 py-2 border-b border-white/5">
+                                        <div className="w-5 h-5 bg-blue-500/20 text-blue-400 rounded-full flex items-center justify-center">
+                                            <CheckCircle2 size={12} />
                                         </div>
-                                        <span className="text-sm font-bold text-white/80">카드 : 결제 링크 제공</span>
+                                        <span className="text-xs font-bold text-white/80">카드 : 결제 링크 제공</span>
                                     </div>
-                                    <div className="flex items-center gap-3 py-4 border-b border-white/5">
-                                        <div className="w-6 h-6 bg-blue-500/20 text-blue-400 rounded-full flex items-center justify-center">
-                                            <CheckCircle2 size={16} />
+                                    <div className="flex items-center gap-3 py-2 border-b border-white/5">
+                                        <div className="w-5 h-5 bg-blue-500/20 text-blue-400 rounded-full flex items-center justify-center">
+                                            <CheckCircle2 size={12} />
                                         </div>
-                                        <span className="text-sm font-bold text-white/80">현금 : 현금영수증 발행 가능</span>
+                                        <span className="text-xs font-bold text-white/80">현금 : 현금영수증 발행 가능</span>
                                     </div>
                                 </div>
 
-                                <div className="bg-blue-600/10 border border-blue-500/20 py-4 rounded-xl text-center">
-                                    <span className="text-blue-400 text-sm font-black tracking-tight">선금 50% / 잔금 50% 분할 결제 지원</span>
+                                <div className="bg-blue-600/10 border border-blue-500/20 py-3 rounded-xl text-center">
+                                    <span className="text-blue-400 text-xs font-black tracking-tight">선금 50% / 잔금 50% 분할 결제 지원</span>
                                 </div>
                             </div>
                         </div>
 
                         {/* 2. 스마트 구독 서비스 섹션 */}
-                        <div className="bg-gradient-to-br from-[#1e1b4b] to-[#312e81] rounded-2xl p-6 md:p-10 shadow-2xl relative overflow-hidden border border-white/5">
+                        <div className="bg-gradient-to-br from-[#1e1b4b] to-[#312e81] rounded-2xl p-4 md:p-8 shadow-2xl relative overflow-hidden border border-white/5">
                             <div className="absolute bottom-0 left-0 w-64 h-64 bg-purple-500/10 rounded-full blur-3xl -ml-32 -mb-32"></div>
                             
-                            <div className="relative z-10 space-y-8">
+                            <div className="relative z-10 space-y-6">
                                 <div className="flex items-center gap-4">
-                                    <div className="w-14 h-14 bg-white/10 rounded-2xl flex items-center justify-center text-purple-400 shadow-inner">
-                                        <Sparkles size={28} />
+                                    <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center text-purple-400 shadow-inner">
+                                        <Sparkles size={24} />
                                     </div>
                                     <div>
-                                        <h4 className="text-xl md:text-2xl font-black text-white tracking-tight">스마트 구독 서비스</h4>
-                                        <p className="text-white/40 text-xs font-medium">목돈 부담 없이 월 구독료로 이용하는 효율적인 결제 방식입니다.</p>
+                                        <h4 className="text-lg md:text-xl font-black text-white tracking-tight">스마트 구독 서비스</h4>
+                                        <p className="text-white/40 text-[10px] font-medium">목돈 부담 없이 월 구독료로 이용하는 효율적인 결제 방식입니다.</p>
                                     </div>
                                 </div>
 
-                                <div className="bg-white/5 backdrop-blur-md rounded-2xl p-6 md:p-8 border border-white/10 space-y-6">
-                                    <div className="flex items-center justify-between mb-2">
+                                <div className="bg-white/5 backdrop-blur-md rounded-2xl p-4 md:p-6 border border-white/10 space-y-4">
+                                    <div className="flex items-center justify-between mb-1">
                                         <div className="flex items-center gap-2">
                                             <div className="w-1.5 h-4 bg-purple-500 rounded-full"></div>
-                                            <span className="text-[11px] font-black text-purple-300 uppercase tracking-widest">구독 전환 계산기</span>
+                                            <span className="text-[10px] font-black text-purple-300 uppercase tracking-widest">구독 전환 계산기</span>
                                         </div>
-                                        <div className="bg-purple-500/20 px-3 py-1 rounded-full">
-                                            <span className="text-[9px] font-black text-purple-200 animate-pulse">인기 선택</span>
+                                        <div className="bg-purple-500/20 px-3 py-0.5 rounded-full">
+                                            <span className="text-[8px] font-black text-purple-200 animate-pulse">인기 선택</span>
                                         </div>
                                     </div>
 
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                        <div className="space-y-2">
-                                            <label className="text-[10px] font-black text-white/40 uppercase tracking-widest ml-1">선납금 설정</label>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                        <div className="space-y-1">
+                                            <label className="text-[9px] font-black text-white/40 uppercase tracking-widest ml-1">선납금 설정</label>
                                             <div className="relative">
                                                 <input
                                                     type="text"
@@ -1023,21 +1015,21 @@ const CustomerPage = () => {
                                                             setBalance(data.finalBenefit - val);
                                                         }
                                                     }}
-                                                    className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-4 pr-8 text-sm font-black text-white outline-none focus:border-purple-500 transition-all text-right"
+                                                    className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 pr-8 text-sm font-black text-white outline-none focus:border-purple-500 transition-all text-right"
                                                 />
-                                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-white/30">원</span>
+                                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-bold text-white/30">원</span>
                                             </div>
                                         </div>
-                                        <div className="space-y-2">
-                                            <label className="text-[10px] font-black text-white/40 uppercase tracking-widest ml-1">잔금 (구독 대상)</label>
+                                        <div className="space-y-1">
+                                            <label className="text-[9px] font-black text-white/40 uppercase tracking-widest ml-1">잔금 (구독 대상)</label>
                                             <div className="relative">
                                                 <input
                                                     type="text"
                                                     readOnly
                                                     value={new Intl.NumberFormat('ko-KR').format(balance)}
-                                                    className="w-full bg-black/20 border border-white/5 rounded-2xl py-4 px-4 pr-8 text-sm font-black text-white/40 outline-none text-right"
+                                                    className="w-full bg-black/20 border border-white/5 rounded-xl py-3 px-4 pr-8 text-sm font-black text-white/40 outline-none text-right"
                                                 />
-                                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-white/20">원</span>
+                                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-bold text-white/20">원</span>
                                             </div>
                                         </div>
                                     </div>
@@ -1100,21 +1092,21 @@ const CustomerPage = () => {
                         </div>
 
                         {/* 3. 60개월 렌탈 고정형 패키지 섹션 */}
-                        <div className="bg-[#1e293b] rounded-2xl p-6 md:p-10 shadow-2xl relative overflow-hidden border border-white/5">
+                        <div className="bg-[#1e293b] rounded-2xl p-4 md:p-8 shadow-2xl relative overflow-hidden border border-white/5">
                             <div className="absolute top-0 right-0 w-64 h-64 bg-slate-500/5 rounded-full blur-3xl -mr-32 -mt-32"></div>
                             
-                            <div className="relative z-10 space-y-8">
-                                <div className="space-y-3">
+                            <div className="relative z-10 space-y-6">
+                                <div className="space-y-2">
                                     <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center text-white/80 shadow-inner shrink-0">
-                                            <Clock size={20} />
+                                        <div className="w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center text-white/80 shadow-inner shrink-0">
+                                            <Clock size={18} />
                                         </div>
-                                        <h4 className="text-xl md:text-2xl font-black text-white tracking-tight whitespace-nowrap">60개월 렌탈 고정 패키지</h4>
+                                        <h4 className="text-lg md:text-xl font-black text-white tracking-tight whitespace-nowrap">60개월 렌탈 고정 패키지</h4>
                                     </div>
-                                    <p className="text-white/40 text-xs md:text-sm font-medium leading-relaxed break-keep">월 렌탈료를 고정하고 잔액만 먼저 납입하는 실속형 프로그램 입니다.</p>
+                                    <p className="text-white/40 text-[10px] md:text-xs font-medium leading-relaxed break-keep">월 렌탈료를 고정하고 잔액만 먼저 납입하는 실속형 프로그램 입니다.</p>
                                 </div>
 
-                                <div className="grid grid-cols-1 gap-6">
+                                <div className="grid grid-cols-1 gap-4">
                                     {[
                                         { id: 'A', val: 11, amount: '111,000' },
                                         { id: 'B', val: 22, amount: '222,000' },
@@ -1124,7 +1116,7 @@ const CustomerPage = () => {
                                         const isNotAvailable = pkgAmount === '해당없음';
 
                                         return (
-                                            <div key={pkg.id} className={`bg-black/20 backdrop-blur-md border border-white/5 p-8 rounded-2xl space-y-6 group transition-all text-center relative overflow-hidden ${isNotAvailable ? 'pointer-events-none' : 'hover:border-[#c5a059]/30'}`}>
+                                            <div key={pkg.id} className={`bg-black/20 backdrop-blur-md border border-white/5 p-4 rounded-xl space-y-4 group transition-all text-center relative overflow-hidden ${isNotAvailable ? 'pointer-events-none' : 'hover:border-[#c5a059]/30'}`}>
                                                 {/* Sharply rendered overlay */}
                                                 {isNotAvailable && (
                                                     <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/40">
@@ -1135,23 +1127,19 @@ const CustomerPage = () => {
                                                 )}
                                                 
                                                 {/* Blurred content container */}
-                                                <div className={`space-y-6 transition-all duration-500 ${isNotAvailable ? 'blur-[3px] grayscale opacity-30 select-none' : ''}`}>
-                                                    <div className="bg-white/5 border border-white/5 py-1.5 rounded-lg relative z-10">
-                                                        <span className="text-[10px] font-black text-[#c5a059] uppercase tracking-widest">패키지 {pkg.id}</span>
-                                                    </div>
-
-                                                    <div className="space-y-1 relative z-10">
-                                                        <div className="text-white text-3xl font-black tracking-tighter font-outfit">
+                                                <div className={`space-y-3 transition-all duration-500 ${isNotAvailable ? 'blur-[3px] grayscale opacity-30 select-none' : ''}`}>
+                                                    <div className="space-y-0.5 relative z-10">
+                                                        <div className="text-white text-2xl font-black tracking-tighter font-outfit">
                                                             월 {pkg.amount}원
                                                         </div>
-                                                        <p className="text-[10px] text-white/30 font-bold uppercase tracking-widest">X 60개월</p>
+                                                        <p className="text-[9px] text-white/30 font-bold uppercase tracking-widest">X 60개월</p>
                                                     </div>
 
                                                     <div className="border-t border-dashed border-white/10 w-full px-4 relative z-10"></div>
 
-                                                    <div className="space-y-2 relative z-10">
-                                                        <p className="text-[10px] text-white/40 font-black uppercase tracking-widest">초기 납입액 (잔액)</p>
-                                                        <p className="text-2xl font-black text-[#c5a059] font-outfit">
+                                                    <div className="space-y-1 relative z-10">
+                                                        <p className="text-[9px] text-white/40 font-black uppercase tracking-widest">초기 납입액 (잔액)</p>
+                                                        <p className="text-xl font-black text-[#c5a059] font-outfit">
                                                             {isNotAvailable ? '-' : pkgAmount}
                                                         </p>
                                                     </div>
@@ -1177,11 +1165,11 @@ const CustomerPage = () => {
                 </div>
 
                 {/* 4. 특별 무상 서비스 섹션 (Neon Border) */}
-                <div className="relative p-1 rounded-2xl overflow-hidden shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-1000">
-                    {/* Neon Line Animation - Fast Rotating Thick Pink Line */}
+                <div className="relative p-1 rounded-2xl overflow-hidden shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-1000 mt-6">
+                    {/* Neon Line Animation */}
                     <div className="absolute inset-[-150%] bg-[conic-gradient(from_0deg,#ff0080,#ff1493,#ff69b4,transparent,transparent,#ff0080)] animate-[spin_1.5s_linear_infinite]"></div>
                     
-                    <div className="relative z-10 bg-white rounded-xl p-8 md:p-14 space-y-10 text-center">
+                    <div className="relative z-10 bg-white rounded-xl p-8 md:p-10 space-y-6 text-center">
                         <div className="space-y-5">
                             <div className="relative inline-block mt-2">
                                 <div className="w-16 h-16 bg-[#c5a059] rounded-2xl flex items-center justify-center text-white mx-auto shadow-xl">
@@ -1199,149 +1187,141 @@ const CustomerPage = () => {
 
                         <div className="grid grid-cols-1 gap-5 max-w-sm mx-auto">
                             {/* Option 1 */}
-                            <div className="bg-[#fffbef] border border-[#c5a059]/10 p-8 rounded-3xl space-y-4 shadow-sm relative group hover:scale-[1.02] transition-all duration-300">
-                                <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center text-[#c5a059] mx-auto shadow-md border border-gray-100 group-hover:scale-110 transition-transform">
-                                    <ShieldCheck size={28} />
+                            <div className="bg-[#fffbef] border border-[#c5a059]/10 p-3.5 rounded-2xl flex items-center gap-4 shadow-sm relative group hover:scale-[1.02] transition-all duration-300">
+                                <div className="w-11 h-11 bg-white rounded-xl flex items-center justify-center text-[#c5a059] shadow-md border border-gray-100 group-hover:scale-110 transition-transform shrink-0">
+                                    <ShieldCheck size={24} />
                                 </div>
-                                <div className="space-y-1.5">
-                                    <p className="text-[9px] font-black text-[#ff1493]/70 uppercase tracking-widest">Upgrade Option 01</p>
-                                    <p className="text-lg font-black text-[#001a3d] leading-tight break-keep">고성능 더블로이유리<br />무상 업그레이드</p>
+                                <div className="space-y-0.5 text-left">
+                                    <p className="text-[8px] font-black text-[#ff1493]/70 uppercase tracking-widest">Upgrade Option 01</p>
+                                    <p className="text-[14px] font-black text-[#001a3d] leading-tight break-keep">고성능 더블로이유리<br />무상 업그레이드</p>
                                 </div>
                             </div>
 
                             {/* Option 2 */}
-                            <div className="bg-[#fffbef] border border-[#c5a059]/10 p-8 rounded-3xl space-y-4 shadow-sm relative group hover:scale-[1.02] transition-all duration-300">
-                                <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center text-[#c5a059] mx-auto shadow-md border border-gray-100 group-hover:scale-110 transition-transform">
-                                    <Sparkles size={28} />
+                            <div className="bg-[#fffbef] border border-[#c5a059]/10 p-3.5 rounded-2xl flex items-center gap-4 shadow-sm relative group hover:scale-[1.02] transition-all duration-300">
+                                <div className="w-11 h-11 bg-white rounded-xl flex items-center justify-center text-[#c5a059] shadow-md border border-gray-100 group-hover:scale-110 transition-transform shrink-0">
+                                    <Sparkles size={24} />
                                 </div>
-                                <div className="space-y-1.5">
-                                    <p className="text-[9px] font-black text-[#ff1493]/70 uppercase tracking-widest">Upgrade Option 02</p>
-                                    <p className="text-lg font-black text-[#001a3d] leading-tight break-keep">최고급 블랙 STS 방충망<br />전면 교체</p>
+                                <div className="space-y-0.5 text-left">
+                                    <p className="text-[8px] font-black text-[#ff1493]/70 uppercase tracking-widest">Upgrade Option 02</p>
+                                    <p className="text-[14px] font-black text-[#001a3d] leading-tight break-keep">최고급 블랙 STS 방충망<br />전면 교체</p>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <div className="space-y-6">
-
-
-                            {/* 구독 PLUS 서비스 */}
-                            <div className="purple-premium-gradient p-8 md:p-14 text-white relative overflow-hidden shadow-2xl flex flex-col justify-between">
-                                <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-32 -mt-32 blur-4xl"></div>
-                                <div className="relative z-10 space-y-12">
-                                    <div className="space-y-4 text-center">
-                                        <span className="bg-[#facc15] text-[#311b92] px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest inline-block shadow-lg">Special Promotion</span>
-                                        <div className="space-y-1">
-                                            <p className="text-sm md:text-base font-bold text-white/80">KCC홈씨씨 견적 고객 대상</p>
-                                            <h3 className="text-2xl md:text-3xl font-black tracking-tight leading-tight">LG전자 가전구독료 <br className="md:hidden" /> 할인 프로모션 진행 중</h3>
+                {/* 5. LG전자 가전구독 프로모션 */}
+                <div className="purple-premium-gradient p-6 text-white relative overflow-hidden shadow-2xl flex flex-col justify-between rounded-3xl mt-6">
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-32 -mt-32 blur-4xl"></div>
+                    <div className="relative z-10 space-y-4">
+                        <div className="space-y-2 text-center">
+                            <span className="bg-[#facc15] text-[#311b92] px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest inline-block shadow-lg">Special Promotion</span>
+                            <div className="space-y-0.5">
+                                <p className="text-[11px] font-bold text-white/80">KCC홈씨씨 견적 고객 대상</p>
+                                <h3 className="text-xl font-black tracking-tight leading-tight">LG전자 가전구독료 할인 프로모션</h3>
+                            </div>
+                        </div>
+                        
+                        <div className="max-w-2xl mx-auto w-full">
+                            <div className="bg-white/10 backdrop-blur-xl border border-white/20 p-4 rounded-xl space-y-3 shadow-2xl relative overflow-hidden group">
+                                <div className="absolute top-0 right-0 p-3 opacity-20">
+                                    <img src="https://www.lge.co.kr/lg5-common/images/header/lg_logo_new.svg" alt="LG Logo" className="h-8 w-auto grayscale brightness-0 invert opacity-20" />
+                                </div>
+                                
+                                <div className="space-y-2">
+                                    <div className="flex items-center gap-3 p-2.5 bg-white/5 rounded-xl border border-white/10">
+                                        <div className="w-8 h-8 bg-[#facc15] text-[#311b92] rounded-lg flex items-center justify-center shrink-0 shadow-lg font-black text-xs font-outfit">10%</div>
+                                        <div>
+                                            <p className="text-sm font-black text-white leading-tight">LG전자 가전구독료 <span className="text-[#facc15]">매월 10%</span> 할인</p>
                                         </div>
                                     </div>
-                                    
-                                    <div className="max-w-2xl mx-auto w-full">
-                                        <div className="bg-white/10 backdrop-blur-xl border border-white/20 p-6 md:p-10 rounded-xl md:rounded-2xl space-y-8 shadow-2xl relative overflow-hidden group">
-                                            <div className="absolute top-0 right-0 p-4 opacity-20">
-                                                <img src="https://www.lge.co.kr/lg5-common/images/header/lg_logo_new.svg" alt="LG Logo" className="h-10 w-auto grayscale brightness-0 invert opacity-20" />
-                                            </div>
-                                            
-                                            <div className="space-y-4">
-                                                <div className="flex items-start gap-4 p-4 bg-white/5 rounded-2xl border border-white/10">
-                                                    <div className="w-12 h-12 bg-[#facc15] text-[#311b92] rounded-xl flex items-center justify-center shrink-0 shadow-lg font-black text-lg font-outfit">10%</div>
-                                                    <div>
-                                                        <p className="text-[#facc15] text-[10px] font-black uppercase tracking-widest mb-1">Monthly Discount</p>
-                                                        <p className="text-base md:text-lg font-black text-white leading-tight">LG전자 가전구독료 <span className="text-[#facc15]">매월 10%</span> 할인</p>
-                                                    </div>
-                                                </div>
-                                                <div className="flex items-start gap-4 p-4 bg-white/5 rounded-2xl border border-white/10">
-                                                    <div className="w-12 h-12 bg-white/20 text-white rounded-xl flex items-center justify-center shrink-0 border border-white/20"><CheckCircle size={24} /></div>
-                                                    <div>
-                                                        <p className="text-white/40 text-[10px] font-black uppercase tracking-widest mb-1">Target Products</p>
-                                                        <p className="text-base md:text-lg font-black text-white leading-tight">LG전자 홈페이지 전제품 대상</p>
-                                                    </div>
-                                                </div>
-                                            </div>
+                                    <div className="flex items-center gap-3 p-2.5 bg-white/5 rounded-xl border border-white/10">
+                                        <div className="w-8 h-8 bg-white/20 text-white rounded-lg flex items-center justify-center shrink-0 border border-white/20"><CheckCircle size={16} /></div>
+                                        <div>
+                                            <p className="text-sm font-black text-white leading-tight">LG전자 홈페이지 전제품 대상</p>
+                                        </div>
+                                    </div>
+                                </div>
 
-                                            <div className="space-y-6 pt-2">
-                                                <p className="text-sm md:text-base font-bold text-white/90 leading-relaxed break-keep text-center md:text-left">
-                                                    창호 교체하면서 가전까지 고민 중이라면, 어디에서도 만날 수 없는 <span className="text-[#facc15] underline underline-offset-4 decoration-[#facc15]/30">LG가전 구독료 10% 할인 혜택</span>을 놓치지 마세요! <br className="hidden md:block" />
-                                                    오직 KCC홈씨씨 견적 고객에게만 적용해 드립니다.
-                                                </p>
-                                                <div className="bg-white/5 p-5 rounded-2xl border border-dashed border-white/20 text-center">
-                                                    <p className="text-xs md:text-sm font-black text-white/60 leading-relaxed">
-                                                        신청 문의는 <span className="text-white">창호 상담사</span>를<br className="md:hidden" /> 통해서 가능합니다.
-                                                    </p>
-                                                </div>
-                                                <div className="pt-2 flex justify-center">
-                                                    <a
-                                                        href="https://www.lge.co.kr/care-solutions"
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                        className="w-full bg-white text-[#311b92] py-3.5 rounded-xl font-black text-xs md:text-sm shadow-xl hover:bg-[#facc15] hover:scale-[1.02] transition-all flex items-center justify-center gap-2 group"
-                                                    >
-                                                        LG구독 홈페이지 바로가기
-                                                        <ExternalLink size={16} className="transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-                                                    </a>
+                                <div className="space-y-3 pt-1 text-center">
+                                    <p className="text-[11px] font-bold text-white/90 leading-relaxed break-keep">
+                                        창호 교체하며 가전까지 고민 중이라면, <span className="text-[#facc15] underline underline-offset-4 decoration-[#facc15]/30">LG가전 구독료 10% 할인 혜택</span>을 놓치지 마세요!
+                                    </p>
+                                    <p className="text-[10px] font-black text-white/50 leading-relaxed">
+                                        신청 문의는 <span className="text-white">창호 상담사</span>를 통해서 가능합니다.
+                                    </p>
+                                    <div className="pt-1">
+                                        <a
+                                            href="https://www.lge.co.kr/care-solutions"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="w-full bg-white text-[#311b92] py-3 rounded-xl font-black text-xs shadow-xl hover:bg-[#facc15] hover:scale-[1.02] transition-all flex items-center justify-center gap-2 group"
+                                        >
+                                            LG구독 홈페이지 바로가기
+                                            <ExternalLink size={14} className="transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                                        </a>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
-        </div>
 
-                        {/* 5. 주방 상품 안내 섹션 */}
-                        <div className="relative rounded-3xl overflow-hidden shadow-2xl group min-h-[600px] flex flex-col justify-end animate-in fade-in slide-in-from-bottom-6 duration-1000">
-                            <img 
-                                src="https://res.cloudinary.com/dx7l09wwu/image/upload/v1775396911/%EC%97%B0%EC%B6%9C_3_l0zfje.jpg" 
-                                alt="KCC 프리미엄 주방" 
-                                className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-[3000ms]" 
-                            />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent group-hover:via-black/60 transition-all duration-700"></div>
+                {/* 6. 주방 상품 안내 섹션 */}
+                <div className="relative rounded-3xl overflow-hidden shadow-2xl group min-h-[500px] flex flex-col justify-end animate-in fade-in slide-in-from-bottom-6 duration-1000 mt-6 md:mt-10">
+                    <img 
+                        src="https://res.cloudinary.com/dx7l09wwu/image/upload/v1775396911/%EC%97%B0%EC%B6%9C_3_l0zfje.jpg" 
+                        alt="KCC 프리미엄 주방" 
+                        className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-[3000ms]" 
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent group-hover:via-black/60 transition-all duration-700"></div>
+                    
+                    <div className="relative z-10 p-8 md:p-14 space-y-10">
+                        <div className="space-y-6">
+                            <div className="flex items-center gap-3">
+                                <span className="bg-[#c5a059] text-white px-3 py-1 rounded-lg text-[10px] md:text-xs font-black tracking-widest shadow-lg">NEW</span>
+                                <span className="text-[#c5a059] text-[9px] md:text-xs font-black uppercase tracking-[0.25em]">Prestige Kitchen Collection</span>
+                            </div>
                             
-                            <div className="relative z-10 p-8 md:p-14 space-y-10">
-                                <div className="space-y-6">
-                                    <div className="flex items-center gap-3">
-                                        <span className="bg-[#c5a059] text-white px-3 py-1 rounded-lg text-[10px] md:text-xs font-black tracking-widest shadow-lg">NEW</span>
-                                        <span className="text-[#c5a059] text-[9px] md:text-xs font-black uppercase tracking-[0.25em]">Prestige Kitchen Collection</span>
-                                    </div>
-                                    
-                                    <div className="space-y-3">
-                                        <h3 className="text-3xl md:text-4xl font-black text-white leading-tight">혹시 주방도 고민<br />중이신가요?</h3>
-                                        <p className="text-white/60 text-sm md:text-base font-bold break-keep leading-relaxed border-l-2 border-[#c5a059] pl-4">
-                                            창호 名家, KCC글라스가 만든<br className="md:hidden" /> 프리미엄 맞춤 주방이 출시 되었습니다!
-                                        </p>
-                                    </div>
-                                </div>
-
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
-                                    {[
-                                        { icon: <CheckCircle size={18} />, text: '최저가 맞춤 시공' },
-                                        { icon: <ShieldCheck size={18} />, text: '본사 A/S 보장' },
-                                        { icon: <Calendar size={18} />, text: '60개월 할부 지원' },
-                                        { icon: <Sparkles size={18} />, text: 'LG빌트인 가전할인' }
-                                    ].map((item, i) => (
-                                        <div key={i} className="flex items-center gap-4 bg-black/40 backdrop-blur-xl border border-white/10 p-4 md:p-5 rounded-2xl hover:bg-white/10 transition-all cursor-default group/item">
-                                            <div className="w-10 h-10 bg-[#c5a059]/20 text-[#c5a059] rounded-xl flex items-center justify-center shadow-inner group-hover/item:scale-110 transition-transform">
-                                                {item.icon}
-                                            </div>
-                                            <span className="text-white/90 font-bold text-sm md:text-base">{item.text}</span>
-                                        </div>
-                                    ))}
-                                </div>
-
-                                <div className="space-y-4 pt-2">
-                                    <a 
-                                        href="https://kcchomecc-partner.com/products/hline2" 
-                                        target="_blank" 
-                                        rel="noopener noreferrer"
-                                        className="w-full py-5 bg-[#c5a059] text-[#001a3d] rounded-2xl font-black text-base md:text-lg flex items-center justify-center gap-3 shadow-2xl hover:brightness-110 active:scale-[0.98] transition-all"
-                                    >
-                                        프리미엄 주방 자세히 보기 <ExternalLink size={22} />
-                                    </a>
-                                    <p className="text-white/30 text-[10px] md:text-xs text-center font-medium">※ 자세한 내용은 상담원에게 문의해 주세요.</p>
-                                </div>
+                            <div className="space-y-3">
+                                <h3 className="text-3xl md:text-4xl font-black text-white leading-tight">혹시 주방도 고민<br />중이신가요?</h3>
+                                <p className="text-white/60 text-sm md:text-base font-bold break-keep leading-relaxed border-l-2 border-[#c5a059] pl-4">
+                                    창호 名家, KCC글라스가 만든<br className="md:hidden" /> 프리미엄 맞춤 주방이 출시 되었습니다!
+                                </p>
                             </div>
                         </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+                            {[
+                                { icon: <CheckCircle size={18} />, text: '최저가 맞춤 시공' },
+                                { icon: <ShieldCheck size={18} />, text: '본사 A/S 보장' },
+                                { icon: <Calendar size={18} />, text: '60개월 할부 지원' },
+                                { icon: <Sparkles size={18} />, text: 'LG빌트인 가전할인' }
+                            ].map((item, i) => (
+                                <div key={i} className="flex items-center gap-4 bg-black/40 backdrop-blur-xl border border-white/10 p-4 md:p-5 rounded-2xl hover:bg-white/10 transition-all cursor-default group/item">
+                                    <div className="w-10 h-10 bg-[#c5a059]/20 text-[#c5a059] rounded-xl flex items-center justify-center shadow-inner group-hover/item:scale-110 transition-transform">
+                                        {item.icon}
+                                    </div>
+                                    <span className="text-white/90 font-bold text-sm md:text-base">{item.text}</span>
+                                </div>
+                            ))}
+                        </div>
+
+                        <div className="space-y-4 pt-2">
+                            <a 
+                                href="https://kcchomecc-partner.com/products/hline2" 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="w-full py-5 bg-[#c5a059] text-[#001a3d] rounded-2xl font-black text-base md:text-lg flex items-center justify-center gap-3 shadow-2xl hover:brightness-110 active:scale-[0.98] transition-all"
+                            >
+                                프리미엄 주방 자세히 보기 <ExternalLink size={22} />
+                            </a>
+                            <p className="text-white/30 text-[10px] md:text-xs text-center font-medium">※ 자세한 내용은 상담원에게 문의해 주세요.</p>
+                        </div>
+                    </div>
+                </div>
+
 
                 <div className="space-y-6 pt-4">
                     <h3 className="text-lg font-black text-[#001a3d] flex items-center gap-2 px-1">
