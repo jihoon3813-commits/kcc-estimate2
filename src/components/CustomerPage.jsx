@@ -770,51 +770,103 @@ const CustomerPage = () => {
             </header>
 
             <div className="max-w-4xl mx-auto p-4 md:p-6 space-y-8">
-                <div className="text-center space-y-3 pt-4">
-                    <div className="inline-block bg-[#001a3d]/5 px-3 py-1 rounded-full">
-                        <span className="text-[#001a3d] text-[9px] font-black tracking-widest uppercase">OFFICIAL QUOTATION</span>
+            <div className="bg-[#001a3d] -mx-4 md:-mx-6 -mt-4 md:-mt-6 px-4 md:px-6 py-12 md:py-16 space-y-8 relative overflow-hidden">
+                {/* Background Decorative Elements */}
+                <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/5 rounded-full blur-3xl -mr-32 -mt-32"></div>
+                <div className="absolute bottom-0 left-0 w-64 h-64 bg-[#c5a059]/5 rounded-full blur-3xl -ml-32 -mb-32"></div>
+
+                <div className="text-center space-y-4 relative z-10">
+                    <div className="inline-block border border-[#c5a059]/40 bg-[#c5a059]/10 px-4 py-1.5 rounded-full backdrop-blur-sm">
+                        <span className="text-[#c5a059] text-[10px] font-black tracking-[0.2em] uppercase">OFFICIAL QUOTATION</span>
                     </div>
-                    <h2 className="text-2xl md:text-4xl font-extrabold text-[#001a3d] leading-tight tracking-tight">
-                        <span className="text-luxury">감사합니다.</span> {data.name}님<br />
-                        <span className="text-gray-300">최고의 가치로 보답하겠습니다.</span>
+                    <h2 className="text-3xl md:text-5xl font-extrabold text-white leading-tight tracking-tight">
+                        <span className="text-[#c5a059]">감사합니다.</span> {data.name}님<br />
+                        <span className="text-white/40 text-[0.6em] md:text-[0.5em] font-medium block mt-2">최고의 가치로 보답하겠습니다.</span>
                     </h2>
                 </div>
 
-                <div className="luxury-card p-6 md:p-8 relative overflow-hidden bg-white shadow-xl shadow-gray-200/50">
-                    <div className="relative z-10 space-y-6">
-                        <div className="flex justify-between items-start">
-                            <div>
-                                <p className="text-[9px] font-black text-[#c5a059] uppercase tracking-widest mb-1.5">Customer details</p>
-                                <h3 className="text-2xl font-black text-[#001a3d] leading-none">{data.name} 고객님</h3>
-                            </div>
-                            <div className={`px-4 py-2 rounded-xl text-[10px] font-black shadow-sm ${data.type === '최종견적' ? 'bg-[#001a3d] text-[#c5a059] border border-[#c5a059]/30' :
-                                data.type === '책임견적' ? 'bg-[#c5a059] text-white shadow-md' :
-                                    'bg-gray-100 text-gray-400 border border-gray-200'
-                                }`}>
-                                {data.type || '가견적'}
-                            </div>
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            <div className="flex items-center gap-3 p-3.5 bg-gray-50 rounded-2xl border border-gray-100/50">
-                                <div className="w-9 h-9 bg-white shadow-sm rounded-xl flex items-center justify-center text-[#c5a059]"><MapPin size={18} /></div>
-                                <div className="min-w-0 flex-1">
-                                    <p className="text-[8px] text-gray-400 font-bold uppercase tracking-tight mb-0.5">Address</p>
-                                    <p className="text-xs font-extrabold text-[#2c3e50] break-keep">{data.address}</p>
+                <div className="max-w-xl mx-auto">
+                    <div className="bg-white/5 backdrop-blur-xl border border-white/10 p-6 md:p-10 rounded-2xl shadow-2xl relative overflow-hidden group">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-[#c5a059]/10 rounded-full blur-2xl -mr-16 -mt-16 group-hover:bg-[#c5a059]/20 transition-all duration-700"></div>
+                        
+                        <div className="relative z-10 space-y-8">
+                            <div className="flex justify-between items-center">
+                                <div>
+                                    <p className="text-[10px] font-black text-[#c5a059] uppercase tracking-[0.15em] mb-2">Customer details</p>
+                                    <h3 className="text-2xl md:text-3xl font-black text-white leading-none">{data.name} 고객님</h3>
+                                </div>
+                                <div className={`px-5 py-2.5 rounded-xl text-[11px] font-black shadow-lg transition-all ${data.type === '최종견적' ? 'bg-[#c5a059] text-[#001a3d]' :
+                                    data.type === '책임견적' ? 'bg-[#c5a059] text-[#001a3d]' :
+                                        'bg-white/10 text-white/50 border border-white/10'
+                                    }`}>
+                                    {data.statusType || data.type || '가견적'}
                                 </div>
                             </div>
-                            <div className="flex items-center gap-3 p-3.5 bg-gray-50 rounded-2xl border border-gray-100/50">
-                                <div className="w-9 h-9 bg-white shadow-sm rounded-xl flex items-center justify-center text-[#c5a059]"><Phone size={18} /></div>
-                                <div>
-                                    <p className="text-[8px] text-gray-400 font-bold uppercase tracking-tight mb-0.5">Contact</p>
-                                    <p className="text-xs font-extrabold text-[#2c3e50] font-outfit">{formatPhoneNumber(data.phone || searchForm.phone)}</p>
+
+                            <div className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
+
+                            <div className="grid grid-cols-1 gap-4">
+                                <div className="flex items-start gap-4 p-5 bg-white/5 rounded-xl border border-white/5 group/info hover:bg-white/10 transition-all">
+                                    <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center text-[#c5a059] group-hover/info:scale-110 transition-transform shadow-inner">
+                                        <MapPin size={22} />
+                                    </div>
+                                    <div className="min-w-0 flex-1 pt-1">
+                                        <p className="text-[9px] text-white/30 font-bold uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
+                                            <div className="w-1 h-1 bg-[#c5a059] rounded-full"></div>
+                                            Address
+                                        </p>
+                                        <p className="text-[13px] md:text-sm font-bold text-white/90 leading-relaxed break-keep">{data.address}</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-4 p-5 bg-white/5 rounded-xl border border-white/5 group/info hover:bg-white/10 transition-all">
+                                    <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center text-[#c5a059] group-hover/info:scale-110 transition-transform shadow-inner">
+                                        <Phone size={22} />
+                                    </div>
+                                    <div className="pt-1">
+                                        <p className="text-[9px] text-white/30 font-bold uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
+                                            <div className="w-1 h-1 bg-[#c5a059] rounded-full"></div>
+                                            Contact
+                                        </p>
+                                        <p className="text-[13px] md:text-sm font-bold text-white/90 font-outfit tracking-wide">{formatPhoneNumber(data.phone || searchForm.phone)}</p>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
+            </div>
+
+            {/* New Navigation Section */}
+            <div className="space-y-8 py-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                <div className="text-center space-y-4">
+                    <div className="inline-block bg-[#001a3d] px-6 py-2 rounded-full shadow-xl border border-[#c5a059]/30">
+                        <span className="text-[#c5a059] text-[11px] font-black tracking-[0.2em] uppercase">결제 방식 안내</span>
+                    </div>
+                    <h3 className="text-3xl md:text-4xl font-black text-[#001a3d] tracking-tight">결제 방식별 상세 제안</h3>
+                </div>
+
+                <div className="grid grid-cols-1 gap-4 max-w-lg mx-auto">
+                    {[
+                        { id: 1, title: '일시불 특별 할인' },
+                        { id: 2, title: '스마트 구독 서비스' },
+                        { id: 3, title: '60개월 렌탈 패키지' }
+                    ].map((item) => (
+                        <div key={item.id} className="bg-white p-6 rounded-xl shadow-lg shadow-gray-200/50 border border-gray-100 flex items-center gap-6 hover:shadow-2xl hover:scale-[1.02] transition-all cursor-pointer group relative overflow-hidden">
+                            <div className="absolute inset-0 w-[200%] h-full bg-gradient-to-r from-transparent via-[#c5a059]/5 to-transparent -translate-x-full group-hover:animate-[shimmer_2s_infinite] pointer-events-none"></div>
+                            <div className="w-12 h-12 bg-[#001a3d] text-white rounded-full flex items-center justify-center font-black text-lg shadow-lg group-hover:bg-[#c5a059] group-hover:text-[#001a3d] transition-all duration-300 shrink-0">
+                                {item.id}
+                            </div>
+                            <span className="text-lg font-black text-[#001a3d] tracking-tight group-hover:translate-x-1 transition-transform duration-300">{item.title}</span>
+                            <div className="ml-auto w-10 h-10 bg-gray-50 rounded-full flex items-center justify-center text-gray-300 group-hover:text-[#c5a059] group-hover:bg-[#001a3d]/5 transition-all duration-300">
+                                <ChevronRight size={20} />
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
 
                 {data.status === '책임견적' && (
-                    <div className="bg-gradient-to-r from-[#001a3d] to-[#012a5e] p-6 md:p-8 rounded-[2rem] shadow-xl border-l-[6px] border-[#c5a059] text-white space-y-4 animate-in fade-in slide-in-from-top-4">
+                    <div className="bg-gradient-to-r from-[#001a3d] to-[#012a5e] p-6 md:p-8 rounded-xl shadow-xl border-l-[6px] border-[#c5a059] text-white space-y-4 animate-in fade-in slide-in-from-top-4">
                         <div className="flex items-center gap-3">
                             <div className="bg-[#c5a059] p-2 rounded-xl text-[#001a3d]">
                                 <ShieldCheck size={24} />
@@ -850,234 +902,260 @@ const CustomerPage = () => {
                         결제 방식별 상세 제안
                     </h3>
 
-                    <div className="grid grid-cols-1 gap-6">
-                        {/* 1 & 2 그룹 영역 */}
-                        <div className="space-y-6 bg-white p-2 md:p-4 rounded-[2.5rem] border border-gray-100 shadow-sm">
-                            {/* 1. 일시불 섹션 */}
-                            <div className="luxury-card overflow-hidden border-none shadow-xl">
-                                <div className="bg-[#1a1c23] px-5 py-3.5 flex justify-between items-center text-white">
-                                    <div className="flex items-center gap-2.5 text-sm font-black">
-                                        <div className="w-6 h-6 bg-white text-[#1a1c23] rounded-full flex items-center justify-center text-[10px] font-outfit">1</div>
-                                        일시불 (현금/카드)
+                    <div className="grid grid-cols-1 gap-10">
+                        <div className="bg-[#001a3d] rounded-2xl p-6 md:p-10 shadow-2xl relative overflow-hidden border border-white/5">
+                            <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/5 rounded-full blur-3xl -mr-32 -mt-32"></div>
+                            
+                            <div className="relative z-10 space-y-8">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-14 h-14 bg-white/10 rounded-xl flex items-center justify-center text-blue-400 shadow-inner">
+                                        <Wallet size={28} />
                                     </div>
-                                    <span className="bg-[#facc15] text-[#1a1c23] text-[8px] font-black px-2.5 py-1 rounded shadow-sm uppercase">Best</span>
+                                    <div>
+                                        <h4 className="text-xl md:text-2xl font-black text-white tracking-tight">일시불 특별 할인</h4>
+                                        <p className="text-white/40 text-xs font-medium">현금 또는 카드 일시불 결제 시 제공되는 혜택입니다.</p>
+                                    </div>
                                 </div>
-                                <div className="p-4 md:p-10 space-y-6 bg-white">
-                                    <div className="flex justify-between items-center text-xs">
-                                        <span className="text-gray-400 font-bold">정상 견적금액 (상세항목 합계)</span>
-                                        <span className="text-gray-400 font-bold text-base line-through font-outfit">{formatKrw(data.finalQuote)}</span>
+
+                                <div className="space-y-4">
+                                    <div className="flex justify-between items-center px-4 py-2 bg-white/5 rounded-xl border border-white/5">
+                                        <span className="text-white/50 text-xs font-bold">최종견적가</span>
+                                        <span className="text-white/80 font-black text-sm font-outfit">{formatKrw(data.finalQuote)}</span>
                                     </div>
-                                    <div className="bg-red-50 border border-red-100/50 px-4 py-3 rounded-2xl flex justify-between items-center">
+                                    <div className="flex justify-between items-center px-4 py-2 bg-blue-500/10 rounded-xl border border-blue-500/10">
+                                        <span className="text-blue-400 text-xs font-bold">할인금액</span>
+                                        <span className="text-blue-400 font-black text-sm font-outfit">-{formatKrw(data.finalQuote - data.finalBenefit)}</span>
+                                    </div>
+                                    <div className="bg-white/[0.03] backdrop-blur-md rounded-2xl p-8 md:p-10 border border-white/5 text-center space-y-3 shadow-inner">
+                                        <p className="text-white/30 text-[11px] font-black uppercase tracking-[0.2em]">최종 할인 적용금액</p>
+                                        <div className="text-4xl md:text-5xl font-black text-[#facc15] font-outfit tracking-tighter">
+                                            {formatKrw(data.finalBenefit)}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-3 px-2">
+                                    <div className="flex items-center gap-3 py-4 border-b border-white/5">
+                                        <div className="w-6 h-6 bg-blue-500/20 text-blue-400 rounded-full flex items-center justify-center">
+                                            <CheckCircle2 size={16} />
+                                        </div>
+                                        <span className="text-sm font-bold text-white/80">카드 : 결제 링크 제공</span>
+                                    </div>
+                                    <div className="flex items-center gap-3 py-4 border-b border-white/5">
+                                        <div className="w-6 h-6 bg-blue-500/20 text-blue-400 rounded-full flex items-center justify-center">
+                                            <CheckCircle2 size={16} />
+                                        </div>
+                                        <span className="text-sm font-bold text-white/80">현금 : 현금영수증 발행 가능</span>
+                                    </div>
+                                </div>
+
+                                <div className="bg-blue-600/10 border border-blue-500/20 py-4 rounded-xl text-center">
+                                    <span className="text-blue-400 text-sm font-black tracking-tight">선금 50% / 잔금 50% 분할 결제 지원</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* 2. 스마트 구독 서비스 섹션 */}
+                        <div className="bg-gradient-to-br from-[#1e1b4b] to-[#312e81] rounded-2xl p-6 md:p-10 shadow-2xl relative overflow-hidden border border-white/5">
+                            <div className="absolute bottom-0 left-0 w-64 h-64 bg-purple-500/10 rounded-full blur-3xl -ml-32 -mb-32"></div>
+                            
+                            <div className="relative z-10 space-y-8">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-14 h-14 bg-white/10 rounded-2xl flex items-center justify-center text-purple-400 shadow-inner">
+                                        <Sparkles size={28} />
+                                    </div>
+                                    <div>
+                                        <h4 className="text-xl md:text-2xl font-black text-white tracking-tight">스마트 구독 서비스</h4>
+                                        <p className="text-white/40 text-xs font-medium">목돈 부담 없이 월 구독료로 이용하는 효율적인 결제 방식입니다.</p>
+                                    </div>
+                                </div>
+
+                                <div className="bg-white/5 backdrop-blur-md rounded-2xl p-6 md:p-8 border border-white/10 space-y-6">
+                                    <div className="flex items-center justify-between mb-2">
                                         <div className="flex items-center gap-2">
-                                            <Gift size={16} className="text-red-500" />
-                                            <span className="text-red-500 font-black text-xs">특별 프로모션 할인</span>
+                                            <div className="w-1.5 h-4 bg-purple-500 rounded-full"></div>
+                                            <span className="text-[11px] font-black text-purple-300 uppercase tracking-widest">구독 전환 계산기</span>
                                         </div>
-                                        <span className="text-red-500 font-black text-base font-outfit">-{formatKrw(data.finalQuote - data.finalBenefit)}</span>
-                                    </div>
-                                    <div className="pt-6 border-t border-dashed border-gray-100 flex flex-col md:flex-row justify-between items-end gap-2 md:gap-0">
-                                        <span className="text-[#001a3d] font-black text-sm md:items-start">최종 할인 혜택가</span>
-                                        <div className="text-right w-full md:w-auto">
-                                            <span className="text-4xl font-black text-[#2563eb] tracking-tighter font-outfit">{formatKrw(data.finalBenefit).replace('원', '')}</span>
-                                            <span className="text-xl font-black text-[#2563eb] ml-0.5">원</span>
+                                        <div className="bg-purple-500/20 px-3 py-1 rounded-full">
+                                            <span className="text-[9px] font-black text-purple-200 animate-pulse">인기 선택</span>
                                         </div>
                                     </div>
 
-                                    {/* 선납금 / 잔금 조정 영역 - Enhanced Premium Design */}
-                                    <div className="bg-gradient-to-br from-blue-50/80 via-white to-indigo-50/50 p-4 md:p-6 rounded-[2rem] space-y-5 border border-blue-100/50 shadow-sm mt-4 relative">
-                                        <div className="absolute top-0 right-0 -mr-6 -mt-6 w-24 h-24 bg-blue-500/5 rounded-full blur-2xl"></div>
-                                        
-                                        <div className="flex items-center justify-between mb-1">
-                                            <div className="flex items-center gap-2">
-                                                <div className="w-1.5 h-4 bg-blue-500 rounded-full"></div>
-                                                <span className="text-[11px] font-black text-blue-600 uppercase tracking-widest">스마트 구독 안내</span>
-                                            </div>
-                                            <div className="flex items-center gap-1 bg-blue-100 px-2 py-1 rounded-full whitespace-nowrap shrink-0">
-                                                <Sparkles size={10} className="text-blue-600 animate-pulse" />
-                                                <span className="text-[9px] font-black text-blue-700">부담 제약 해소</span>
-                                            </div>
-                                        </div>
-
-                                        <div className="grid grid-cols-2 gap-3 md:gap-4">
-                                            <div className="space-y-1.5">
-                                                <label className="text-[10px] font-black text-blue-900/40 uppercase tracking-widest ml-1 flex items-center gap-1">
-                                                    <Wallet size={12} className="text-blue-500" /> 선납금
-                                                </label>
-                                                <div className="relative">
-                                                    <input
-                                                        type="text"
-                                                        inputMode="numeric"
-                                                        value={new Intl.NumberFormat('ko-KR').format(downPayment)}
-                                                        onChange={(e) => {
-                                                            const val = Number(e.target.value.replace(/[^0-9]/g, ''));
-                                                            if (val <= data.finalBenefit) {
-                                                                setDownPayment(val);
-                                                                setBalance(data.finalBenefit - val);
-                                                            }
-                                                        }}
-                                                        className="w-full bg-white border border-blue-100 rounded-xl py-3 px-2 pr-6 text-[12px] min-[375px]:text-sm md:text-base font-black text-[#001a3d] outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-400/10 transition-all text-right shadow-sm"
-                                                    />
-                                                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-gray-400">원</span>
-                                                </div>
-                                            </div>
-                                            <div className="space-y-1.5">
-                                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1 flex items-center gap-1">
-                                                    <Clock size={12} /> 잔금
-                                                </label>
-                                                <div className="relative">
-                                                    <input
-                                                        type="text"
-                                                        readOnly
-                                                        value={new Intl.NumberFormat('ko-KR').format(balance)}
-                                                        className="w-full bg-blue-50/50 border border-blue-100/30 rounded-xl py-3 px-2 pr-6 text-[12px] min-[375px]:text-sm md:text-base font-black text-blue-900/50 outline-none text-right"
-                                                    />
-                                                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-gray-300">원</span>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div className="relative pt-8 mt-2">
-                                            <div className="absolute top-0 left-0 right-0 flex justify-center z-10">
-                                                <div className="bg-blue-600 text-white text-[9px] font-black px-3 py-1 rounded-full shadow-lg animate-bounce whitespace-nowrap border border-white/20">
-                                                    목돈 부담을 줄이는 최고의 방법! ✨
-                                                </div>
-                                            </div>
-                                            <div className="flex flex-col gap-2.5 pt-2">
-                                                <button
-                                                    onClick={() => handleConversion('full')}
-                                                    className={`group relative flex-1 flex items-center justify-center gap-2 py-4 rounded-xl text-xs font-black transition-all shadow-md overflow-hidden ${conversionMode === 'full' 
-                                                        ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-blue-200' 
-                                                        : 'bg-white border-2 border-blue-50 text-blue-600 hover:border-blue-200'}`}
-                                                >
-                                                    <ArrowRightLeft size={16} /> 전액 구독 전환
-                                                </button>
-                                                <button
-                                                    onClick={() => handleConversion('balance')}
-                                                    className={`group relative flex-1 flex items-center justify-center gap-2 py-4 rounded-xl text-xs font-black transition-all shadow-md overflow-hidden ring-2 ring-yellow-400/20 ${conversionMode === 'balance' 
-                                                        ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-blue-200' 
-                                                        : 'bg-white border-2 border-yellow-400 text-blue-700 shadow-yellow-100 shadow-lg'}`}
-                                                >
-                                                    {/* Golden Shimmer Effect */}
-                                                    <div className="absolute inset-0 w-[200%] h-full bg-gradient-to-r from-transparent via-yellow-200/40 to-transparent -translate-x-full animate-[shimmer_3s_infinite] pointer-events-none"></div>
-                                                    
-                                                    <style dangerouslySetInnerHTML={{ __html: `
-                                                        @keyframes shimmer {
-                                                            0% { transform: translateX(-100%); }
-                                                            100% { transform: translateX(100%); }
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black text-white/40 uppercase tracking-widest ml-1">선납금 설정</label>
+                                            <div className="relative">
+                                                <input
+                                                    type="text"
+                                                    inputMode="numeric"
+                                                    value={new Intl.NumberFormat('ko-KR').format(downPayment)}
+                                                    onChange={(e) => {
+                                                        const val = Number(e.target.value.replace(/[^0-9]/g, ''));
+                                                        if (val <= data.finalBenefit) {
+                                                            setDownPayment(val);
+                                                            setBalance(data.finalBenefit - val);
                                                         }
-                                                    `}} />
-                                                    
-                                                    <ArrowRightLeft size={16} className={conversionMode === 'balance' ? 'text-white' : 'text-yellow-600'} /> 
-                                                    <span className={conversionMode === 'balance' ? 'text-white' : 'text-[#001a3d]'}>잔금만 구독 전환</span>
-                                                    
-                                                    {!conversionMode && (
-                                                        <div className="absolute top-0 right-0 bg-yellow-400 text-[#001a3d] text-[10px] px-2 py-0.5 font-black rounded-bl-lg shadow-sm">
-                                                            추천
-                                                        </div>
-                                                    )}
-                                                </button>
+                                                    }}
+                                                    className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-4 pr-8 text-sm font-black text-white outline-none focus:border-purple-500 transition-all text-right"
+                                                />
+                                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-white/30">원</span>
                                             </div>
                                         </div>
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black text-white/40 uppercase tracking-widest ml-1">잔금 (구독 대상)</label>
+                                            <div className="relative">
+                                                <input
+                                                    type="text"
+                                                    readOnly
+                                                    value={new Intl.NumberFormat('ko-KR').format(balance)}
+                                                    className="w-full bg-black/20 border border-white/5 rounded-2xl py-4 px-4 pr-8 text-sm font-black text-white/40 outline-none text-right"
+                                                />
+                                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-white/20">원</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex flex-col gap-3 pt-2">
+                                        <button
+                                            onClick={() => handleConversion('balance')}
+                                            className={`group relative flex items-center justify-center gap-2 py-4 rounded-2xl text-xs font-black transition-all shadow-xl overflow-hidden border-2 ${conversionMode === 'balance' 
+                                                ? 'bg-purple-600 border-purple-400 text-white' 
+                                                : 'bg-white/5 border-white/10 text-white hover:bg-white/10'}`}
+                                        >
+                                            <ArrowRightLeft size={16} /> 잔금만 구독 전환
+                                            {conversionMode === 'balance' && <div className="absolute inset-0 bg-white/10 animate-pulse"></div>}
+                                        </button>
+                                        <button
+                                            onClick={() => handleConversion('full')}
+                                            className={`group relative flex items-center justify-center gap-2 py-4 rounded-2xl text-xs font-black transition-all shadow-xl overflow-hidden border-2 ${conversionMode === 'full' 
+                                                ? 'bg-purple-600 border-purple-400 text-white' 
+                                                : 'bg-white/5 border-white/10 text-white hover:bg-white/10'}`}
+                                        >
+                                            <ArrowRightLeft size={16} /> 전액 구독 전환
+                                        </button>
                                     </div>
 
                                     {calculatedSubs && (
-                                        <div className="animate-in fade-in slide-in-from-top-4 duration-300">
-                                            <div className="bg-[#001a3d] p-6 md:p-8 rounded-[2rem] text-white space-y-6">
-                                                <div className="flex justify-between items-center px-1">
-                                                    <div className="flex items-center gap-2">
-                                                        <Calculator size={16} className="text-[#c5a059]" />
-                                                        <h5 className="text-xs font-black">
-                                                            {conversionMode === 'full' ? '전액' : '잔금'} 구독 전환 견적
-                                                        </h5>
-                                                    </div>
-                                                    <span className="text-[10px] font-bold text-white/50">* 이자 포함 금액</span>
-                                                </div>
-                                                <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
-                                                    {[24, 36, 48, 60].map(m => (
-                                                        <div 
-                                                            key={m} 
-                                                            className={`relative p-4 rounded-2xl border transition-all text-center space-y-1 ${m === 60 ? 'bg-white text-[#001a3d] border-white shadow-xl' : 'bg-white/5 border-white/10 opacity-70'}`}
-                                                        >
-                                                            <p className={`text-[9px] font-black uppercase tracking-tighter ${m === 60 ? 'text-[#001a3d]/50' : 'text-white/40'}`}>{m}개월 약정</p>
-                                                            <p className="text-base font-black font-outfit">{new Intl.NumberFormat('ko-KR').format(calculatedSubs[m])}원</p>
-                                                            {m === 60 && (
-                                                                <div className="absolute -top-2 -right-1">
-                                                                    <div className="bg-[#ef4444] text-white text-[9px] font-black px-2 py-0.5 rounded-full shadow-lg animate-pulse">
-                                                                        인기
-                                                                    </div>
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                                <div className="flex flex-col gap-4">
-                                                    <button
-                                                        onClick={() => {
-                                                            setApplicationType('subscription');
-                                                            setIsRentalMode(true);
-                                                            setRentalStep(1);
-                                                            setRentalForm(prev => ({ 
-                                                                ...prev, 
-                                                                selectedAmount: 60, // Fixed to 60
-                                                                isConversion: true,
-                                                                conversionSubs: calculatedSubs,
-                                                                conversionMode: conversionMode,
-                                                                downPaymentToReport: conversionMode === 'balance' ? downPayment : 0
-                                                            }));
-                                                        }}
-                                                        className="w-full py-4 bg-[#c5a059] text-sm font-black text-[#001a3d] rounded-2xl hover:brightness-110 active:scale-[0.98] transition-all shadow-xl flex items-center justify-center gap-2"
+                                        <div className="pt-6 border-t border-white/10 space-y-4">
+                                            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                                                {[24, 36, 48, 60].map(m => (
+                                                    <div 
+                                                        key={m} 
+                                                        className={`p-3 rounded-xl border text-center space-y-1 transition-all ${m === 60 ? 'bg-purple-500 border-purple-300 text-white shadow-lg scale-105' : 'bg-white/5 border-white/10 text-white/60'}`}
                                                     >
-                                                        구독 신청하기 <ChevronRight size={16} />
-                                                    </button>
-                                                    <p className="text-[10px] text-center text-[#c5a059] font-bold">
-                                                        * 위 {conversionMode === 'full' ? '전액' : `잔금(${formatKrw(balance)})`}에 대한 월 구독료 견적입니다.
-                                                    </p>
-                                                </div>
+                                                        <p className="text-[8px] font-black uppercase opacity-60">{m}개월</p>
+                                                        <p className="text-[13px] font-black font-outfit">{new Intl.NumberFormat('ko-KR').format(calculatedSubs[m])}원</p>
+                                                    </div>
+                                                ))}
                                             </div>
+                                            <button
+                                                onClick={() => {
+                                                    setApplicationType('subscription');
+                                                    setIsRentalMode(true);
+                                                    setRentalStep(1);
+                                                    setRentalForm(prev => ({ 
+                                                        ...prev, 
+                                                        selectedAmount: 60,
+                                                        isConversion: true,
+                                                        conversionSubs: calculatedSubs,
+                                                        conversionMode: conversionMode,
+                                                        downPaymentToReport: conversionMode === 'balance' ? downPayment : 0
+                                                    }));
+                                                }}
+                                                className="w-full py-4 bg-[#facc15] text-[#1a1c23] text-sm font-black rounded-2xl hover:brightness-110 active:scale-[0.98] transition-all shadow-xl flex items-center justify-center gap-2"
+                                            >
+                                                스마트 구독 신청하기 <ChevronRight size={18} />
+                                            </button>
                                         </div>
                                     )}
                                 </div>
                             </div>
+                        </div>
 
-                        {/* 3. 60개월 렌탈 고정형 패키지 */}
-                        <div className="bg-[#1e293b] p-6 md:p-10 text-white relative overflow-hidden shadow-xl shadow-black/10 rounded-[2.5rem]">
-                            <div className="absolute bottom-0 left-0 w-48 h-48 bg-blue-500/10 rounded-full blur-[80px] -ml-24 -mb-24 opacity-30"></div>
-                            <div className="relative z-10 mb-6">
-                                <div className="flex justify-between items-start md:items-center mb-2">
-                                    <div className="flex items-start md:items-center gap-2.5">
-                                        <div className="w-6 h-6 bg-white/20 text-white rounded-full flex items-center justify-center text-[10px] font-black border border-white/20 font-outfit shrink-0 mt-0.5 md:mt-0">3</div>
-                                        <h4 className="text-base font-black text-white leading-tight">
-                                            60개월 렌탈<br className="md:hidden" /> 고정형 패키지
-                                        </h4>
-                                    </div>
-                                    <button
-                                        onClick={() => {
-                                            setApplicationType('rental');
-                                            setIsRentalMode(true);
-                                            setRentalStep(1);
-                                        }}
-                                        className="bg-[#c5a059] hover:bg-[#b08d48] text-[#001a3d] text-[10px] font-black px-3 py-1.5 rounded-full shadow-lg transition-all active:scale-95 flex items-center gap-1 shrink-0"
-                                    >
-                                        렌탈 신청하기 <ChevronRight size={10} />
-                                    </button>
+                        {/* 3. 60개월 렌탈 고정형 패키지 섹션 */}
+                        <div className="bg-[#1e293b] rounded-2xl p-6 md:p-10 shadow-2xl relative overflow-hidden border border-white/5">
+                            <div className="absolute top-0 right-0 w-64 h-64 bg-slate-500/5 rounded-full blur-3xl -mr-32 -mt-32"></div>
+                            
+                            <div className="relative z-10 space-y-8">
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    {[11, 22, 33].map(val => (
+                                        <div key={val} className="bg-black/20 backdrop-blur-md border border-white/5 p-6 rounded-xl space-y-3 group hover:border-[#c5a059]/30 transition-all">
+                                            <div className="text-[#c5a059] text-base font-black tracking-tight">
+                                                월 {val === 11 ? '111,000' : val === 22 ? '222,000' : '333,000'}원
+                                            </div>
+                                            <div className="space-y-0.5">
+                                                <p className="text-[10px] text-white/30 font-black uppercase tracking-widest">본인 부담 선납금</p>
+                                                <p className="text-xl font-black text-white font-outfit">{calculatePackage(data.finalBenefit, val * 10000, val * 500000 / 1.1)}</p>
+                                            </div>
+                                        </div>
+                                    ))}
                                 </div>
-                                <p className="text-white/60 text-[11px] font-medium ml-8">매월 일정금액을 고정시키고 일부 금액만 선납형으로 결제하는 하이브리드 렌탈 서비스 입니다.</p>
+
+                                <button
+                                    onClick={() => {
+                                        setApplicationType('rental');
+                                        setIsRentalMode(true);
+                                        setRentalStep(1);
+                                    }}
+                                    className="w-full py-4 bg-[#c5a059] text-[#001a3d] text-sm font-black rounded-xl hover:brightness-110 active:scale-[0.98] transition-all shadow-xl flex items-center justify-center gap-2"
+                                >
+                                    렌탈 패키지 신청하기 <ChevronRight size={18} />
+                                </button>
                             </div>
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 w-full relative z-10">
-                                {[11, 22, 33].map(val => (
-                                    <div key={val} className="bg-white/[0.08] backdrop-blur-md border border-white/10 p-4 md:p-6 rounded-2xl transition-all text-center group flex flex-col justify-center shadow-inner">
-                                        <div className="text-[#c5a059] text-sm md:text-base font-black mb-1 md:mb-2 tracking-tight group-hover:scale-105 transition-transform">
-                                            월 {val === 11 ? '111,000' : val === 22 ? '222,000' : '333,000'}원 고정
-                                        </div>
-                                        <div className="flex flex-row md:flex-col items-center justify-center gap-2 md:gap-0.5">
-                                            <p className="text-[8px] text-white/40 font-black tracking-widest uppercase">선납금</p>
-                                            <p className="text-lg md:text-xl font-black text-white font-outfit whitespace-nowrap">{calculatePackage(data.finalBenefit, val * 10000, val * 500000 / 1.1)}</p>
-                                        </div>
-                                    </div>
-                                ))}
+                        </div>
+                    </div>
+                </div>
+
+                {/* 4. 특별 무상 서비스 섹션 (Neon Border) */}
+                <div className="relative p-1 rounded-2xl overflow-hidden shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-1000">
+                    {/* Neon Line Animation - Fast Rotating Thick Pink Line */}
+                    <div className="absolute inset-[-150%] bg-[conic-gradient(from_0deg,#ff0080,#ff1493,#ff69b4,transparent,transparent,#ff0080)] animate-[spin_1.5s_linear_infinite]"></div>
+                    
+                    <div className="relative z-10 bg-white rounded-xl p-8 md:p-14 space-y-10 text-center">
+                        <div className="space-y-5">
+                            <div className="relative inline-block mt-2">
+                                <div className="w-16 h-16 bg-[#c5a059] rounded-2xl flex items-center justify-center text-white mx-auto shadow-xl">
+                                    <Gift size={32} />
+                                </div>
+                                <div className="absolute -top-3 -right-3 text-[#ff69b4] animate-pulse">
+                                    <Sparkles size={20} />
+                                </div>
+                            </div>
+                            <div className="space-y-1.5">
+                                <h3 className="text-2xl md:text-3xl font-black text-[#001a3d]">특별 무상 서비스</h3>
+                                <p className="text-[#ff1493] text-[10px] md:text-[11px] font-black tracking-[0.25em] uppercase">PREMIUM BENEFIT CELEBRATION</p>
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-1 gap-6">
+                        <div className="grid grid-cols-1 gap-5 max-w-sm mx-auto">
+                            {/* Option 1 */}
+                            <div className="bg-[#fffbef] border border-[#c5a059]/10 p-8 rounded-3xl space-y-4 shadow-sm relative group hover:scale-[1.02] transition-all duration-300">
+                                <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center text-[#c5a059] mx-auto shadow-md border border-gray-100 group-hover:scale-110 transition-transform">
+                                    <ShieldCheck size={28} />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <p className="text-[9px] font-black text-[#ff1493]/70 uppercase tracking-widest">Upgrade Option 01</p>
+                                    <p className="text-lg font-black text-[#001a3d] leading-tight break-keep">고성능 더블로이유리<br />무상 업그레이드</p>
+                                </div>
+                            </div>
+
+                            {/* Option 2 */}
+                            <div className="bg-[#fffbef] border border-[#c5a059]/10 p-8 rounded-3xl space-y-4 shadow-sm relative group hover:scale-[1.02] transition-all duration-300">
+                                <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center text-[#c5a059] mx-auto shadow-md border border-gray-100 group-hover:scale-110 transition-transform">
+                                    <Sparkles size={28} />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <p className="text-[9px] font-black text-[#ff1493]/70 uppercase tracking-widest">Upgrade Option 02</p>
+                                    <p className="text-lg font-black text-[#001a3d] leading-tight break-keep">최고급 블랙 STS 방충망<br />전면 교체</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="space-y-6">
+
+
                             {/* 구독 PLUS 서비스 */}
                             <div className="purple-premium-gradient p-8 md:p-14 text-white relative overflow-hidden shadow-2xl flex flex-col justify-between">
                                 <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-32 -mt-32 blur-4xl"></div>
@@ -1091,7 +1169,7 @@ const CustomerPage = () => {
                                     </div>
                                     
                                     <div className="max-w-2xl mx-auto w-full">
-                                        <div className="bg-white/10 backdrop-blur-xl border border-white/20 p-6 md:p-10 rounded-[2rem] md:rounded-[2.5rem] space-y-8 shadow-2xl relative overflow-hidden group">
+                                        <div className="bg-white/10 backdrop-blur-xl border border-white/20 p-6 md:p-10 rounded-xl md:rounded-2xl space-y-8 shadow-2xl relative overflow-hidden group">
                                             <div className="absolute top-0 right-0 p-4 opacity-20">
                                                 <img src="https://www.lge.co.kr/lg5-common/images/header/lg_logo_new.svg" alt="LG Logo" className="h-10 w-auto grayscale brightness-0 invert opacity-20" />
                                             </div>
@@ -1133,43 +1211,67 @@ const CustomerPage = () => {
                                                         LG구독 홈페이지 바로가기
                                                         <ExternalLink size={16} className="transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
                                                     </a>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* 전용 혜택 카드 */}
-                            <div className="luxury-card p-10 md:p-14 bg-white border border-gray-100 shadow-xl space-y-10">
-                                <h4 className="text-xl md:text-2xl font-black text-[#001a3d] flex items-center gap-3 md:gap-4 whitespace-nowrap">
-                                    <div className="w-2 h-8 md:w-2.5 md:h-10 bg-[#c5a059] rounded-full shrink-0"></div>
-                                    계약 고객 특별 무상 서비스
-                                </h4>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div className="bg-[#f8fafc] p-6 md:p-8 rounded-[2rem] flex items-center gap-5 md:gap-8 border border-gray-100/50 hover:bg-white transition-all group cursor-default shadow-sm hover:shadow-xl hover:shadow-gray-200/50">
-                                        <div className="w-12 h-12 md:w-16 md:h-16 bg-white shadow-lg rounded-[1rem] md:rounded-[1.25rem] flex items-center justify-center text-[#c5a059] transition-transform group-hover:rotate-6 border border-gray-50"><ShieldCheck size={28} className="md:w-8 md:h-8" /></div>
-                                        <div>
-                                            <p className="text-[9px] md:text-[11px] font-black text-[#c5a059] uppercase tracking-[0.15em] mb-1 opacity-80 whitespace-nowrap">Upgrade Option 01</p>
-                                            <p className="text-base md:text-lg font-black text-[#2c3e50] tracking-tight leading-tight md:leading-snug break-keep">
-                                                고성능 더블로이유리<br /> 무상 업그레이드
-                                            </p>
-                                        </div>
-                                    </div>
-                                    <div className="bg-[#f8fafc] p-6 md:p-8 rounded-[2rem] flex items-center gap-5 md:gap-8 border border-gray-100/50 hover:bg-white transition-all group cursor-default shadow-sm hover:shadow-xl hover:shadow-gray-200/50">
-                                        <div className="w-12 h-12 md:w-16 md:h-16 bg-white shadow-lg rounded-[1rem] md:rounded-[1.25rem] flex items-center justify-center text-[#c5a059] transition-transform group-hover:rotate-6 border border-gray-50"><ExternalLink size={28} className="md:w-8 md:h-8" /></div>
-                                        <div>
-                                            <p className="text-[9px] md:text-[11px] font-black text-[#c5a059] uppercase tracking-[0.15em] mb-1 opacity-80 whitespace-nowrap">Upgrade Option 02</p>
-                                            <p className="text-base md:text-lg font-black text-[#2c3e50] tracking-tight leading-tight md:leading-snug break-keep">
-                                                최고급 블랙 STS<br /> 방충망 전면 교체
-                                            </p>
-                                        </div>
-                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
+            </div>
+        </div>
+
+                        {/* 5. 주방 상품 안내 섹션 */}
+                        <div className="relative rounded-3xl overflow-hidden shadow-2xl group min-h-[600px] flex flex-col justify-end animate-in fade-in slide-in-from-bottom-6 duration-1000">
+                            <img 
+                                src="https://res.cloudinary.com/dx7l09wwu/image/upload/v1775396911/%EC%97%B0%EC%B6%9C_3_l0zfje.jpg" 
+                                alt="KCC 프리미엄 주방" 
+                                className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-[3000ms]" 
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent group-hover:via-black/60 transition-all duration-700"></div>
+                            
+                            <div className="relative z-10 p-8 md:p-14 space-y-10">
+                                <div className="space-y-6">
+                                    <div className="flex items-center gap-3">
+                                        <span className="bg-[#c5a059] text-white px-3 py-1 rounded-lg text-[10px] md:text-xs font-black tracking-widest shadow-lg">NEW</span>
+                                        <span className="text-[#c5a059] text-[9px] md:text-xs font-black uppercase tracking-[0.25em]">Prestige Kitchen Collection</span>
+                                    </div>
+                                    
+                                    <div className="space-y-3">
+                                        <h3 className="text-3xl md:text-4xl font-black text-white leading-tight">혹시 주방도 고민<br />중이신가요?</h3>
+                                        <p className="text-white/60 text-sm md:text-base font-bold break-keep leading-relaxed border-l-2 border-[#c5a059] pl-4">
+                                            창호 名家, KCC글라스가 만든<br className="md:hidden" /> 프리미엄 맞춤 주방이 출시 되었습니다!
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+                                    {[
+                                        { icon: <CheckCircle size={18} />, text: '최저가 맞춤 시공' },
+                                        { icon: <ShieldCheck size={18} />, text: '본사 A/S 보장' },
+                                        { icon: <Calendar size={18} />, text: '60개월 할부 지원' },
+                                        { icon: <Sparkles size={18} />, text: 'LG빌트인 가전할인' }
+                                    ].map((item, i) => (
+                                        <div key={i} className="flex items-center gap-4 bg-black/40 backdrop-blur-xl border border-white/10 p-4 md:p-5 rounded-2xl hover:bg-white/10 transition-all cursor-default group/item">
+                                            <div className="w-10 h-10 bg-[#c5a059]/20 text-[#c5a059] rounded-xl flex items-center justify-center shadow-inner group-hover/item:scale-110 transition-transform">
+                                                {item.icon}
+                                            </div>
+                                            <span className="text-white/90 font-bold text-sm md:text-base">{item.text}</span>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                <div className="space-y-4 pt-2">
+                                    <a 
+                                        href="https://kcchomecc-partner.com/products/hline2" 
+                                        target="_blank" 
+                                        rel="noopener noreferrer"
+                                        className="w-full py-5 bg-[#c5a059] text-[#001a3d] rounded-2xl font-black text-base md:text-lg flex items-center justify-center gap-3 shadow-2xl hover:brightness-110 active:scale-[0.98] transition-all"
+                                    >
+                                        프리미엄 주방 자세히 보기 <ExternalLink size={22} />
+                                    </a>
+                                    <p className="text-white/30 text-[10px] md:text-xs text-center font-medium">※ 자세한 내용은 상담원에게 문의해 주세요.</p>
+                                </div>
+                            </div>
+                        </div>
 
                 <div className="space-y-6 pt-4">
                     <h3 className="text-lg font-black text-[#001a3d] flex items-center gap-2 px-1">
@@ -1317,8 +1419,7 @@ const CustomerPage = () => {
                             </a>
                         </div>
                     )}
-                </div>
-            </div>
+
 
             <div className="flex flex-wrap justify-center gap-4 pt-4">
                 {banners?.map((b, i) => (
@@ -1335,7 +1436,7 @@ const CustomerPage = () => {
                 </h4>
                 <div className="max-w-2xl mx-auto space-y-4 text-[11px] font-extrabold text-gray-500 leading-relaxed px-4">
                     <p className="opacity-80 text-center">서울시 가산디지털1로 83, 파트너스타워1, 802호<br />사업자등록번호: 220-87-15092 ｜ 김정열 대표이사</p>
-                    <div className="bg-gray-100/80 p-4 rounded-[1.5rem] border border-gray-200/50 text-[#001a3d] shadow-inner inline-block min-w-[300px]">
+                    <div className="bg-gray-100/80 p-4 rounded-xl border border-gray-200/50 text-[#001a3d] shadow-inner inline-block min-w-[300px]">
                         <span className="text-[9px] uppercase tracking-[0.4em] text-[#c5a059] font-black mb-1 inline-block border-b-2 border-[#c5a059]/10 pb-1">Deposit Info</span><br />
                         <span className="text-base font-black font-outfit">(국민은행) 421737-04-015908</span><br />
                         <span className="font-black text-[11px] opacity-80 mt-0.5 block tracking-wider">계좌주 : (주)티유디지털</span>
@@ -1347,6 +1448,8 @@ const CustomerPage = () => {
                 <img src="https://cdn.imweb.me/upload/S20250904697320f4fd9ed/87d2040aa0130.png" alt="하단 로고" className="w-full max-w-2xl mx-auto object-contain opacity-100 rounded-2xl" />
             </div>
         </div>
+    </div>
+
 
             {/* Contact Menu */}
             <div className="fixed bottom-8 right-8 z-[60] flex flex-col items-end gap-3">
@@ -1372,7 +1475,7 @@ const CustomerPage = () => {
                 )}
                 <button
                     onClick={() => setShowContactMenu(!showContactMenu)}
-                    className="bg-[#001a3d] text-[#c5a059] p-3 rounded-[1.25rem] shadow-2xl shadow-[#001a3d]/50 flex items-center gap-2 active:scale-90 transition-all border-2 border-white/10 group"
+                    className="bg-[#001a3d] text-[#c5a059] p-3 rounded-xl shadow-2xl shadow-[#001a3d]/50 flex items-center gap-2 active:scale-90 transition-all border-2 border-white/10 group"
                 >
                     <div className={`w-6 h-6 bg-[#c5a059] text-[#001a3d] rounded-lg flex items-center justify-center shadow-lg relative z-10 transition-transform duration-300 ${showContactMenu ? 'rotate-45' : 'group-hover:rotate-12'}`}>
                         {showContactMenu ? <X size={16} /> : <MessageCircle size={16} />}
@@ -1395,7 +1498,7 @@ const CustomerPage = () => {
 
                     {/* Modal Content: Stops click propagation to prevent closing */}
                     <div
-                        className="bg-white w-[92%] md:w-full max-w-xl h-[90vh] md:h-[85vh] rounded-[2rem] md:rounded-[2.5rem] shadow-2xl relative z-10 overflow-hidden flex flex-col animate-in slide-in-from-bottom-10 shadow-black/40 border border-gray-100"
+                        className="bg-white w-[92%] md:w-full max-w-xl h-[90vh] md:h-[85vh] rounded-xl md:rounded-2xl shadow-2xl relative z-10 overflow-hidden flex flex-col animate-in slide-in-from-bottom-10 shadow-black/40 border border-gray-100"
                         onClick={(e) => e.stopPropagation()}
                     >
                         <header className="p-6 md:p-10 border-b border-gray-50 flex justify-between items-center bg-gray-50/10 shrink-0">
@@ -1416,7 +1519,7 @@ const CustomerPage = () => {
                         <div className="flex-1 overflow-y-auto p-5 md:p-8 bg-gray-50/5 min-h-0 relative" style={{ overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch' }}>
                             {modalType === 'precautions' ? (
                                 <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
-                                    <div className="bg-orange-50 border border-orange-100 p-6 rounded-3xl">
+                                    <div className="bg-orange-50 border border-orange-100 p-6 rounded-xl">
                                         <p className="text-orange-900 text-[13px] font-bold leading-relaxed break-keep">
                                             아래의 경우에는 책임 견적 적용 대상에서 제외되며, 실측 후 최종 견적 금액이 조정될 수 있습니다.
                                         </p>
@@ -1439,7 +1542,7 @@ const CustomerPage = () => {
                                         ))}
                                     </div>
 
-                                    <div className="bg-[#f8fafc] p-6 rounded-3xl border border-gray-100 mt-4">
+                                    <div className="bg-[#f8fafc] p-6 rounded-xl border border-gray-100 mt-4">
                                         <p className="text-[11px] text-gray-400 font-bold leading-relaxed text-center">
                                             ※ 실측 및 현장 상담 과정에서 사양 변경이 발생할 경우 투명하게 재안내 드립니다.
                                         </p>
@@ -1448,8 +1551,8 @@ const CustomerPage = () => {
                             ) : (
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                                     {appliances?.[modalType]?.map((item, idx) => (
-                                        <div key={idx} className="bg-white rounded-[2rem] border border-gray-100 p-5 flex flex-col gap-5 shadow-xl shadow-gray-100/50 group hover:border-[#c5a059]/30 transition-all">
-                                            <div className="w-full aspect-video bg-white rounded-3xl overflow-hidden border-2 border-gray-50 relative shrink-0">
+                                        <div key={idx} className="bg-white rounded-xl border border-gray-100 p-5 flex flex-col gap-5 shadow-xl shadow-gray-100/50 group hover:border-[#c5a059]/30 transition-all">
+                                            <div className="w-full aspect-video bg-white rounded-xl overflow-hidden border-2 border-gray-50 relative shrink-0">
                                                 <img src={item.img} alt={item.name} className="w-full h-full object-contain p-4 transition-transform duration-700 group-hover:scale-110" />
                                                 <div className="absolute top-2 right-2 bg-[#001a3d] text-[#c5a059] text-[8px] font-black px-2 py-1 rounded-lg uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">Premium</div>
                                             </div>
@@ -1540,7 +1643,7 @@ const CustomerPage = () => {
                                         <p className="text-gray-500 text-sm font-bold">안전한 계약을 위해 본인 정보를 입력해주세요.</p>
                                     </div>
 
-                                    <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-gray-100 space-y-6">
+                                    <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 space-y-6">
                                         <div className="space-y-4">
                                             <div>
                                                 <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-1 block">이름</label>
@@ -1598,7 +1701,7 @@ const CustomerPage = () => {
                                     {/* Subscription Exclusive: Installment Details & Transfer/Job Info */}
                                     {applicationType === 'subscription' && (
                                         <div className="space-y-6 animate-in fade-in slide-in-from-top-4">
-                                            <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-gray-100 space-y-6">
+                                            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 space-y-6">
                                                 <div>
                                                     <label className="text-[11px] font-black text-[#001a3d] uppercase tracking-widest mb-2 block">이체일자 선택</label>
                                                     <div className="relative">
@@ -1718,7 +1821,7 @@ const CustomerPage = () => {
                                                             setRentalForm({ ...rentalForm, selectedAmount: val });
                                                         }
                                                     }}
-                                                    className={`p-6 rounded-[2rem] border-2 transition-all relative overflow-hidden ${isDisabled ? 'cursor-not-allowed opacity-50 bg-gray-50 border-gray-100' : 'cursor-pointer'} ${isSelected
+                                                    className={`p-6 rounded-xl border-2 transition-all relative overflow-hidden ${isDisabled ? 'cursor-not-allowed opacity-50 bg-gray-50 border-gray-100' : 'cursor-pointer'} ${isSelected
                                                         ? 'bg-[#001a3d] border-[#001a3d] text-white shadow-xl scale-[1.02]'
                                                         : isDisabled ? '' : 'bg-white border-gray-100 text-[#001a3d] hover:border-gray-200'
                                                         }`}
@@ -1754,7 +1857,7 @@ const CustomerPage = () => {
                             {rentalStep === 3 && (
                                 <div className="space-y-8 animate-in fade-in slide-in-from-right-4">
                                     {/* Real-time Save Notice Banner */}
-                                    <div className="bg-blue-50/50 border border-blue-100 p-5 rounded-[2rem] space-y-3 shadow-sm">
+                                    <div className="bg-blue-50/50 border border-blue-100 p-5 rounded-xl space-y-3 shadow-sm">
                                         <div className="flex items-center gap-2 text-blue-700">
                                             <div className="w-6 h-6 bg-blue-600 text-white rounded-lg flex items-center justify-center shadow-lg">
                                                 <CheckCircle size={14} />
@@ -1807,7 +1910,7 @@ const CustomerPage = () => {
                                         </div>
 
                                         {/* Upload Area */}
-                                        <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-gray-100 space-y-6">
+                                        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 space-y-6">
                                             {/* Dynamic Content Based on Type */}
                                             {/* 본인 소유 */}
                                             {rentalForm.ownershipType === 'own_own' && (
@@ -1921,7 +2024,7 @@ const CustomerPage = () => {
                                     </div>
 
                                     {applicationType === 'subscription' ? (
-                                        <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-gray-100 space-y-8">
+                                        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 space-y-8">
                                             <div className="flex flex-col items-center justify-center text-center space-y-6 py-8">
                                                 <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center shadow-inner">
                                                     <ShieldCheck size={32} />
@@ -2078,7 +2181,7 @@ const CustomerPage = () => {
 
                                     {/* 전자서명 (렌탈 전용) */}
                                     {applicationType === 'rental' && (
-                                        <div className="bg-gray-50 p-6 rounded-[2rem] border border-gray-200 shadow-sm relative overflow-hidden text-left mt-6">
+                                        <div className="bg-gray-50 p-6 rounded-xl border border-gray-200 shadow-sm relative overflow-hidden text-left mt-6">
                                             <div className="mb-4">
                                                 <h4 className="text-sm font-black text-[#001a3d] flex items-center gap-2">
                                                     <div className="w-6 h-6 bg-[#001a3d] text-white rounded-md flex items-center justify-center shadow-md"><ShieldCheck size={14} /></div>
@@ -2086,7 +2189,7 @@ const CustomerPage = () => {
                                                 </h4>
                                                 <p className="text-[11px] text-gray-500 font-bold mt-1">위에 정자로 서명해주세요. 입력하신 서명은 정보동의서에 자동 표기됩니다.</p>
                                             </div>
-                                            <div className="bg-white border-2 border-dashed border-gray-300 rounded-[1.5rem] relative overflow-hidden transition-all hover:border-[#c5a059]/50">
+                                            <div className="bg-white border-2 border-dashed border-gray-300 rounded-xl relative overflow-hidden transition-all hover:border-[#c5a059]/50">
                                                 <SignaturePad 
                                                     ref={sigCanvas} 
                                                     canvasProps={{ className: 'w-full h-40 bg-white cursor-crosshair' }} 
@@ -2212,7 +2315,7 @@ const CustomerPage = () => {
                     <div className="absolute inset-0 bg-[#001a3d]/80 backdrop-blur-sm" onClick={() => {
                         if (confirmModal.type === 'alert') setConfirmModal(prev => ({ ...prev, isOpen: false }));
                     }}></div>
-                    <div className="bg-white w-full max-w-sm rounded-[2rem] shadow-2xl relative z-10 overflow-hidden animate-in zoom-in-95 duration-200 border border-gray-100">
+                    <div className="bg-white w-full max-w-sm rounded-xl shadow-2xl relative z-10 overflow-hidden animate-in zoom-in-95 duration-200 border border-gray-100">
                         <div className="p-8 text-center space-y-4">
                             <div className="w-16 h-16 bg-[#f0f4f9] text-[#001a3d] rounded-2xl flex items-center justify-center mx-auto mb-2">
                                 {confirmModal.type === 'alert' ? <ShieldCheck size={32} /> : <Calculator size={32} />}
