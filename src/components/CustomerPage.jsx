@@ -771,19 +771,45 @@ const CustomerPage = () => {
             </header>
 
             <div className="w-full p-4 md:p-6 space-y-8">
-            <div className="bg-[#001a3d] -mx-4 md:-mx-6 -mt-4 md:-mt-6 px-4 md:px-6 py-12 md:py-16 space-y-8 relative overflow-hidden">
-                {/* Background Decorative Elements */}
-                <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/5 rounded-full blur-3xl -mr-32 -mt-32"></div>
-                <div className="absolute bottom-0 left-0 w-64 h-64 bg-[#c5a059]/5 rounded-full blur-3xl -ml-32 -mb-32"></div>
+            <div className="bg-[#001a3d] -mx-4 md:-mx-6 -mt-4 md:-mt-6 px-4 md:px-6 py-20 md:py-28 space-y-12 relative overflow-hidden flex flex-col items-center justify-center min-h-[500px]">
+                {/* Background Image with Overlay */}
+                <div className="absolute inset-0 z-0">
+                    <img 
+                        src="https://res.cloudinary.com/dx7l09wwu/image/upload/v1775622415/HW_ONE_%ED%95%B8%EB%93%A4_%ED%95%A9%EC%84%B12_%EC%84%B8%EB%A1%9C_ssfa1u.png" 
+                        alt="Hero Background" 
+                        className="w-full h-full object-cover opacity-60"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-b from-[#001a3d]/80 via-[#001a3d]/60 to-[#001a3d]"></div>
+                </div>
 
-                <div className="text-center space-y-4 relative z-10">
-                    <div className="inline-block border border-[#c5a059]/40 bg-[#c5a059]/10 px-4 py-1.5 rounded-full backdrop-blur-sm">
+                {/* Decorative Elements */}
+                <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl -mr-32 -mt-32"></div>
+                <div className="absolute bottom-0 left-0 w-64 h-64 bg-[#c5a059]/10 rounded-full blur-3xl -ml-32 -mb-32"></div>
+
+                <div className="text-center space-y-6 relative z-10 w-full max-w-lg">
+                    <div className="inline-block border border-[#c5a059]/40 bg-[#c5a059]/10 px-4 py-1.5 rounded-full backdrop-blur-md">
                         <span className="text-[#c5a059] text-[10px] font-black tracking-[0.2em] uppercase">OFFICIAL QUOTATION</span>
                     </div>
-                    <h2 className="text-3xl md:text-5xl font-extrabold text-white leading-tight tracking-tight">
-                        <span className="text-[#c5a059]">감사합니다.</span> {data.name}님<br />
-                        <span className="text-white/40 text-[0.6em] md:text-[0.5em] font-medium block mt-2">최고의 가치로 보답하겠습니다.</span>
-                    </h2>
+                    
+                    <div className="space-y-4">
+                        <h2 className="text-3xl md:text-5xl font-extrabold text-white leading-[1.2] tracking-tight break-keep">
+                            결제는 더 유연하게,<br />
+                            창호는 더 <span className="text-[#facc15]">프리미엄하게</span>
+                        </h2>
+                        
+                        <div className="flex flex-col items-center gap-3 pt-6 w-full max-w-xs mx-auto">
+                            {[
+                                '60개월 구독/렌탈/일시불 할인',
+                                'KCC홈씨씨 본사 시공 13년 보증',
+                                '유리 · 방충망 무료 업그레이드'
+                            ].map((text, idx) => (
+                                <div key={idx} className="flex items-center gap-3 px-6 py-2.5 bg-black/30 backdrop-blur-md rounded-xl border border-white/10 w-full group/item hover:bg-white/5 transition-all">
+                                    <div className="w-1.5 h-1.5 bg-[#facc15] rounded-full shadow-[0_0_10px_rgba(250,204,21,0.8)]"></div>
+                                    <span className="text-white/90 text-xs md:text-sm font-black tracking-tight flex-1 text-left">{text}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
                 </div>
 
                 <div className="max-w-xl mx-auto">
