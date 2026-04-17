@@ -196,7 +196,64 @@ export const searchQuote = query({
                 };
             }
         }
-
         return null;
     },
+});
+
+/**
+ * 연이율 9.4% 소급 적용 마이그레이션
+ */
+export const migrateInterestRates = mutation({
+    args: {},
+    handler: async (ctx) => {
+        const annualRate = 0.094;
+        const r = annualRate / 12;
+
+        const calculatePmt = (amount: number, months: number) => {
+            if (amount <= 0) return 0;
+            const pmt = (amount * r) / (1 - Math.pow(1 + r, -months));
+            return Math.floor(pmt / 10) * 10;
+        };
+
+        // 1. 모든 견적(quotes) 업데이트
+        const quotes = await ctx.db.query("quotes").collect();
+        for (const q of quotes) {
+            const finalBenefit = q.finalBenefit || 0;
+            await ctx.db.patch(q._id, {
+                sub24: calculatePmt(finalBenefit, 24),
+                sub36: calculatePmt(finalBenefit, 36),
+                sub48: calculatePmt(finalBenefit, 48),
+                sub60: calculatePmt(finalBenefit, 60),
+            });
+        }
+
+        // 2. 모든 할부신청(subscription_applications) 업데이트
+        const subscriptions = await ctx.db.query("subscription_applications").collect();
+        for (const s of subscriptions) {
+            // 신청 시점의 잔금(balance) 또는 할인가(finalBenefit) 기준으로 재계산
+            // 할부 개월수(selectedAmount) 확인
+            const amountToCalc = s.balance || s.finalBenefit || 0;
+            const months = s.selectedAmount || 60;
+            if (amountToCalc > 0) {
+                await ctx.db.patch(s._id, {
+                    monthlyAmount: calculatePmt(amountToCalc, months)
+                });
+            }
+        }
+
+        // 3. 렌탈신청(rental_applications) 업데이트 (일부 이율 기반 계산이 있는 경우)
+        const rentals = await ctx.db.query("rental_applications").collect();
+        for (const rent of rentals) {
+            // 렌탈은 보통 60개월 고정
+            const amountToCalc = rent.balance || rent.finalBenefit || 0;
+            if (amountToCalc > 0 && (rent as any).monthlyAmount > 330000) { 
+                // 기존 monthlyAmount가 11/22/33 패키지가 아닌 경우에만 (이율 기반일 확률 높음)
+                await ctx.db.patch(rent._id, {
+                    monthlyAmount: calculatePmt(amountToCalc, 60)
+                });
+            }
+        }
+
+        return { success: true, count: quotes.length + subscriptions.length + rentals.length };
+    }
 });

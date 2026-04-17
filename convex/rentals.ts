@@ -40,13 +40,13 @@ export const submitApplication = mutation({
         if (id) {
             await ctx.db.patch(id, {
                 ...data,
-                status: "접수",
+                status: "신청완료",
             });
             finalId = id;
         } else {
             finalId = await ctx.db.insert("rental_applications", {
                 ...data,
-                status: "접수",
+                status: "신청완료",
                 createdAt: new Date().toISOString(),
             });
         }

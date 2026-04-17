@@ -1,38 +1,26 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Upload, FileText, Calculator, Save, CheckCircle, Loader2, RefreshCw, ExternalLink, Search, ShieldCheck, Download, X, Trash2, Calendar, ChevronDown, FileArchive } from 'lucide-react';
 import { parseExcelEstimate } from '../lib/excelParser';
-import { saveQuote, updateRentalStatus, updateSubscriptionStatus, updateGreenStatus, getAdminQuoteList, getRentalApplicationList, getSubscriptionApplicationList, getGreenApplicationList, getTemplatePdfUrl, uploadTemplatePdf, savePdfTemplate, getTemplateList, deletePdfTemplate, getLatestTemplateByType } from '../lib/api';
+import { saveQuote, updateRentalStatus, updateSubscriptionStatus, updateGreenStatus, getAdminQuoteList, getRentalApplicationList, getSubscriptionApplicationList, getGreenApplicationList, getTemplatePdfUrl, uploadTemplatePdf, savePdfTemplate, getTemplateList, deletePdfTemplate, getLatestTemplateByType, migrateInterestRates } from '../lib/api';
 import { PDFDocument, rgb } from 'pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
 
 const RENTAL_STATUS_OPTIONS = [
-    { label: '접수', value: '접수', color: 'bg-gray-100 text-gray-600' },
-    { label: 'BS조회중', value: 'BS조회중', color: 'bg-blue-100 text-blue-600' },
-    { label: 'BS승인', value: 'BS승인', color: 'bg-green-100 text-green-600' },
-    { label: '녹취완료', value: '녹취완료', color: 'bg-purple-100 text-purple-600' },
-    { label: '설치완료(등록)', value: '설치완료(등록)', color: 'bg-[#c5a059] text-white' },
-    { label: '승인불가', value: '승인불가', color: 'bg-red-100 text-red-600' },
-    { label: '취소', value: '취소', color: 'bg-gray-300 text-gray-600' },
+    { label: '임시저장', value: '임시저장', color: 'bg-gray-100 text-gray-500' },
+    { label: '신청완료', value: '신청완료', color: 'bg-green-100 text-green-600' },
+    { label: '신청취소', value: '신청취소', color: 'bg-red-100 text-red-600' },
 ];
 
 const SUBSCRIPTION_STATUS_OPTIONS = [
-    { label: '접수', value: '접수', color: 'bg-gray-100 text-gray-600' },
-    { label: '한캐조회중', value: '한캐조회중', color: 'bg-yellow-100 text-yellow-700' },
-    { label: '한캐승인', value: '한캐승인', color: 'bg-orange-100 text-orange-600' },
-    { label: '전자약정완료', value: '전자약정완료', color: 'bg-teal-100 text-teal-600' },
-    { label: '녹취약정완료', value: '녹취약정완료', color: 'bg-pink-100 text-pink-600' },
-    { label: '설치완료(전달)', value: '설치완료(전달)', color: 'bg-teal-600 text-white' },
-    { label: '승인불가', value: '승인불가', color: 'bg-red-100 text-red-600' },
-    { label: '취소', value: '취소', color: 'bg-gray-300 text-gray-600' },
+    { label: '임시저장', value: '임시저장', color: 'bg-gray-100 text-gray-500' },
+    { label: '신청완료', value: '신청완료', color: 'bg-teal-100 text-teal-600' },
+    { label: '신청취소', value: '신청취소', color: 'bg-red-100 text-red-600' },
 ];
 
 const GREEN_REMODELING_STATUS_OPTIONS = [
-    { label: '신청완료', value: '신청완료', color: 'bg-blue-100 text-blue-600' },
-    { label: '기안중', value: '기안중', color: 'bg-yellow-100 text-yellow-700' },
-    { label: '기안완료', value: '기안완료', color: 'bg-green-100 text-green-600' },
-    { label: '승인', value: '승인', color: 'bg-teal-100 text-teal-600' },
-    { label: '반려', value: '반려', color: 'bg-red-100 text-red-600' },
-    { label: '취소', value: '취소', color: 'bg-gray-300 text-gray-600' },
+    { label: '임시저장', value: '임시저장', color: 'bg-gray-100 text-gray-500' },
+    { label: '신청완료', value: '신청완료', color: 'bg-green-100 text-green-700' },
+    { label: '신청취소', value: '신청취소', color: 'bg-red-100 text-red-600' },
 ];
 
 const AdminPage = () => {
@@ -118,7 +106,7 @@ const AdminPage = () => {
         const marginAmount = finalBenefit - kccPrice;
         const marginRate = finalBenefit > 0 ? (marginAmount / finalBenefit) * 100 : 0;
 
-        const annualRate = 0.1;
+        const annualRate = 0.094;
         const subs = {};
         for (const m of [24, 36, 48, 60]) {
             const r = annualRate / 12;
@@ -253,9 +241,9 @@ const AdminPage = () => {
         const marginAmount = finalBenefit - baseCost;
         const marginRate = baseCost > 0 ? (marginAmount / finalBenefit) * 100 : 0; // Margin on Revenue usually
 
-        // 5. Subs (Updated to PMT formula: 10% annual interest)
+        // 5. Subs (Updated to PMT formula: 9.4% annual interest)
         // PMT = (PV * r) / (1 - (1 + r)^-n)
-        const annualRate = 0.1; // 10%
+        const annualRate = 0.094; // 9.4%
         const subs = {};
 
         for (const m of [24, 36, 48, 60]) {
@@ -1491,6 +1479,25 @@ const AdminPage = () => {
                     </div>
 
                     <div className="flex items-center gap-6">
+                        <button
+                            onClick={async () => {
+                                if (window.confirm("기존 데이터들도 모두 연이율 9.4% 기준으로 재계산하시겠습니까?")) {
+                                    setLoading(true);
+                                    const result = await migrateInterestRates();
+                                    setLoading(false);
+                                    if (result.success) {
+                                        alert(`총 ${result.count}건의 데이터가 소급 적용되었습니다.`);
+                                        fetchList();
+                                    } else {
+                                        alert("오류 발생: " + result.message);
+                                    }
+                                }
+                            }}
+                            className="flex items-center gap-2 bg-red-50 px-4 py-2 rounded-xl group cursor-pointer hover:bg-red-100 transition-all border border-red-100/50"
+                        >
+                            <RefreshCw size={14} className="text-red-400 group-hover:rotate-180 transition-all duration-500" />
+                            <span className="text-[10px] font-black text-red-400 uppercase tracking-tighter">9.4% 소급적용</span>
+                        </button>
                         <div className="flex items-center gap-2 bg-gray-50 px-4 py-2 rounded-xl group cursor-pointer hover:bg-gray-100 transition-all">
                             <RefreshCw size={14} className="text-gray-400 group-hover:rotate-180 transition-all duration-500" />
                             <span className="text-[10px] font-black text-gray-400 uppercase tracking-tighter">System Live</span>
@@ -1972,9 +1979,9 @@ const AdminPage = () => {
                                                 <td className="px-2 py-3.5 text-center font-bold text-gray-300">{filteredRentalList.length - idx}</td>
                                                 <td className="px-2 py-3.5 text-center whitespace-nowrap">
                                                     <select
-                                                        value={item.status || '접수'}
+                                                        value={item.status || '신청완료'}
                                                         onChange={(e) => handleRentalStatusChange(item, e.target.value)}
-                                                        className={`text-[9px] font-black px-1.5 py-0.5 rounded-lg border-none cursor-pointer focus:ring-1 focus:ring-[#2c3e50]/30 transition-all ${RENTAL_STATUS_OPTIONS.find(opt => opt.value === (item.status || '접수'))?.color || 'bg-gray-100 text-gray-600'}`}
+                                                        className={`text-[9px] font-black px-1.5 py-0.5 rounded-lg border-none cursor-pointer focus:ring-1 focus:ring-[#2c3e50]/30 transition-all ${RENTAL_STATUS_OPTIONS.find(opt => opt.value === (item.status || '신청완료'))?.color || 'bg-gray-100 text-gray-600'}`}
                                                     >
                                                         {RENTAL_STATUS_OPTIONS.map(opt => (
                                                             <option key={opt.value} value={opt.value} className="bg-white text-gray-700">{opt.label}</option>
@@ -2140,9 +2147,9 @@ const AdminPage = () => {
                                                     <td className="px-2 py-3.5 text-center font-bold text-gray-300">{filteredSubscriptionList.length - idx}</td>
                                                     <td className="px-2 py-3.5 text-center whitespace-nowrap">
                                                         <select
-                                                            value={item.status || '접수'}
+                                                            value={item.status || '신청완료'}
                                                             onChange={(e) => handleSubscriptionStatusChange(item, e.target.value)}
-                                                            className={`text-[9px] font-black px-1.5 py-0.5 rounded-lg border-none cursor-pointer focus:ring-1 focus:ring-[#1a3a3a]/30 transition-all ${SUBSCRIPTION_STATUS_OPTIONS.find(opt => opt.value === (item.status || '접수'))?.color || 'bg-gray-100 text-gray-600'}`}
+                                                            className={`text-[9px] font-black px-1.5 py-0.5 rounded-lg border-none cursor-pointer focus:ring-1 focus:ring-[#1a3a3a]/30 transition-all ${SUBSCRIPTION_STATUS_OPTIONS.find(opt => opt.value === (item.status || '신청완료'))?.color || 'bg-gray-100 text-gray-600'}`}
                                                         >
                                                             {SUBSCRIPTION_STATUS_OPTIONS.map(opt => (
                                                                 <option key={opt.value} value={opt.value} className="bg-white text-gray-700">{opt.label}</option>

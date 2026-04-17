@@ -95,7 +95,7 @@ const CustomerPage = () => {
         setConversionMode(mode);
         const amount = mode === 'full' ? data.finalBenefit : balance;
         
-        const annualRate = 0.1;
+        const annualRate = 0.094;
         const subs = {};
         for (const m of [24, 36, 48, 60]) {
             const r = annualRate / 12;
@@ -327,7 +327,7 @@ const CustomerPage = () => {
                         if (updated.isConversion && !updated.conversionSubs) {
                             const isFull = updated.conversionMode === 'full' || updated.conversionMode === '전액구독';
                             const amount = isFull ? data.finalBenefit : (data.finalBenefit - (updated.downPaymentToReport || 0));
-                            const annualRate = 0.1;
+                            const annualRate = 0.094;
                             const subs = {};
                             for (const m of [24, 36, 48, 60]) {
                                 const r = annualRate / 12;

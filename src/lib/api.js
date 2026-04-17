@@ -661,3 +661,12 @@ export const getLatestTemplateByType = async (type, name) => {
     }
 };
 
+export const migrateInterestRates = async () => {
+    try {
+        const result = await convex.mutation(api.quotes.migrateInterestRates);
+        return { success: true, count: result.count };
+    } catch (error) {
+        return { success: false, message: error.message };
+    }
+};
+
