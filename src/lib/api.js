@@ -128,7 +128,9 @@ export const updateQuoteFinancials = async (params) => {
  */
 export const searchQuote = async (name, phone, statusType) => {
     try {
-        const quote = await convex.query(api.quotes.searchQuote, { name, phone, statusType });
+        const queryArgs = { name, phone };
+        if (statusType) queryArgs.statusType = statusType;
+        const quote = await convex.query(api.quotes.searchQuote, queryArgs);
         if (!quote) return { success: false, message: "일치하는 견적 정보를 찾을 수 없습니다." };
 
         const [appliances, banners] = await Promise.all([
@@ -244,12 +246,24 @@ export const uploadSingleFile = async (file) => {
     return storageId;
 };
 
+export const uploadTemplatePdf = async (file) => {
+    try {
+        const storageId = await uploadSingleFile(file);
+        if(!storageId) throw new Error("업로드에 실패했습니다.");
+        const url = await convex.query(api.rentals.getTemplateUrl, { storageId });
+        return { success: true, storageId, url };
+    } catch (error) {
+        return { success: false, message: error.message };
+    }
+};
+
 export const getRentalDraft = async (params) => {
     try {
         const draft = await convex.query(api.rentals.getDraft, {
             quoteId: params.quoteId,
             name: params.name,
-            phone: params.phone
+            phone: params.phone,
+            amount: params.amount
         });
         return { success: true, data: draft };
     } catch (error) {
@@ -386,7 +400,8 @@ export const getSubscriptionDraft = async (params) => {
         const draft = await convex.query(api.subscriptions.getDraft, {
             quoteId: params.quoteId,
             name: params.name,
-            phone: params.phone
+            phone: params.phone,
+            amount: params.amount
         });
         return { success: true, data: draft };
     } catch (error) {
@@ -436,3 +451,213 @@ export const getTemplatePdfUrl = async (storageId) => {
         return { success: false, message: error.message };
     }
 };
+
+// --- 그린리모델링 API 추가 ---
+
+export const getGreenDraft = async (params) => {
+    try {
+        const draft = await convex.query(api.greenRemodeling.getDraft, {
+            quoteId: params.quoteId,
+            name: params.name,
+            phone: params.phone,
+            amount: params.amount,
+            birthDate: params.birthDate
+        });
+        return { success: true, data: draft };
+    } catch (error) {
+        return { success: false, message: error.message };
+    }
+};
+
+export const saveGreenDraft = async (customerData, form) => {
+    try {
+        const params = {
+            quoteId: customerData._id || undefined,
+            name: customerData.name || "",
+            phone: customerData.phone || "",
+            address: customerData.address || "",
+            birthDate: form.birthDate || "",
+            gender: form.gender || "",
+            selectedAmount: form.greenAmount || 0,
+            downPayment: form.greenDownPayment || 0,
+            balance: form.greenBalance || 0,
+            isFullApplication: form.isFullGreen || false,
+            targetCategory: form.targetCategory || "해당없음",
+            loanMethod: form.loanMethod || "은행대출",
+            startDate: form.startDate || "",
+            endDate: form.endDate || "",
+            files: (form.files ? Object.entries(form.files).flatMap(([cat, files]) => 
+                files.filter(f => f.storageId).map(f => ({ category: cat, name: f.name, storageId: f.storageId }))
+            ) : []),
+            agreements: {
+                agree1: form.agreements?.agree1 || false
+            },
+            signature: form.signature || undefined,
+            consentSignature: form.consentSignature || undefined,
+            contractSignature: form.contractSignature || undefined
+        };
+        const id = await convex.mutation(api.greenRemodeling.saveDraft, params);
+        return { success: true, id };
+    } catch (error) {
+        return { success: false, message: error.message };
+    }
+};
+
+export const submitGreenApplication = async (customerData, form, draftId) => {
+    try {
+        const uploadedFiles = [];
+        const filesToUpload = [];
+
+        if (form.files) {
+            for (const category in form.files) {
+                const files = form.files[category];
+                if (Array.isArray(files)) {
+                    for (const f of files) {
+                        if (f.storageId) {
+                            uploadedFiles.push({ category, name: f.name, storageId: f.storageId });
+                        } else if (f instanceof File) {
+                            filesToUpload.push({ category, file: f });
+                        }
+                    }
+                }
+            }
+        }
+
+        if (filesToUpload.length > 0) {
+            await Promise.all(filesToUpload.map(async ({ category, file }) => {
+                const storageId = await uploadSingleFile(file);
+                uploadedFiles.push({ category, name: file.name, storageId });
+            }));
+        }
+
+        const params = {
+            ...(draftId ? { id: draftId } : {}),
+            quoteId: customerData._id || undefined,
+            name: customerData.name || "",
+            phone: customerData.phone || "",
+            address: customerData.address || "",
+            birthDate: form.birthDate,
+            gender: form.gender,
+            selectedAmount: form.greenAmount,
+            downPayment: form.greenDownPayment,
+            balance: form.greenBalance,
+            isFullApplication: form.isFullGreen,
+            targetCategory: form.targetCategory,
+            loanMethod: form.loanMethod,
+            startDate: form.startDate,
+            endDate: form.endDate,
+            files: uploadedFiles,
+            signature: form.signature || undefined,
+            consentSignature: form.consentSignature || undefined,
+            contractSignature: form.contractSignature || undefined,
+            agreements: {
+                agree1: form.agreements.agree1
+            }
+        };
+
+        const id = await convex.mutation(api.greenRemodeling.submitApplication, params);
+        return { success: true, id };
+    } catch (error) {
+        console.error("Green Remodeling Application Error:", error);
+        return { success: false, message: error.message };
+    }
+};
+
+export const getGreenApplicationList = async () => {
+    try {
+        const data = await convex.query(api.greenRemodeling.listApplications);
+        return { success: true, data };
+    } catch (error) {
+        return { success: false, message: error.message };
+    }
+};
+
+export const updateGreenStatus = async (id, status) => {
+    try {
+        await convex.mutation(api.greenRemodeling.updateStatus, { id, status });
+        return { success: true };
+    } catch (error) {
+        return { success: false, message: error.message };
+    }
+};
+
+export const getGreenLatestApplication = async (params) => {
+    try {
+        const data = await convex.query(api.greenRemodeling.getLatestApplication, {
+            quoteId: params.quoteId,
+            name: params.name,
+            phone: params.phone,
+            birthDate: params.birthDate,
+        });
+        return { success: true, data };
+    } catch (error) {
+        return { success: false, message: error.message };
+    }
+};
+
+export const issueGreenFile = async (id, storageId, type) => {
+    try {
+        await convex.mutation(api.greenRemodeling.issueFile, { id, storageId, type });
+        return { success: true };
+    } catch (error) {
+        return { success: false, message: error.message };
+    }
+};
+
+export const submitGreenPostApplication = async (params) => {
+    try {
+        await convex.mutation(api.greenRemodeling.submitPostApplication, params);
+        return { success: true };
+    } catch (error) {
+        return { success: false, message: error.message };
+    }
+};
+
+/**
+ * PDF 템플릿 API
+ */
+export const savePdfTemplate = async (data) => {
+    try {
+        const mutationArgs = {
+            name: data.name,
+            type: data.type,
+            storageId: data.storageId,
+            fields: data.fields || []
+        };
+        if (data._id) {
+            mutationArgs.id = data._id;
+        }
+        const id = await convex.mutation(api.templates.saveTemplate, mutationArgs);
+        return { success: true, id };
+    } catch (error) {
+        return { success: false, message: error.message };
+    }
+};
+
+export const getTemplateList = async () => {
+    try {
+        const data = await convex.query(api.templates.listTemplates);
+        return { success: true, data };
+    } catch (error) {
+        return { success: false, message: error.message };
+    }
+};
+
+export const deletePdfTemplate = async (id) => {
+    try {
+        await convex.mutation(api.templates.deleteTemplate, { id });
+        return { success: true };
+    } catch (error) {
+        return { success: false, message: error.message };
+    }
+};
+
+export const getLatestTemplateByType = async (type, name) => {
+    try {
+        const data = await convex.query(api.templates.getLatestTemplateByType, { type, name });
+        return { success: true, data };
+    } catch (error) {
+        return { success: false, message: error.message };
+    }
+};
+

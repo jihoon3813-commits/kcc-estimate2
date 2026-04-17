@@ -102,4 +102,67 @@ export default defineSchema({
         createdAt: v.string(),
     }).index("by_quoteId", ["quoteId"])
       .index("by_name_phone", ["name", "phone"]),
+
+    green_remodeling_applications: defineTable({
+        quoteId: v.optional(v.id("quotes")),
+        name: v.string(),
+        phone: v.string(),
+        address: v.string(),
+        birthDate: v.string(),
+        gender: v.string(),
+        selectedAmount: v.number(),
+        downPayment: v.number(),
+        balance: v.number(),
+        isFullApplication: v.boolean(),
+        targetCategory: v.string(),
+        loanMethod: v.string(),
+        startDate: v.string(),
+        endDate: v.string(),
+        files: v.array(v.object({
+            category: v.string(),
+            name: v.string(),
+            storageId: v.string(),
+        })),
+        signature: v.optional(v.string()), // storageId or dataUrl (Application)
+        consentSignature: v.optional(v.string()), // storageId or dataUrl (Privacy)
+        contractSignature: v.optional(v.string()), // storageId or dataUrl (KCC Contract)
+        agreements: v.object({
+            agree1: v.boolean(), // privacy consent
+        }),
+        isPriorityTarget: v.optional(v.boolean()), // 이자 지원 우대 대상자 여부
+        beforePhotos: v.optional(v.array(v.string())), // 공사 전 사진 storageIds
+        afterPhotos: v.optional(v.array(v.string())), // 공사 후 사진 storageIds
+        
+        postApplication: v.optional(v.object({
+            completionDate: v.string(),
+            ownerConfirmSignature: v.string(),
+            status: v.string(), // pending, completed
+        })),
+
+        issuedBusinessFile: v.optional(v.string()), // storageId (Admin issued)
+        issuedCompletionFile: v.optional(v.string()), // storageId (Admin issued)
+
+        status: v.string(), // 임시저장, 신청완료, 완료신청중, 최종완료
+        createdAt: v.string(),
+    }).index("by_quoteId", ["quoteId"])
+      .index("by_name_phone", ["name", "phone"]),
+
+    pdf_templates: defineTable({
+        name: v.string(),
+        type: v.string(), // rental, subscription, green_remodeling
+        storageId: v.string(), // 원본 PDF 파일 Storage ID
+        fields: v.array(v.object({
+            id: v.string(), // 고유번호 (예: customer_name)
+            page: v.number(),
+            x: v.number(),
+            y: v.number(),
+            width: v.number(),
+            height: v.number(),
+            type: v.string(), // text, signature
+            fontSize: v.optional(v.number()),
+            alignment: v.optional(v.string()), // left, center, right
+            label: v.optional(v.string()), // 영역 제목
+        })),
+        createdAt: v.string(),
+    }),
 });

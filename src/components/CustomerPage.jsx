@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
-import { Search, User, Phone, MapPin, Download, Gift, ShieldCheck, ChevronRight, MessageCircle, ExternalLink, X, Calendar, CheckCircle2, CheckCircle, Loader2, Upload, Calculator, ArrowRightLeft, Wallet, Clock, Sparkles } from 'lucide-react';
-import { searchQuote, submitRentalApplication, submitSubscriptionApplication, getRentalDraft, saveRentalDraft, getSubscriptionDraft, saveSubscriptionDraft, uploadSingleFile, getTemplatePdfUrl } from '../lib/api';
+import { Search, User, Phone, MapPin, Download, Gift, ShieldCheck, ChevronRight, MessageCircle, ExternalLink, X, Calendar, CheckCircle2, CheckCircle, Loader2, Upload, Calculator, ArrowRightLeft, Wallet, Clock, Sparkles, FileText, Camera, Check } from 'lucide-react';
+import { searchQuote, saveQuote, saveRentalDraft, saveSubscriptionDraft, saveGreenDraft, submitRentalApplication, submitSubscriptionApplication, submitGreenApplication, getRentalDraft, getSubscriptionDraft, getGreenDraft, updateRentalStatus, updateSubscriptionStatus, updateGreenStatus, getAdminQuoteList, getRentalApplicationList, getSubscriptionApplicationList, getGreenApplicationList, getTemplatePdfUrl, uploadSingleFile, savePdfTemplate, getTemplateList, deletePdfTemplate, getLatestTemplateByType, getGreenLatestApplication } from '../lib/api';
 import { PDFDocument, rgb } from 'pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
 import SignatureCanvas from 'react-signature-canvas';
@@ -28,6 +28,9 @@ const CustomerPage = () => {
     
     // Signature
     const sigCanvas = useRef(null);
+    const sigCanvasConsent = useRef(null);
+    const sigCanvasContract = useRef(null);
+    const sigCanvasOwner = useRef(null);
     const [signatureImg, setSignatureImg] = useState(null);
 
     // === MODAL & ALERT STATE ===
@@ -128,8 +131,27 @@ const CustomerPage = () => {
             agree3: false
         },
         transferDate: '',
-        jobCategory: ''
+        jobCategory: '',
+        // Green Remodeling specific
+        greenAmount: 0,
+        greenDownPayment: 0,
+        greenBalance: 0,
+        isFullGreen: false,
+        targetCategory: '해당없음',
+        loanMethod: '은행대출',
+        startDate: '',
+        endDate: '',
+        signature: null,
+        consentSignature: null,
+        contractSignature: null,
+        ownerConfirmSignature: null
     });
+
+    const [greenFlow, setGreenFlow] = useState('intro'); // 'intro' | 'pre' | 'post'
+    const [existingGreenApp, setExistingGreenApp] = useState(null);
+    const [resumeChoice, setResumeChoice] = useState({ show: false, nextFlow: 'pre' });
+    const [shouldSkipResume, setShouldSkipResume] = useState(false);
+
 
     // Lock body scroll when modal is open
 
@@ -238,11 +260,24 @@ const CustomerPage = () => {
     React.useEffect(() => {
         if (isRentalMode && data) {
             const loadDraft = async () => {
-                const apiFunc = applicationType === 'subscription' ? getSubscriptionDraft : getRentalDraft;
+                const apiMap = {
+                    'subscription': getSubscriptionDraft,
+                    'rental': getRentalDraft,
+                    'green_remodeling': getGreenDraft
+                };
+                const apiFunc = apiMap[applicationType];
+                if (!apiFunc || shouldSkipResume) return;
+
+                const amountToMatch = applicationType === 'green_remodeling' 
+                    ? rentalForm.greenAmount 
+                    : data.finalBenefit;
+
                 const res = await apiFunc({
                     quoteId: data._id,
                     name: data.name,
-                    phone: data.phone || searchForm.phone
+                    phone: data.phone || searchForm.phone,
+                    amount: amountToMatch,
+                    birthDate: rentalForm.birthDate
                 });
 
                 if (res.success && res.data) {
@@ -251,7 +286,8 @@ const CustomerPage = () => {
                     
                     // Construct files structure from array
                     const filesObj = {
-                        registry: [], contract: [], family: [], id_card: [], bank_book: []
+                        registry: [], contract: [], family: [], id_card: [], bank_book: [],
+                        green_target: []
                     };
                     if (draft.files) {
                         draft.files.forEach(f => {
@@ -273,7 +309,18 @@ const CustomerPage = () => {
                             // Restore conversion info if exists in draft
                             conversionMode: draft.conversionMode || prev.conversionMode,
                             downPaymentToReport: draft.downPayment !== undefined ? draft.downPayment : prev.downPaymentToReport,
-                            isConversion: draft.conversionMode ? true : prev.isConversion
+                            isConversion: draft.conversionMode ? true : prev.isConversion,
+                            // Green Remodeling fields
+                            greenAmount: draft.selectedAmount || prev.greenAmount,
+                            greenDownPayment: draft.downPayment || prev.greenDownPayment,
+                            greenBalance: draft.balance || prev.greenBalance,
+                            isFullGreen: draft.isFullApplication || prev.isFullGreen,
+                            targetCategory: draft.targetCategory || prev.targetCategory,
+                            loanMethod: draft.loanMethod || prev.loanMethod,
+                            startDate: draft.startDate || prev.startDate,
+                            endDate: draft.endDate || prev.endDate,
+                            signature: draft.signature || prev.signature || null,
+                            consentSignature: draft.consentSignature || prev.consentSignature || null
                         };
 
                         // If we have conversionMode but no conversionSubs yet (e.g. from draft load), recalculate
@@ -292,6 +339,9 @@ const CustomerPage = () => {
 
                         return updated;
                     });
+                } else {
+                    // Reset draft ID if no draft found for THIS amount
+                    setDraftId(null);
                 }
             };
             loadDraft();
@@ -299,14 +349,37 @@ const CustomerPage = () => {
             // Reset draft ID when closing
             setDraftId(null);
         }
-    }, [isRentalMode, applicationType, data]);
+    }, [isRentalMode, data?._id, applicationType, rentalForm.greenAmount, shouldSkipResume, rentalForm.birthDate]);
+
+    // Fetch Latest Green Application for action center
+    React.useEffect(() => {
+        if (isLoggedIn && data && data.type === '가견적' && (applicationType === 'green_remodeling' || !applicationType)) {
+            const fetchLatest = async () => {
+                const res = await getGreenLatestApplication({
+                    quoteId: data._id,
+                    name: data.name,
+                    phone: data.phone || searchForm.phone,
+                    birthDate: rentalForm.birthDate
+                });
+                if (res.success) setExistingGreenApp(res.data);
+            };
+            fetchLatest();
+        }
+    }, [isLoggedIn, data, applicationType, rentalForm.birthDate]);
 
     // Auto-save debounced fields
     React.useEffect(() => {
         if (!isRentalMode || !data) return;
 
         const timer = setTimeout(async () => {
-            const apiFunc = applicationType === 'subscription' ? saveSubscriptionDraft : saveRentalDraft;
+            const apiMap = {
+                'subscription': saveSubscriptionDraft,
+                'rental': saveRentalDraft,
+                'green_remodeling': saveGreenDraft
+            };
+            const apiFunc = apiMap[applicationType];
+            if (!apiFunc) return;
+
             setIsSaving(true);
             const res = await apiFunc(data, rentalForm);
             setIsSaving(false);
@@ -321,7 +394,23 @@ const CustomerPage = () => {
         }, 3000); // 3 seconds debounce
 
         return () => clearTimeout(timer);
-    }, [rentalForm.birthDate, rentalForm.gender, rentalForm.selectedAmount, rentalForm.ownershipType, rentalForm.agreements, rentalForm.transferDate, rentalForm.jobCategory]);
+    }, [
+        applicationType,
+        rentalForm.birthDate, 
+        rentalForm.gender, 
+        rentalForm.selectedAmount, 
+        rentalForm.ownershipType, 
+        rentalForm.agreements, 
+        rentalForm.transferDate, 
+        rentalForm.jobCategory,
+        rentalForm.greenAmount,
+        rentalForm.greenDownPayment,
+        rentalForm.isFullGreen,
+        rentalForm.targetCategory,
+        rentalForm.loanMethod,
+        rentalForm.startDate,
+        rentalForm.endDate
+    ]);
 
     const handleSearch = (e) => {
         e.preventDefault();
@@ -344,7 +433,7 @@ const CustomerPage = () => {
             try {
                 const uploadedResults = await Promise.all(filesToAdd.map(async (file) => {
                     const storageId = await uploadSingleFile(file);
-                    return { name: file.name, storageId };
+                    return { name: file.name, storageId, file };
                 }));
 
                 const updatedForm = {
@@ -358,7 +447,10 @@ const CustomerPage = () => {
                 setRentalForm(updatedForm);
 
                 // Immediate save draft after file upload
-                const apiFunc = applicationType === 'subscription' ? saveSubscriptionDraft : saveRentalDraft;
+                const apiFunc = 
+                    applicationType === 'subscription' ? saveSubscriptionDraft : 
+                    applicationType === 'green_remodeling' ? saveGreenDraft :
+                    saveRentalDraft;
                 const res = await apiFunc(data, updatedForm);
                 if (res.success) {
                     setDraftId(res.id);
@@ -389,7 +481,10 @@ const CustomerPage = () => {
         setRentalForm(updatedForm);
 
         // Save draft after removal
-        const apiFunc = applicationType === 'subscription' ? saveSubscriptionDraft : saveRentalDraft;
+        const apiFunc = 
+            applicationType === 'subscription' ? saveSubscriptionDraft : 
+            applicationType === 'green_remodeling' ? saveGreenDraft :
+            saveRentalDraft;
         await apiFunc(data, updatedForm);
     };
 
@@ -399,14 +494,124 @@ const CustomerPage = () => {
             return null;
         }
         try {
-            let signatureDataUrl;
+            let signatureDataUrl = rentalForm.signature;
             try {
-                signatureDataUrl = sigCanvas.current.getTrimmedCanvas().toDataURL("image/png");
+                if (sigCanvas.current && !sigCanvas.current.isEmpty()) {
+                    signatureDataUrl = sigCanvas.current.getTrimmedCanvas().toDataURL("image/png");
+                }
             } catch (sigErr) {
-                console.warn("getTrimmedCanvas failed, falling back to getCanvas:", sigErr);
-                signatureDataUrl = sigCanvas.current.getCanvas().toDataURL("image/png");
+                console.warn("getTrimmedCanvas failed, falling back to state or canvas:", sigErr);
+                if (sigCanvas.current) {
+                    signatureDataUrl = sigCanvas.current.getCanvas().toDataURL("image/png");
+                }
             }
-            // Create a new PDFDocument
+            
+            if (!signatureDataUrl) {
+                alert("하단 [서명/날인] 영역에 전자서명을 진행해주세요.");
+                return null;
+            }
+
+            // Choose template name for green remodeling
+            let templateName = undefined;
+            if (applicationType === 'green_remodeling') {
+                templateName = rentalForm.loanMethod === '은행대출' ? '그린리모델링 신청서(은행대출용)' : '그린리모델링 신청서(카드대출용)';
+            }
+
+            // Try to find a customized template for this application type
+            const templateRes = await getLatestTemplateByType(applicationType, templateName);
+            
+            if (templateRes.success && templateRes.data) {
+                const template = templateRes.data;
+                const templatePdfBytes = await fetch(template.url).then(res => res.arrayBuffer());
+                const pdfDoc = await PDFDocument.load(templatePdfBytes);
+                pdfDoc.registerFontkit(fontkit.default || fontkit);
+                
+                const fontRes = await fetch(`${import.meta.env.BASE_URL}fonts/NanumGothic.ttf`);
+                const fontBytes = await fontRes.arrayBuffer();
+                const customFont = await pdfDoc.embedFont(fontBytes);
+                
+                const sigImgBytes = await fetch(signatureDataUrl).then(r => r.arrayBuffer());
+                const sigImage = await pdfDoc.embedPng(sigImgBytes);
+
+                // Helper to get data by field ID
+                const getFieldValue = (fieldId) => {
+                    const sourceData = {
+                        name: data.name || "",
+                        phone: searchForm.phone || data.phone || rentalForm.phone || "",
+                        birth: rentalForm.birthDate ? rentalForm.birthDate.replace(/-/g, '.') : "",
+                        address: data.address || rentalForm.address || "",
+                        date: new Date().toLocaleDateString().replace(/\. /g, '.'),
+                        amount: applicationType === 'green_remodeling' ? (rentalForm.greenAmount || data.finalBenefit).toLocaleString() : (data.finalBenefit || 0).toLocaleString(),
+                        down: (rentalForm.greenDownPayment || 0).toLocaleString(),
+                        balance: (rentalForm.greenBalance || data.finalBenefit).toLocaleString(),
+                        
+                        // Green Remodeling Specific IDs
+                        field_1776057318852: rentalForm.startDate ? rentalForm.startDate.replace(/-/g, '.') : "",
+                        field_1776057324322: rentalForm.endDate ? rentalForm.endDate.replace(/-/g, '.') : "",
+                        field_1776057342350: data.address || rentalForm.address || "",
+                        field_1776057379826: searchForm.phone || data.phone || rentalForm.phone || "",
+                        field_1776057389740: data.name || "",
+                        field_1776057399816: rentalForm.birthDate ? rentalForm.birthDate.replace(/-/g, '.') : "",
+                        field_1776057413332: (data.finalQuote || 0).toLocaleString(), // 일시불 할인가
+                        field_1776057423770: applicationType === 'green_remodeling' ? (rentalForm.greenAmount || 0).toLocaleString() : "",
+                        field_1776057435075: applicationType === 'green_remodeling' ? (rentalForm.greenAmount || 0).toLocaleString() : "",
+                        field_1776057448579: new Date().toLocaleDateString().replace(/\. /g, '.'),
+                        field_1776057460208: data.name || "",
+                    };
+                    return sourceData[fieldId] || sourceData[fieldId.replace('customer_', '')] || "";
+                };
+
+                const pages = pdfDoc.getPages();
+                
+                for (const field of template.fields) {
+                    const page = pages[(field.page || 1) - 1];
+                    if (!page) continue;
+                    
+                    const { height } = page.getSize();
+                    // PDF coordinates are from bottom-left
+                    const pdfX = field.x;
+                    const pdfY = height - field.y - field.height;
+
+                    const isSignatureField = field.type === 'signature' || 
+                                           field.id === 'field_1776060257758';
+                    const isNameField = field.id === 'field_1776060246341' || 
+                                      field.id === 'field_1776057389740' || 
+                                      field.id === 'field_1776057460208';
+
+                    if (isSignatureField && !isNameField) {
+                        page.drawImage(sigImage, {
+                            x: pdfX,
+                            y: pdfY,
+                            width: field.width,
+                            height: field.height
+                        });
+                    } else {
+                        const val = String(getFieldValue(field.id));
+                        const fontSize = field.fontSize || 10;
+                        const textWidth = customFont.widthOfTextAtSize(val, fontSize);
+                        
+                        let drawX = pdfX;
+                        if (field.alignment === 'center') {
+                            drawX = pdfX + (field.width - textWidth) / 2;
+                        } else if (field.alignment === 'right') {
+                            drawX = pdfX + (field.width - textWidth);
+                        }
+
+                        page.drawText(val, {
+                            x: drawX,
+                            y: pdfY + (field.height / 4), // center verticallyish
+                            size: fontSize,
+                            font: customFont,
+                            color: rgb(0, 0, 0)
+                        });
+                    }
+                }
+
+                const filledPdfBytes = await pdfDoc.save();
+                return new File([filledPdfBytes], `신청서_${data.name}.pdf`, { type: "application/pdf" });
+            }
+
+            // --- FALLBACK (EXISTING LOGIC) ---
             const pdfDoc = await PDFDocument.create();
             pdfDoc.registerFontkit(fontkit.default || fontkit);
 
@@ -663,6 +868,94 @@ const CustomerPage = () => {
             return null;
         }
     };
+    
+    // 개인정보 동의서 PDF 미리보기
+    const handlePreviewConsentPdf = async () => {
+        setIsSubmitting(true);
+        try {
+            const templateRes = await getLatestTemplateByType('green_remodeling', '개인정보 동의서(그린리모델링)');
+            if (!templateRes.success || !templateRes.data) {
+                alert("개인정보 동의서 템플릿을 찾을 수 없습니다. [설정 > PDF 템플릿]에서 등록해주세요.");
+                return;
+            }
+
+            const template = templateRes.data;
+            const templatePdfBytes = await fetch(template.url).then(res => res.arrayBuffer());
+            const pdfDoc = await PDFDocument.load(templatePdfBytes);
+            pdfDoc.registerFontkit(fontkit.default || fontkit);
+
+            const fontRes = await fetch(`${import.meta.env.BASE_URL}fonts/NanumGothic.ttf`);
+            const fontBytes = await fontRes.arrayBuffer();
+            const customFont = await pdfDoc.embedFont(fontBytes);
+
+            let sigImage = null;
+            if (sigCanvasConsent.current && !sigCanvasConsent.current.isEmpty()) {
+                const sigDataUrl = sigCanvasConsent.current.getTrimmedCanvas().toDataURL("image/png");
+                sigImage = await pdfDoc.embedPng(await fetch(sigDataUrl).then(r => r.arrayBuffer()));
+            }
+
+            const getFieldValue = (fieldId) => {
+                const sourceData = {
+                    name: data.name || "",
+                    phone: data.phone || "",
+                    date: new Date().toLocaleDateString('ko-KR').replace(/ /g, ''),
+                    field_1776060233073: new Date().toLocaleDateString('ko-KR').replace(/ /g, ''),
+                    field_1776060246341: data.name || "",
+                };
+                return sourceData[fieldId] || "";
+            };
+
+            const pages = pdfDoc.getPages();
+            for (const field of template.fields) {
+                const page = pages[(field.page || 1) - 1];
+                if (!page) continue;
+                const { height } = page.getSize();
+                const pdfX = field.x;
+                const pdfY = height - field.y - field.height;
+
+                // Handle specifically requested signature field or generic signature type
+                const isSignatureField = field.type === 'signature' || 
+                                       field.id === 'field_1776060257758';
+                const isNameField = field.id === 'field_1776060246341';
+
+                if (isSignatureField && !isNameField) {
+                    if (sigImage) {
+                        page.drawImage(sigImage, {
+                            x: pdfX,
+                            y: pdfY,
+                            width: field.width,
+                            height: field.height
+                        });
+                    }
+                } else {
+                    const val = String(getFieldValue(field.id));
+                    const fontSize = field.fontSize || 10;
+                    const textWidth = customFont.widthOfTextAtSize(val, fontSize);
+                    let drawX = pdfX;
+                    if (field.alignment === 'center') drawX = pdfX + (field.width - textWidth) / 2;
+                    else if (field.alignment === 'right') drawX = pdfX + (field.width - textWidth);
+
+                    page.drawText(val, {
+                        x: drawX,
+                        y: pdfY + (field.height / 4),
+                        size: fontSize,
+                        font: customFont,
+                        color: rgb(0, 0, 0)
+                    });
+                }
+            }
+
+            const filledPdfBytes = await pdfDoc.save();
+            const blob = new Blob([filledPdfBytes], { type: "application/pdf" });
+            const url = URL.createObjectURL(blob);
+            window.open(url, '_blank');
+        } catch (error) {
+            console.error("Consent PDF Error:", error);
+            alert("PDF 생성 중 오류가 발생했습니다.");
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
 
     if (!isLoggedIn) {
         return (
@@ -867,8 +1160,9 @@ const CustomerPage = () => {
                 <div className="grid grid-cols-1 gap-4 max-w-lg mx-auto">
                     {[
                         { id: 1, title: '일시불 특별 할인' },
-                        { id: 2, title: '스마트 구독 서비스' },
-                        { id: 3, title: '60개월 렌탈 패키지' }
+                        { id: 2, title: '그린리모델링(정부 지원)' },
+                        { id: 3, title: '스마트 구독 서비스' },
+                        { id: 4, title: '60개월 렌탈 패키지' }
                     ].map((item) => (
                         <div key={item.id} className="bg-white p-3.5 rounded-xl shadow-lg shadow-gray-200/50 border border-gray-100 flex items-center gap-4 hover:shadow-2xl hover:scale-[1.02] transition-all cursor-pointer group relative overflow-hidden">
                             <div className="absolute inset-0 w-[200%] h-full bg-gradient-to-r from-transparent via-[#c5a059]/5 to-transparent -translate-x-full group-hover:animate-[shimmer_2s_infinite] pointer-events-none"></div>
@@ -974,6 +1268,114 @@ const CustomerPage = () => {
                             </div>
                         </div>
 
+                        {/* 2. 그린리모델링(정부 이자지원 사업) 섹션 */}
+                        <div id="section-green" className="bg-[#064e3b] rounded-2xl p-4 md:p-8 shadow-2xl relative overflow-hidden border border-white/5">
+                            <div className="absolute top-0 right-0 w-64 h-64 bg-green-500/5 rounded-full blur-3xl -mr-32 -mt-32"></div>
+                            
+                            <div className="relative z-10 space-y-6">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center text-green-400 shadow-inner">
+                                        <ShieldCheck size={24} />
+                                    </div>
+                                    <div>
+                                        <h4 className="text-lg md:text-xl font-black text-white tracking-tight">그린리모델링</h4>
+                                        <p className="text-white/40 text-[10px] font-medium">정부 이자지원 사업 (4.5%~5.5% 지원)</p>
+                                    </div>
+                                </div>
+
+                                <div className="bg-white/5 backdrop-blur-md rounded-2xl p-4 md:p-6 border border-white/10 space-y-4">
+                                    <div className="space-y-2">
+                                        <p className="text-[10px] font-black text-green-300 uppercase tracking-widest px-1">그린리모델링 사업이란?</p>
+                                        <p className="text-[12px] font-bold text-white/80 leading-relaxed break-keep bg-green-900/40 p-3 rounded-xl border border-green-800/30">
+                                            기존 건축물의 에너지 성능 개선 공사비에 대해 취급 금융기관과 대출 약정 체결 시, 지원 기준에 따라 정부가 이자를 일부(4.5%~5.5%) 지원하는 사업입니다.
+                                        </p>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                        <div className="space-y-1">
+                                            <label className="text-[9px] font-black text-white/40 uppercase tracking-widest ml-1">선납금 설정</label>
+                                            <div className="relative">
+                                                <input
+                                                    type="text"
+                                                    inputMode="numeric"
+                                                    value={new Intl.NumberFormat('ko-KR').format(rentalForm.greenDownPayment)}
+                                                    onChange={(e) => {
+                                                        const val = Number(e.target.value.replace(/[^0-9]/g, ''));
+                                                        if (val <= data.finalBenefit) {
+                                                            setRentalForm({ 
+                                                                ...rentalForm, 
+                                                                greenDownPayment: val,
+                                                                greenBalance: data.finalBenefit - val
+                                                            });
+                                                        }
+                                                    }}
+                                                    className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 pr-8 text-sm font-black text-white outline-none focus:border-green-500 transition-all text-right"
+                                                />
+                                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-bold text-white/30">원</span>
+                                            </div>
+                                        </div>
+                                        <div className="space-y-1">
+                                            <label className="text-[9px] font-black text-white/40 uppercase tracking-widest ml-1">잔금 (신청 대상)</label>
+                                            <div className="relative">
+                                                <input
+                                                    type="text"
+                                                    readOnly
+                                                    value={new Intl.NumberFormat('ko-KR').format(data.finalBenefit - rentalForm.greenDownPayment)}
+                                                    className="w-full bg-black/20 border border-white/5 rounded-xl py-3 px-4 pr-8 text-sm font-black text-white/40 outline-none text-right"
+                                                />
+                                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-bold text-white/20">원</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex flex-col gap-3 pt-2">
+                                        <button
+                                            onClick={() => {
+                                                setApplicationType('green_remodeling');
+                                                setIsRentalMode(true);
+                                                setRentalStep(0);
+                                                setGreenFlow('intro');
+                                                setDraftId(null);
+                                                setRentalForm(prev => ({
+                                                    ...prev,
+                                                    isFullGreen: false,
+                                                    greenAmount: data.finalBenefit - prev.greenDownPayment,
+                                                    greenDownPayment: prev.greenDownPayment,
+                                                    greenBalance: data.finalBenefit - prev.greenDownPayment
+                                                }));
+                                            }}
+                                            className="group relative flex items-center justify-center gap-2 py-4 rounded-2xl text-xs font-black transition-all bg-white/5 border-2 border-white/10 text-white hover:bg-white/10 hover:border-green-400 shadow-xl"
+                                        >
+                                            <ArrowRightLeft size={16} /> 잔금만 그린리모델링 신청
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                setApplicationType('green_remodeling');
+                                                setIsRentalMode(true);
+                                                setRentalStep(0);
+                                                setGreenFlow('intro');
+                                                setDraftId(null);
+                                                setRentalForm(prev => ({
+                                                    ...prev,
+                                                    isFullGreen: true,
+                                                    greenAmount: data.finalBenefit,
+                                                    greenDownPayment: 0,
+                                                    greenBalance: data.finalBenefit
+                                                }));
+                                            }}
+                                            className="group relative flex items-center justify-center gap-2 py-4 rounded-2xl text-xs font-black transition-all bg-green-600 border-2 border-green-400 text-white hover:bg-green-500 shadow-xl"
+                                        >
+                                            <Sparkles size={16} /> 전액 그린리모델링 신청
+                                        </button>
+                                    </div>
+
+                                    <p className="text-[10px] text-white/40 text-center font-bold px-4 leading-relaxed">
+                                        ※ 월 할부금은 실제 은행 대출 상품별로 이자가 다르기 때문에 신청 전에는 정확한 확인이 불가합니다.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
                         {/* 2. 스마트 구독 서비스 섹션 */}
                         <div className="bg-gradient-to-br from-[#1e1b4b] to-[#312e81] rounded-2xl p-4 md:p-8 shadow-2xl relative overflow-hidden border border-white/5">
                             <div className="absolute bottom-0 left-0 w-64 h-64 bg-purple-500/10 rounded-full blur-3xl -ml-32 -mb-32"></div>
@@ -1072,6 +1474,7 @@ const CustomerPage = () => {
                                                     setApplicationType('subscription');
                                                     setIsRentalMode(true);
                                                     setRentalStep(1);
+                                                    setDraftId(null);
                                                     setRentalForm(prev => ({ 
                                                         ...prev, 
                                                         selectedAmount: 60,
@@ -1154,6 +1557,7 @@ const CustomerPage = () => {
                                         setApplicationType('rental');
                                         setIsRentalMode(true);
                                         setRentalStep(1);
+                                        setDraftId(null);
                                     }}
                                     className="w-full py-4 bg-[#c5a059] text-[#001a3d] text-sm font-black rounded-xl hover:brightness-110 active:scale-[0.98] transition-all shadow-xl flex items-center justify-center gap-2"
                                 >
@@ -1658,17 +2062,27 @@ const CustomerPage = () => {
                         <header className="bg-white px-5 py-4 flex items-center justify-between shadow-sm shrink-0 sticky top-0 z-10">
                             <div className="flex items-center gap-3">
                                 <button onClick={() => {
-                                    if (rentalStep > 1) setRentalStep(prev => prev - 1);
-                                    else {
-                                        showConfirm(
-                                            `${applicationType === 'subscription' ? '구독' : '렌탈'} 신청을 중단하시겠습니까?`,
-                                            () => setIsRentalMode(false)
-                                        );
+                                    if (applicationType === 'green_remodeling') {
+                                        if (rentalStep > 0) setRentalStep(prev => prev - 1);
+                                        else {
+                                            showConfirm(
+                                                "그린리모델링 신청을 중단하시겠습니까?",
+                                                () => setIsRentalMode(false)
+                                            );
+                                        }
+                                    } else {
+                                        if (rentalStep > 1) setRentalStep(prev => prev - 1);
+                                        else {
+                                            showConfirm(
+                                                `${applicationType === 'subscription' ? '구독' : '렌탈'} 신청을 중단하시겠습니까?`,
+                                                () => setIsRentalMode(false)
+                                            );
+                                        }
                                     }
                                 }} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
                                     <ChevronRight size={24} className="rotate-180 text-[#001a3d]" />
                                 </button>
-                                <h2 className="text-lg font-black text-[#001a3d]">{applicationType === 'subscription' ? '스마트 구독 서비스 신청' : '렌탈 서비스 신청'}</h2>
+                                <h2 className="text-lg font-black text-[#001a3d]">{applicationType === 'subscription' ? '스마트 구독 서비스 신청' : applicationType === 'green_remodeling' ? '그린리모델링 사업 신청' : '렌탈 서비스 신청'}</h2>
                                 {isSaving && (
                                     <div className="flex items-center gap-1.5 ml-3 bg-blue-50 px-2.5 py-1 rounded-lg animate-pulse border border-blue-100/50 shadow-sm">
                                         <Loader2 size={12} className="animate-spin text-blue-600" />
@@ -1677,7 +2091,7 @@ const CustomerPage = () => {
                                 )}
                             </div>
                             <div className="text-[10px] font-black text-[#c5a059] bg-[#c5a059]/10 px-3 py-1 rounded-full">
-                                Step {rentalStep} / 4
+                                Step {rentalStep} / {applicationType === 'green_remodeling' ? (greenFlow === 'post' ? 3 : 7) : 4}
                             </div>
                         </header>
 
@@ -1685,11 +2099,10 @@ const CustomerPage = () => {
                         <div className="flex-1 overflow-y-auto p-5 md:p-8 max-w-2xl mx-auto w-full pb-24">
                             {/* Progress Bar */}
                             <div className="h-1 bg-gray-200 w-full mb-8 rounded-full overflow-hidden">
-                                <div className="h-full bg-[#001a3d] transition-all duration-500 ease-out" style={{ width: `${(rentalStep / 4) * 100}%` }}></div>
+                                <div className="h-full bg-[#001a3d] transition-all duration-500 ease-out" style={{ width: `${(rentalStep / (applicationType === 'green_remodeling' ? (greenFlow === 'post' ? 3 : 7) : 4)) * 100}%` }}></div>
                             </div>
 
-                            {/* STEP 1: Applicant Info */}
-                            {rentalStep === 1 && (
+                            {(applicationType === 'rental' || applicationType === 'subscription') && rentalStep === 1 && (
                                 <div className="space-y-8 animate-in fade-in slide-in-from-right-4">
                                     <div className="space-y-2">
                                         <h3 className="text-2xl font-black text-[#001a3d]">신청자 정보를<br />확인해주세요</h3>
@@ -1847,8 +2260,8 @@ const CustomerPage = () => {
                                 </div>
                             )}
 
-                            {/* STEP 2: Amount Selection */}
-                            {rentalStep === 2 && (
+                            {/* STEP 2: Amount Selection (Standard/Subscription ONLY) */}
+                            {(applicationType === 'rental' || applicationType === 'subscription') && rentalStep === 2 && (
                                 <div className="space-y-8 animate-in fade-in slide-in-from-right-4">
                                     <div className="space-y-2">
                                         <h3 className="text-2xl font-black text-[#001a3d]">{applicationType === 'subscription' ? '원하시는 월 구독료를' : '원하시는 월 렌탈료를'}<br />선택해주세요</h3>
@@ -1906,8 +2319,617 @@ const CustomerPage = () => {
                                 </div>
                             )}
 
-                            {/* STEP 3: Document Upload */}
-                            {rentalStep === 3 && (
+                            {/* [GREEN REMODELING] ACTION CENTER & INFOGRAPHIC (STEP 0) */}
+                            {applicationType === 'green_remodeling' && rentalStep === 0 && (
+                                <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
+                                    {/* Infographic Intro */}
+                                    <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 space-y-6">
+                                        <div className="text-center space-y-2">
+                                            <div className="inline-block bg-green-50 px-3 py-1 rounded-full border border-green-100 mb-2">
+                                                <span className="text-green-700 text-[10px] font-black uppercase tracking-widest">Interest Subsidy Guide</span>
+                                            </div>
+                                            <h3 className="text-lg md:text-xl font-black text-[#001a3d] leading-snug break-keep">
+                                                그린리모델링으로 이자 지원 받기, 
+                                                <span className="text-green-600 block md:inline mt-1 md:mt-0">공사 전/후 2가지만 챙기세요!</span>
+                                            </h3>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            {/* Pre-construction Guide */}
+                                            <div className="bg-gray-50 p-5 rounded-2xl space-y-4 border border-gray-100">
+                                                <div className="flex items-center gap-2">
+                                                    <div className="w-8 h-8 bg-green-600 text-white rounded-lg flex items-center justify-center font-black text-xs shadow-md">Pre</div>
+                                                    <p className="text-sm font-black text-[#001a3d]">공사 전에 챙기세요</p>
+                                                </div>
+                                                <ul className="space-y-3">
+                                                    <li className="flex gap-3 items-start">
+                                                        <div className="w-4 h-4 bg-green-100 text-green-600 rounded-full flex items-center justify-center shrink-0 mt-0.5"><Check size={10} /></div>
+                                                        <p className="text-[11px] font-bold text-gray-600 leading-relaxed">
+                                                            KCC홈씨씨로부터 <span className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-[#001a3d] text-white text-[10px] font-black mx-1">사업확인서</span>를 발급 받으세요.
+                                                        </p>
+                                                    </li>
+                                                    <li className="flex gap-3 items-start">
+                                                        <div className="w-4 h-4 bg-green-100 text-green-600 rounded-full flex items-center justify-center shrink-0 mt-0.5"><Check size={10} /></div>
+                                                        <p className="text-[11px] font-bold text-gray-600 leading-relaxed">준비된 확인서로 제휴 은행에서 대출 가능 여부를 확인하세요.</p>
+                                                    </li>
+                                                </ul>
+                                            </div>
+
+                                            {/* Post-construction Guide */}
+                                            <div className="bg-gray-50 p-5 rounded-2xl space-y-4 border border-gray-100">
+                                                <div className="flex items-center gap-2">
+                                                    <div className="w-8 h-8 bg-black text-white rounded-lg flex items-center justify-center font-black text-xs shadow-md">Post</div>
+                                                    <p className="text-sm font-black text-[#001a3d]">공사 후에 챙기세요</p>
+                                                </div>
+                                                <ul className="space-y-3">
+                                                    <li className="flex gap-3 items-start">
+                                                        <div className="w-4 h-4 bg-gray-200 text-gray-600 rounded-full flex items-center justify-center shrink-0 mt-0.5"><Check size={10} /></div>
+                                                        <p className="text-[11px] font-bold text-gray-600 leading-relaxed">
+                                                            KCC홈씨씨로부터 <span className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-orange-500 text-white text-[10px] font-black mx-1">사업완료 확인서</span>를 발급 받으세요.
+                                                        </p>
+                                                    </li>
+                                                    <li className="flex gap-3 items-start">
+                                                        <div className="w-4 h-4 bg-gray-200 text-gray-600 rounded-full flex items-center justify-center shrink-0 mt-0.5"><Check size={10} /></div>
+                                                        <p className="text-[11px] font-bold text-gray-600 leading-relaxed">완료 확인서를 은행에 제출하여 최종 대출을 실행하세요.</p>
+                                                    </li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Action Grid */}
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <button 
+                                            onClick={() => { 
+                                                if (existingGreenApp) {
+                                                    setResumeChoice({ show: true, nextFlow: 'pre' });
+                                                } else {
+                                                    // Initialize with quote values
+                                                    setRentalForm(prev => ({
+                                                        ...prev,
+                                                        greenAmount: data.finalBenefit || data.totalAmount || 0,
+                                                        greenBalance: data.finalBenefit || data.totalAmount || 0,
+                                                        greenDownPayment: 0
+                                                    }));
+                                                    setGreenFlow('pre'); 
+                                                    setRentalStep(1); 
+                                                }
+                                            }}
+                                            className="p-5 bg-white border border-gray-100 rounded-2xl flex flex-col items-center text-center gap-3 transition-all hover:border-green-400 hover:shadow-lg shadow-sm"
+                                        >
+                                            <div className="w-12 h-12 bg-green-50 text-green-600 rounded-xl flex items-center justify-center shadow-inner"><FileText size={24} /></div>
+                                            <div>
+                                                <p className="text-[10px] font-black text-green-600 uppercase tracking-widest mb-1">(공사 전)</p>
+                                                <p className="text-sm font-black text-[#001a3d]">사업확인서 발급 신청</p>
+                                            </div>
+                                        </button>
+                                        
+                                        <button 
+                                            disabled={!existingGreenApp?.issuedBusinessFileUrl}
+                                            onClick={() => window.open(existingGreenApp.issuedBusinessFileUrl)}
+                                            className={`p-5 bg-white border border-gray-100 rounded-2xl flex flex-col items-center text-center gap-3 transition-all ${!existingGreenApp?.issuedBusinessFileUrl ? 'opacity-40 cursor-not-allowed' : 'hover:border-green-400 hover:shadow-lg shadow-sm'}`}
+                                        >
+                                            <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center shadow-inner"><Download size={24} /></div>
+                                            <div>
+                                                <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-1">(공사 전)</p>
+                                                <p className="text-sm font-black text-[#001a3d]">사업확인서 다운로드</p>
+                                            </div>
+                                        </button>
+
+                                        <button 
+                                            onClick={() => { 
+                                                if (existingGreenApp) {
+                                                    setResumeChoice({ show: true, nextFlow: 'post' });
+                                                } else {
+                                                    setGreenFlow('post'); 
+                                                    setRentalStep(1); 
+                                                }
+                                            }}
+                                            className="p-5 bg-white border border-gray-100 rounded-2xl flex flex-col items-center text-center gap-3 transition-all hover:border-green-400 hover:shadow-lg shadow-sm"
+                                        >
+                                            <div className="w-12 h-12 bg-orange-50 text-orange-600 rounded-xl flex items-center justify-center shadow-inner"><CheckCircle2 size={24} /></div>
+                                            <div>
+                                                <p className="text-[10px] font-black text-orange-600 uppercase tracking-widest mb-1">(공사 후)</p>
+                                                <p className="text-sm font-black text-[#001a3d]">사업완료 확인서 발급 신청</p>
+                                            </div>
+                                        </button>
+
+                                        <button 
+                                            disabled={!existingGreenApp?.issuedCompletionFileUrl}
+                                            onClick={() => window.open(existingGreenApp.issuedCompletionFileUrl)}
+                                            className={`p-5 bg-white border border-gray-100 rounded-2xl flex flex-col items-center text-center gap-3 transition-all ${!existingGreenApp?.issuedCompletionFileUrl ? 'opacity-40 cursor-not-allowed' : 'hover:border-green-400 hover:shadow-lg shadow-sm'}`}
+                                        >
+                                            <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center shadow-inner"><Download size={24} /></div>
+                                            <div>
+                                                <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-1">(공사 후)</p>
+                                                <p className="text-sm font-black text-[#001a3d]">사업완료 확인서 다운로드</p>
+                                            </div>
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* [GREEN REMODELING] PRE-CONSTRUCTION FLOW (7 STEPS) */}
+                            {applicationType === 'green_remodeling' && greenFlow === 'pre' && (
+                                <div className="space-y-6">
+                                    {/* Progress Step Indicator (Pre) */}
+                                    <div className="flex justify-between gap-1 mb-8 overflow-x-auto pb-2 scrollbar-hide">
+                                        {[1, 2, 3, 4, 5, 6].map(s => (
+                                            <div key={s} className="flex-1 min-w-[30px] flex flex-col items-center gap-2">
+                                                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black ${rentalStep === s ? 'bg-[#001a3d] text-white' : rentalStep > s ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-400'}`}>
+                                                    {rentalStep > s ? <Check size={12} strokeWidth={4} /> : s}
+                                                </div>
+                                                <span className={`text-[8px] font-black text-center whitespace-nowrap ${rentalStep === s ? 'text-[#001a3d]' : 'text-gray-400'}`}>
+                                                    {s === 1 && '정보확인'}
+                                                    {s === 2 && '우대대상'}
+                                                    {s === 3 && '증빙자료'}
+                                                    {s === 4 && '신청서'}
+                                                    {s === 5 && '개인정보'}
+                                                    {s === 6 && '현장사진'}
+                                                </span>
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    {/* PRE Step 1 - Existing Logic Reused */}
+                                    {rentalStep === 1 && (
+                                        <div className="space-y-8 animate-in fade-in slide-in-from-right-4">
+                                            <div className="space-y-2">
+                                                <h3 className="text-2xl font-black text-[#001a3d]">신청자 정보를<br />확인해주세요</h3>
+                                                <p className="text-gray-500 text-sm font-bold">안전한 계약을 위해 본인 정보를 입력해주세요.</p>
+                                            </div>
+                                            {/* Reusing existing info form logic... */}
+                                            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 space-y-6">
+                                                <div className="space-y-4">
+                                                    <div>
+                                                        <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-1 block">이름</label>
+                                                        <input type="text" value={data.name} disabled className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 font-black text-[#001a3d] opacity-70" />
+                                                    </div>
+                                                    <div>
+                                                        <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-1 block">연락처</label>
+                                                        <input type="text" value={formatPhoneNumber(data.phone)} disabled className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 font-black text-[#001a3d] opacity-70" />
+                                                    </div>
+                                                    <div>
+                                                        <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-1 block">설치 주소</label>
+                                                        <textarea value={data.address} disabled className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 font-black text-[#001a3d] opacity-70 resize-none h-20" />
+                                                    </div>
+                                                </div>
+                                                <div className="h-px bg-gray-100"></div>
+                                                <div className="space-y-4">
+                                                    <div>
+                                                        <label className="text-[11px] font-black text-[#001a3d] uppercase tracking-widest mb-1 block">생년월일 (8자리)</label>
+                                                        <input
+                                                            type="tel"
+                                                            maxLength={10}
+                                                            placeholder="예: 1980-01-01"
+                                                            value={rentalForm.birthDate}
+                                                            onChange={(e) => {
+                                                                let val = e.target.value.replace(/\D/g, '');
+                                                                if (val.length >= 5) val = val.slice(0, 4) + '-' + val.slice(4);
+                                                                if (val.length >= 8) val = val.slice(0, 7) + '-' + val.slice(7);
+                                                                setRentalForm({ ...rentalForm, birthDate: val });
+                                                            }}
+                                                            className="w-full bg-white border border-gray-200 focus:border-[#c5a059] rounded-xl px-4 py-3.5 font-black text-lg text-[#001a3d] placeholder:text-gray-300 outline-none transition-all"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="text-[11px] font-black text-[#001a3d] uppercase tracking-widest mb-2 block">성별</label>
+                                                        <div className="grid grid-cols-2 gap-3">
+                                                            {['male', 'female'].map((g) => (
+                                                                <button
+                                                                    key={g}
+                                                                    onClick={() => setRentalForm({ ...rentalForm, gender: g })}
+                                                                    className={`py-3.5 rounded-xl font-black text-sm transition-all border ${rentalForm.gender === g
+                                                                        ? 'bg-[#001a3d] text-white border-[#001a3d] shadow-lg scale-[1.02]'
+                                                                        : 'bg-white text-gray-400 border-gray-200 hover:bg-gray-50'
+                                                                        }`}
+                                                                >
+                                                                    {g === 'male' ? '남성' : '여성'}
+                                                                </button>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div className="h-px bg-gray-100"></div>
+
+                                                {/* PRICING INFO SUMMARY */}
+                                                <div className="bg-[#001a3d] p-6 rounded-2xl shadow-xl space-y-4">
+                                                    <div className="flex justify-between items-center text-white/60 text-[10px] font-black uppercase tracking-widest">
+                                                        <span>그린리모델링 예상 비용</span>
+                                                        <div className="bg-[#c5a059] p-1.5 rounded-lg text-white shadow-sm border border-[#d4af37]/20">
+                                                            <Calculator size={14} />
+                                                        </div>
+                                                    </div>
+                                                    <div className="space-y-3">
+                                                        <div className="flex justify-between items-end border-b border-white/10 pb-2">
+                                                            <div className="flex flex-col gap-0.5">
+                                                                <span className="text-white/80 text-[10px] font-bold">성능개선 공사비</span>
+                                                                <span className="text-white/80 text-xs font-bold">총 공사비</span>
+                                                            </div>
+                                                            <span className="text-[#c5a059] text-xl font-black">{(data.finalBenefit || 0).toLocaleString()}원</span>
+                                                        </div>
+                                                        <div className="flex justify-between items-end">
+                                                            <span className="text-white/80 text-xs font-bold">사업 신청 금액</span>
+                                                            <span className="text-white text-xl font-black">
+                                                                {(rentalForm.isBalanceOnly ? (data.finalBenefit - (data.downPayment || 0)) : (data.finalBenefit || 0)).toLocaleString()}원
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                    <div className="pt-2">
+                                                        <p className="text-[10px] text-white/40 font-bold leading-relaxed">
+                                                            * 일시불 특별 할인이 적용된 최종 공사 금액입니다.<br />
+                                                            * 신청 금액은 이후 '신청서' 단계에서 조정 가능합니다.
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* PRE Step 2 - Priority Target Check */}
+                                    {rentalStep === 2 && (
+                                        <div className="space-y-8 animate-in fade-in slide-in-from-right-4">
+                                            <div className="space-y-2">
+                                                <h3 className="text-2xl font-black text-[#001a3d]">이자 지원 우대<br />대상자 확인</h3>
+                                                <p className="text-gray-500 text-sm font-bold">해당되는 경우 최대 5.5%까지 지원받을 수 있습니다.</p>
+                                            </div>
+                                            <div className="space-y-3">
+                                                {[
+                                                    { id: '신혼부부', desc: '혼인 기간이 7년 이내인 자' },
+                                                    { id: '다자녀가구', desc: '만 18세 이하 자녀 2명 이상' },
+                                                    { id: '고령자', desc: '만 65세 이상인 자' },
+                                                    { id: '기초생활수급자', desc: '차상위 계층 포함' },
+                                                    { id: '국가유공자', desc: '국가유공자, 유족 또는 가족' },
+                                                    { id: '해당없음', desc: '일반 대상자 (4.5% 지원)' }
+                                                ].map((t) => (
+                                                    <button
+                                                        key={t.id}
+                                                        onClick={() => setRentalForm({ ...rentalForm, targetCategory: t.id })}
+                                                        className={`w-full p-5 rounded-2xl border-2 text-left transition-all flex items-center justify-between group ${rentalForm.targetCategory === t.id 
+                                                            ? 'bg-[#064e3b] border-[#064e3b] text-white shadow-lg scale-[1.02]' 
+                                                            : 'bg-white border-gray-100 text-[#001a3d] hover:border-gray-200'}`}
+                                                    >
+                                                        <div>
+                                                            <p className="font-black text-base">{t.id}</p>
+                                                            <p className={`text-[11px] font-bold mt-0.5 ${rentalForm.targetCategory === t.id ? 'text-white/60' : 'text-gray-400'}`}>{t.desc}</p>
+                                                        </div>
+                                                        <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${rentalForm.targetCategory === t.id ? 'bg-white border-white text-[#064e3b]' : 'border-gray-200 group-hover:border-gray-300'}`}>
+                                                            {rentalForm.targetCategory === t.id && <CheckCircle size={14} />}
+                                                        </div>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* PRE Step 3 - Proof Upload */}
+                                    {rentalStep === 3 && (
+                                        <div className="space-y-8 animate-in fade-in slide-in-from-right-4">
+                                            <div className="space-y-2">
+                                                <h3 className="text-2xl font-black text-[#001a3d]">대상자 자격증빙<br />서류를 등록해주세요</h3>
+                                                <p className="text-gray-500 text-sm font-bold">이자 지원 우대를 위해 필수적인 단계입니다.</p>
+                                            </div>
+                                            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 space-y-4">
+                                                <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
+                                                    <p className="text-[12px] font-black text-blue-900 flex items-center gap-2 mb-1"><ShieldCheck size={16} /> 필요 서류</p>
+                                                    <p className="text-[11px] font-bold text-blue-800/70 leading-relaxed">신분증 및 주민등록등본, 가족관계증명서 등 해당 증빙 서류를 업로드하세요.</p>
+                                                </div>
+                                                <div className="border-2 border-dashed border-gray-200 rounded-2xl p-8 text-center hover:bg-gray-50 transition-all relative cursor-pointer">
+                                                    <input type="file" multiple className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" onChange={(e) => handleFileUpload('green_target', e)} />
+                                                    <Upload size={32} className="mx-auto text-gray-300 mb-2" />
+                                                    <p className="text-xs font-black text-gray-400">파일 등록 (여러 장 가능)</p>
+                                                </div>
+                                                <div className="space-y-2">
+                                                    {rentalForm.files.green_target?.map((f, i) => (
+                                                        <div key={i} className="flex items-center justify-between bg-gray-50 px-4 py-2 rounded-lg text-xs font-bold text-gray-600">
+                                                            <span>{f.name}</span>
+                                                            <button onClick={() => removeFile('green_target', i)} className="text-red-400"><X size={14} /></button>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* PRE Step 4 - Application sign (Reuses existing logic) */}
+                                    {rentalStep === 4 && (
+                                        <div className="space-y-8 animate-in fade-in slide-in-from-right-4">
+                                            <div className="space-y-2">
+                                                <h3 className="text-2xl font-black text-[#001a3d]">사업 신청서<br />작성 및 전자서명</h3>
+                                            </div>
+                                            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 space-y-6">
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    <div className="space-y-1">
+                                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">착공 예정일</label>
+                                                        <input type="date" value={rentalForm.startDate} onChange={(e) => setRentalForm({ ...rentalForm, startDate: e.target.value })} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-xs font-black text-[#001a3d] outline-none" />
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">완공 예정일</label>
+                                                        <input type="date" value={rentalForm.endDate} onChange={(e) => setRentalForm({ ...rentalForm, endDate: e.target.value })} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-xs font-black text-[#001a3d] outline-none" />
+                                                    </div>
+                                                </div>
+                                                <div className="space-y-3">
+                                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">자필 서명</label>
+                                                    <div className="bg-white border-2 border-dashed border-gray-300 rounded-xl relative overflow-hidden h-32">
+                                                        <SignaturePad 
+                                                            ref={sigCanvas} 
+                                                            onEnd={() => {
+                                                                if (sigCanvas.current) {
+                                                                    try {
+                                                                        const sig = sigCanvas.current.getTrimmedCanvas().toDataURL("image/png");
+                                                                        setRentalForm(prev => ({ ...prev, signature: sig }));
+                                                                    } catch (err) {
+                                                                        const sig = sigCanvas.current.getCanvas().toDataURL("image/png");
+                                                                        setRentalForm(prev => ({ ...prev, signature: sig }));
+                                                                    }
+                                                                }
+                                                            }}
+                                                            canvasProps={{ className: 'w-full h-full cursor-crosshair' }} 
+                                                        />
+                                                        <button onClick={(e) => { 
+                                                            e.preventDefault(); 
+                                                            sigCanvas.current.clear(); 
+                                                            setRentalForm(prev => ({ ...prev, signature: null }));
+                                                        }} className="absolute top-2 right-2 text-[10px] bg-gray-100 p-1.5 rounded-lg font-black text-gray-500">지우기</button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* PRE Step 5 - Privacy Consent */}
+                                    {rentalStep === 5 && (
+                                        <div className="space-y-8 animate-in fade-in slide-in-from-right-4">
+                                            <div className="space-y-2">
+                                                <h3 className="text-2xl font-black text-[#001a3d]">개인정보 제공 동의<br />전자서명</h3>
+                                            </div>
+                                            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 space-y-5">
+                                                {/* Privacy Policy Box */}
+                                                <div className="bg-gray-50 border border-gray-200 rounded-2xl p-4 h-48 overflow-y-auto text-[11px] leading-relaxed text-gray-600 font-medium space-y-4">
+                                                    <p className="font-black text-xs text-[#001a3d] mb-2 underline decoration-[#001a3d]/20 underline-offset-4">개인정보 수집·이용·제공 동의서</p>
+                                                    <p>[개인정보처리자: 주식회사 케이씨씨글라스] 은(는) 이자지원 사업 신청을 위한 개인정보 수집·이용·제공을 위하여 개인정보보호법 제15조, 제17조 및 제22조에 따라 귀하의 동의를 받고자 합니다.</p>
+                                                    
+                                                    <div className="space-y-1">
+                                                        <p className="font-black text-gray-900">&lt;개인정보 수집·이용에 대한 동의&gt;</p>
+                                                        <p>1. 수집·이용 목적: 이자지원 사업 신청 및 관리</p>
+                                                        <p>2. 수집·이용 항목: [필수] 이름, 성별, 생년월일, 주소, 전화번호, 소유건물, 관리건축물대장 PK</p>
+                                                        <p>3. 보유기간: 개인정보 수집 및 이용목적이 달성되면 파기하나, 사업 완료 후 3년간 보관</p>
+                                                        <p>4. 동의 거부 시에도 계약은 가능하나 이자지원 사업 서비스가 제한될 수 있음</p>
+                                                    </div>
+
+                                                    <div className="space-y-1">
+                                                        <p className="font-black text-gray-900">&lt;개인정보 제3자 제공 동의&gt;</p>
+                                                        <p>1. 제공받는 자 : 그린리모델링 창조센터</p>
+                                                        <p>2. 제공받는 자의 이용 목적 : 이자지원 사업 서비스 제공</p>
+                                                        <p>3. 제공하는 개인정보 항목 : 이름, 성별, 생년월일, 주소, 전화번호, 소유건물, 관리건축물대장 PK</p>
+                                                        <p>4. 제공받는 자의 보유·이용 기간 : 이자지원 사업 완료 후 3년간</p>
+                                                        <p>5. 제3자 제공 동의를 거부할 권리가 있으나 동의하지 않는 경우 서비스가 제한됨</p>
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex items-center gap-3 p-4 bg-green-50 rounded-2xl border border-green-100 cursor-pointer" onClick={() => setRentalForm({ ...rentalForm, agreements: { ...rentalForm.agreements, agree1: !rentalForm.agreements.agree1 } })}>
+                                                    <div className={`w-6 h-6 rounded-full flex items-center justify-center ${rentalForm.agreements.agree1 ? 'bg-[#064e3b] text-white' : 'bg-gray-200 text-gray-400'}`}><Check size={14} /></div>
+                                                    <span className="text-sm font-black text-[#001a3d]">정보 수집 및 이용에 동의합니다.</span>
+                                                </div>
+                                                <div className="bg-white border-2 border-dashed border-gray-300 rounded-xl relative overflow-hidden h-32">
+                                                    <SignaturePad 
+                                                        ref={sigCanvasConsent} 
+                                                        onEnd={() => {
+                                                            if (sigCanvasConsent.current) {
+                                                                try {
+                                                                    const sig = sigCanvasConsent.current.getTrimmedCanvas().toDataURL("image/png");
+                                                                    setRentalForm(prev => ({ ...prev, consentSignature: sig }));
+                                                                } catch (err) {
+                                                                    const sig = sigCanvasConsent.current.getCanvas().toDataURL("image/png");
+                                                                    setRentalForm(prev => ({ ...prev, consentSignature: sig }));
+                                                                }
+                                                            }
+                                                        }}
+                                                        canvasProps={{ className: 'w-full h-full cursor-crosshair' }} 
+                                                    />
+                                                    <button onClick={(e) => { 
+                                                        e.preventDefault(); 
+                                                        sigCanvasConsent.current.clear(); 
+                                                        setRentalForm(prev => ({ ...prev, consentSignature: null }));
+                                                    }} className="absolute top-2 right-2 text-[10px] bg-gray-100 p-1.5 rounded-lg font-black text-gray-500">지우기</button>
+                                                </div>
+
+                                                <div className="pt-4 border-t border-gray-100">
+                                                    <button 
+                                                        onClick={() => setRentalStep(6)}
+                                                        disabled={!rentalForm.agreements.agree1 || !rentalForm.consentSignature}
+                                                        className="w-full py-4 bg-white border-2 border-[#001a3d] text-[#001a3d] rounded-2xl font-black text-sm shadow-sm hover:bg-gray-50 active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-30 disabled:grayscale disabled:scale-100"
+                                                    >
+                                                        <Camera size={18} /> 공사 전 사진 등록하기
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* PRE Step 6 - Before Photos */}
+                                    {rentalStep === 6 && (
+                                        <div className="space-y-8 animate-in fade-in slide-in-from-right-4">
+                                            <div className="space-y-2">
+                                                <h3 className="text-2xl font-black text-[#001a3d]">건축물 위치별<br />현장 사진 (공사 전)</h3>
+                                                <p className="text-gray-500 text-sm font-bold">이자 지원 승인을 위해 현장 사진 등록이 필수입니다.</p>
+                                            </div>
+                                            <div className="space-y-4">
+                                                {data?.items && data.items.filter(i => !i.isEtc && i.loc !== '기타').length > 0 ? (
+                                                    data.items.map((item, idx) => {
+                                                        if (item.isEtc || item.loc === '기타') return null;
+                                                        return (
+                                                            <div key={idx} className="bg-gray-50 p-5 rounded-2xl border border-gray-100 flex flex-col gap-4 shadow-sm">
+                                                                <div className="flex items-center justify-between">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span className="text-xs font-black bg-[#001a3d] text-white px-2 py-1 rounded-md">#{idx + 1}</span>
+                                                                        <span className="text-sm font-black text-[#001a3d] leading-none">{item.loc}</span>
+                                                                    </div>
+                                                                    <span className="text-[10px] text-gray-400 font-bold bg-white px-2 py-0.5 rounded border border-gray-100">{rentalForm.files[`before_photos_${idx}`]?.length || 0}장 등록됨</span>
+                                                                </div>
+                                                                <div className="grid grid-cols-3 gap-2">
+                                                                    <div className="aspect-square bg-white rounded-xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center relative hover:bg-gray-50 hover:border-gray-300 transition-all cursor-pointer group">
+                                                                        <input type="file" multiple className="absolute inset-0 opacity-0 cursor-pointer z-10" onChange={(e) => handleFileUpload(`before_photos_${idx}`, e)} />
+                                                                        <Camera size={20} className="text-gray-300 mb-1 group-hover:text-gray-400 transition-colors" />
+                                                                        <span className="text-[9px] font-black text-gray-400 group-hover:text-gray-500">사진 추가</span>
+                                                                    </div>
+                                                                    {rentalForm.files[`before_photos_${idx}`]?.map((f, i) => (
+                                                                        <div key={i} className="aspect-square bg-white rounded-xl border border-gray-100 relative group overflow-hidden shadow-sm">
+                                                                            <img src={f.url || (f.file ? URL.createObjectURL(f.file) : '#')} className="w-full h-full object-cover" />
+                                                                            <button onClick={() => removeFile(`before_photos_${idx}`, i)} className="absolute top-1 right-1 bg-black/60 hover:bg-red-500 text-white rounded-full p-1 z-20 transition-colors"><X size={12} /></button>
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })
+                                                ) : (
+                                                    <div className="grid grid-cols-2 gap-3">
+                                                        <div className="aspect-square bg-gray-100 rounded-2xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center relative overflow-hidden">
+                                                            <input type="file" multiple className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => handleFileUpload('before_photos', e)} />
+                                                            <Camera size={24} className="text-gray-300 mb-1" />
+                                                            <span className="text-[10px] font-black text-gray-400">사진 등록</span>
+                                                        </div>
+                                                        {rentalForm.files.before_photos?.map((f, i) => (
+                                                            <div key={i} className="aspect-square bg-white rounded-2xl border border-gray-100 relative group">
+                                                                <img src={f.url || (f.file ? URL.createObjectURL(f.file) : '#')} className="w-full h-full object-cover rounded-2xl" />
+                                                                <button onClick={() => removeFile('before_photos', i)} className="absolute top-1 right-1 bg-black/50 text-white rounded-full p-1"><X size={12} /></button>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* [GREEN REMODELING] POST-CONSTRUCTION FLOW (3 STEPS) */}
+                            {applicationType === 'green_remodeling' && greenFlow === 'post' && (
+                                <div className="space-y-6">
+                                    {/* Progress Step Indicator (Post) */}
+                                    <div className="flex justify-between gap-2 mb-8 px-10">
+                                        {[1, 2, 3].map(s => (
+                                            <div key={s} className="flex-1 flex flex-col items-center gap-2">
+                                                <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-black ${rentalStep === s ? 'bg-[#001a3d] text-white' : rentalStep > s ? 'bg-orange-500 text-white' : 'bg-gray-200 text-gray-400'}`}>
+                                                    {rentalStep > s ? <Check size={14} strokeWidth={4} /> : s}
+                                                </div>
+                                                <span className={`text-[9px] font-black ${rentalStep === s ? 'text-[#001a3d]' : 'text-gray-400'}`}>
+                                                    {s === 1 && '완료신청'}
+                                                    {s === 2 && '공사확인'}
+                                                    {s === 3 && '완료사진'}
+                                                </span>
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    {/* POST Step 1 - Completion App */}
+                                    {rentalStep === 1 && (
+                                        <div className="space-y-8 animate-in fade-in slide-in-from-right-4">
+                                            <div className="space-y-2">
+                                                <h3 className="text-2xl font-black text-[#001a3d]">사업완료 확인<br />신청서 작성</h3>
+                                                <p className="text-gray-500 text-sm font-bold">공사가 모두 끝났음을 정부에 보고합니다.</p>
+                                            </div>
+                                            <div className="bg-white p-6 rounded-xl border border-gray-100 space-y-4">
+                                                <div>
+                                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 block">공사 완료일</label>
+                                                    <input type="date" className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3.5 font-black text-[#001a3d]" />
+                                                </div>
+                                                <div className="p-4 bg-orange-50 rounded-xl border border-orange-100 text-[11px] font-bold text-orange-900 leading-relaxed">
+                                                    기존 신청 정보와 대조하여 사후 관리가 진행됩니다.
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* POST Step 2 - Owner Confirm Sign */}
+                                    {rentalStep === 2 && (
+                                        <div className="space-y-8 animate-in fade-in slide-in-from-right-4">
+                                            <div className="space-y-2">
+                                                <h3 className="text-2xl font-black text-[#001a3d]">건축주<br />공사완료 확인서 작성</h3>
+                                                <p className="text-gray-500 text-sm font-bold">공사 품질에 만족하셨음을 확인해주세요.</p>
+                                            </div>
+                                            <div className="bg-white border-2 border-dashed border-gray-300 rounded-2xl relative overflow-hidden h-48">
+                                                <SignaturePad 
+                                                    ref={sigCanvasOwner} 
+                                                    onEnd={() => {
+                                                        if (sigCanvasOwner.current) {
+                                                            const sig = sigCanvasOwner.current.getTrimmedCanvas().toDataURL("image/png");
+                                                            setRentalForm(prev => ({ ...prev, signature: sig }));
+                                                        }
+                                                    }}
+                                                    canvasProps={{ className: 'w-full h-full cursor-crosshair' }} 
+                                                />
+                                                <button onClick={() => { sigCanvasOwner.current.clear(); setRentalForm(prev => ({ ...prev, signature: null })); }} className="absolute top-2 right-2 text-[10px] bg-gray-100 p-2 rounded-xl font-black text-gray-400">초기화</button>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* POST Step 3 - After Photos */}
+                                    {rentalStep === 3 && (
+                                        <div className="space-y-8 animate-in fade-in slide-in-from-right-4 pb-12">
+                                            <div className="space-y-2">
+                                                <h3 className="text-2xl font-black text-[#001a3d]">설치 후<br />위치별 사진 등록</h3>
+                                                <p className="text-gray-500 text-sm font-bold">최종 이자 지원금 지급을 위한 마지막 단계입니다.</p>
+                                            </div>
+                                            <div className="space-y-4">
+                                                {data?.items && data.items.filter(i => !i.isEtc && i.loc !== '기타').length > 0 ? (
+                                                    data.items.map((item, idx) => {
+                                                        if (item.isEtc || item.loc === '기타') return null;
+                                                        return (
+                                                            <div key={idx} className="bg-gray-50 p-5 rounded-2xl border border-gray-100 flex flex-col gap-4 shadow-sm">
+                                                                <div className="flex items-center justify-between">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span className="text-xs font-black bg-[#001a3d] text-white px-2 py-1 rounded-md">#{idx + 1}</span>
+                                                                        <span className="text-sm font-black text-[#001a3d] leading-none">{item.loc}</span>
+                                                                    </div>
+                                                                    <span className="text-[10px] text-gray-400 font-bold bg-white px-2 py-0.5 rounded border border-gray-100">{rentalForm.files[`after_photos_${idx}`]?.length || 0}장 등록됨</span>
+                                                                </div>
+                                                                <div className="grid grid-cols-3 gap-2">
+                                                                    <div className="aspect-square bg-white rounded-xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center relative hover:bg-gray-50 hover:border-gray-300 transition-all cursor-pointer group">
+                                                                        <input type="file" multiple className="absolute inset-0 opacity-0 cursor-pointer z-10" onChange={(e) => handleFileUpload(`after_photos_${idx}`, e)} />
+                                                                        <Camera size={20} className="text-gray-300 mb-1 group-hover:text-gray-400 transition-colors" />
+                                                                        <span className="text-[9px] font-black text-gray-400 group-hover:text-gray-500">사진 추가</span>
+                                                                    </div>
+                                                                    {rentalForm.files[`after_photos_${idx}`]?.map((f, i) => (
+                                                                        <div key={i} className="aspect-square bg-white rounded-xl border border-gray-100 relative group overflow-hidden shadow-sm">
+                                                                            <img src={f.url || (f.file ? URL.createObjectURL(f.file) : '#')} className="w-full h-full object-cover" />
+                                                                            <button onClick={() => removeFile(`after_photos_${idx}`, i)} className="absolute top-1 right-1 bg-black/60 hover:bg-red-500 text-white rounded-full p-1 z-20 transition-colors"><X size={12} /></button>
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })
+                                                ) : (
+                                                    <div className="grid grid-cols-2 gap-3">
+                                                        <div className="aspect-square bg-gray-100 border-2 border-dashed border-gray-200 rounded-2xl flex flex-col items-center justify-center relative overflow-hidden">
+                                                            <input 
+                                                                type="file" 
+                                                                multiple 
+                                                                className="absolute inset-0 opacity-0 cursor-pointer"
+                                                                onChange={(e) => handleFileUpload('after_photos', e)}
+                                                            />
+                                                            <Camera size={24} className="text-gray-300 mb-1" />
+                                                            <span className="text-[10px] font-black text-gray-400">완료 사진</span>
+                                                        </div>
+                                                        {rentalForm.files.after_photos?.map((f, i) => (
+                                                            <div key={i} className="aspect-square bg-white rounded-2xl border border-gray-100 relative group">
+                                                                <img src={f.url || (f.file ? URL.createObjectURL(f.file) : '#')} className="w-full h-full object-cover rounded-2xl" />
+                                                                <button onClick={() => removeFile('after_photos', i)} className="absolute top-1 right-1 bg-black/50 text-white rounded-full p-1"><X size={12} /></button>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* [EXISTING] STEP 3: Document Upload (Standard/Subscription ONLY) */}
+                            {(applicationType === 'rental' || applicationType === 'subscription') && rentalStep === 3 && (
                                 <div className="space-y-8 animate-in fade-in slide-in-from-right-4">
                                     {/* Real-time Save Notice Banner */}
                                     <div className="bg-blue-50/50 border border-blue-100 p-5 rounded-xl space-y-3 shadow-sm">
@@ -2066,8 +3088,8 @@ const CustomerPage = () => {
                                 </div>
                             )}
 
-                            {/* STEP 4: Agreements */}
-                            {rentalStep === 4 && (
+                            {/* STEP 4: Agreements (Standard/Subscription ONLY) */}
+                            {(applicationType === 'rental' || applicationType === 'subscription') && rentalStep === 4 && (
                                 <div className="space-y-8 animate-in fade-in slide-in-from-right-4 pb-12">
                                     <div className="space-y-2">
                                         <h3 className="text-2xl font-black text-[#001a3d]">마지막으로<br />동의가 필요해요</h3>
@@ -2245,10 +3267,16 @@ const CustomerPage = () => {
                                             <div className="bg-white border-2 border-dashed border-gray-300 rounded-xl relative overflow-hidden transition-all hover:border-[#c5a059]/50">
                                                 <SignaturePad 
                                                     ref={sigCanvas} 
+                                                    onEnd={() => {
+                                                        if (sigCanvas.current) {
+                                                            const sig = sigCanvas.current.getTrimmedCanvas().toDataURL("image/png");
+                                                            setRentalForm(prev => ({ ...prev, signature: sig }));
+                                                        }
+                                                    }}
                                                     canvasProps={{ className: 'w-full h-40 bg-white cursor-crosshair' }} 
                                                 />
                                                 <button 
-                                                    onClick={() => { sigCanvas.current.clear(); setSignatureImg(null); }} 
+                                                    onClick={() => { sigCanvas.current.clear(); setRentalForm(prev => ({ ...prev, signature: null })); setSignatureImg(null); }} 
                                                     className="absolute top-3 right-3 text-[10px] bg-gray-100 text-gray-600 px-3 py-1.5 rounded-lg shadow-sm font-black hover:bg-gray-200 active:scale-95 transition-all outline-none"
                                                 >
                                                     다시 쓰기
@@ -2261,9 +3289,9 @@ const CustomerPage = () => {
                         </div>
 
                         {/* Bottom Action Button */}
-                        {rentalStep <= 4 && !(rentalStep === 4 && applicationType === 'subscription') && (
+                        {rentalStep <= (applicationType === 'green_remodeling' ? 7 : 4) && !(rentalStep === 4 && applicationType === 'subscription') && (
                             <div className="p-5 md:p-8 bg-white border-t border-gray-100 safe-area-bottom flex flex-col gap-3">
-                                {rentalStep === 3 && (
+                                {rentalStep === 3 && applicationType !== 'green_remodeling' && (
                                     <button
                                         onClick={() => {
                                             if (window.confirm("첨부파일을 업데이트 하시겠습니까?")) {
@@ -2278,31 +3306,128 @@ const CustomerPage = () => {
                                 )}
                                 <button
                                     disabled={(() => {
-                                        if (rentalStep === 1) return !rentalForm.birthDate || rentalForm.birthDate.length < 10 || !rentalForm.gender;
-                                        if (rentalStep === 2) {
-                                            if (applicationType === 'subscription') return !rentalForm.selectedAmount;
-                                            const calc = calculatePackage(data.finalBenefit, rentalForm.selectedAmount * 10000, rentalForm.selectedAmount * 500000 / 1.1);
-                                            return !rentalForm.selectedAmount || calc === '해당없음';
+                                        if (applicationType !== 'green_remodeling') {
+                                            if (rentalStep === 1) return !rentalForm.birthDate || rentalForm.birthDate.length < 10 || !rentalForm.gender;
+                                            if (rentalStep === 2) {
+                                                if (applicationType === 'subscription') return !rentalForm.selectedAmount;
+                                                const calc = calculatePackage(data.finalBenefit, rentalForm.selectedAmount * 10000, rentalForm.selectedAmount * 500000 / 1.1);
+                                                return !rentalForm.selectedAmount || calc === '해당없음';
+                                            }
+                                            if (rentalStep === 3) {
+                                                // Allow proceeding if at least one file is uploaded across any category
+                                                const allFiles = Object.values(rentalForm.files).flat();
+                                                return allFiles.length === 0;
+                                            }
+                                            if (rentalStep === 4) {
+                                                return !rentalForm.agreements.agree1 || !rentalForm.agreements.agree2 || !rentalForm.agreements.agree3;
+                                            }
                                         }
-                                        if (rentalStep === 3) {
-                                            // Allow proceeding if at least one file is uploaded across any category
-                                            const allFiles = Object.values(rentalForm.files).flat();
-                                            return allFiles.length === 0;
-                                        }
-                                        if (rentalStep === 4) {
-                                            return !rentalForm.agreements.agree1 || !rentalForm.agreements.agree2 || !rentalForm.agreements.agree3;
+                                        if (applicationType === 'green_remodeling') {
+                                            if (rentalStep === 1) return !rentalForm.birthDate || rentalForm.birthDate.length < 10 || !rentalForm.gender;
+                                            if (rentalStep === 2) return !rentalForm.targetCategory;
+                                            if (rentalStep === 3) return !rentalForm.files.green_target || rentalForm.files.green_target.length === 0;
+                                            if (rentalStep === 4) return !rentalForm.startDate || !rentalForm.endDate || !rentalForm.signature;
+                                            if (rentalStep === 5) return !rentalForm.agreements.agree1 || !rentalForm.consentSignature;
                                         }
                                         return false;
                                     })()}
                                     onClick={async () => {
-                                        if (rentalStep < 4) {
+                                        const isGreen = applicationType === 'green_remodeling';
+                                        const greenPreCount = 6;
+                                        const greenPostCount = 3;
+                                        const totalSteps = isGreen ? (greenFlow === 'post' ? greenPostCount : greenPreCount) : 4;
+
+                                        // 그린리모델링 5단계 전용 로직: 임시저장 후 닫기
+                                        if (isGreen && greenFlow === 'pre' && rentalStep === 5) {
+                                            setIsSaving(true);
+                                            try {
+                                                await saveGreenDraft(data, rentalForm);
+                                                showAlert(
+                                                    "임시저장이 적용됐습니다. 추후 현장 사진을 첨부하여 최종 신청 완료하시기 바랍니다.",
+                                                    "임시저장 완료",
+                                                    () => setIsRentalMode(false)
+                                                );
+                                            } catch (err) {
+                                                showAlert("임시저장 중 오류가 발생했습니다: " + err.message, "오류");
+                                            } finally {
+                                                setIsSaving(false);
+                                            }
+                                            return;
+                                        }
+
+                                        if (rentalStep < totalSteps) {
+                                            if (isGreen) {
+                                                // Pre-capture signatures as we move through steps
+                                                try {
+                                                    if (rentalStep === 4 && sigCanvas.current && !sigCanvas.current.isEmpty()) {
+                                                        const sig = sigCanvas.current.getTrimmedCanvas().toDataURL("image/png");
+                                                        setRentalForm(prev => ({ ...prev, signature: sig }));
+                                                    } else if (rentalStep === 5 && sigCanvasConsent.current && !sigCanvasConsent.current.isEmpty()) {
+                                                        const sig = sigCanvasConsent.current.getTrimmedCanvas().toDataURL("image/png");
+                                                        setRentalForm(prev => ({ ...prev, consentSignature: sig }));
+                                                    } else if (greenFlow === 'post' && rentalStep === 2 && sigCanvasOwner.current && !sigCanvasOwner.current.isEmpty()) {
+                                                        const sig = sigCanvasOwner.current.getTrimmedCanvas().toDataURL("image/png");
+                                                        setRentalForm(prev => ({ ...prev, signature: sig }));
+                                                    }
+                                                } catch (e) {
+                                                    console.warn("Signature capture failed:", e);
+                                                }
+                                            }
                                             setRentalStep(prev => prev + 1);
                                         } else {
-                                            // Handle final submission for RENTAL (Subscription is handled inside STEP 4 UI)
+                                            // Handle final submission for RENTAL or GREEN REMODELING
+                                            const confirmMsg = applicationType === 'green_remodeling' 
+                                                ? '그린리모델링 사업 신청을 완료하시겠습니까?'
+                                                : '렌탈 신청을 완료하시겠습니까?\n제출된 정보로 신용조회가 진행됩니다.';
+                                            
                                             showConfirm(
-                                                '렌탈 신청을 완료하시겠습니까?\n제출된 정보로 신용조회가 진행됩니다.',
+                                                confirmMsg,
                                                 async () => {
-                                                    const pdfFile = await generateSignedPdf();
+                                                    if (applicationType === 'green_remodeling') {
+                                                        let finalSig = rentalForm.signature;
+                                                        let finalConsentSig = rentalForm.consentSignature;
+                                                        
+                                                        try {
+                                                            // Final check for currently visible signature pads
+                                                            if (rentalStep === 5 && sigCanvasConsent.current) {
+                                                                if (sigCanvasConsent.current.isEmpty()) {
+                                                                    alert("동의 서명을 작성해주세요.");
+                                                                    return;
+                                                                }
+                                                                finalConsentSig = sigCanvasConsent.current.getTrimmedCanvas().toDataURL("image/png");
+                                                            } else if (greenFlow === 'post' && rentalStep === 2 && sigCanvasOwner.current) {
+                                                                if (sigCanvasOwner.current.isEmpty()) {
+                                                                    alert("공사 완료 서명을 작성해주세요.");
+                                                                    return;
+                                                                }
+                                                                finalSig = sigCanvasOwner.current.getTrimmedCanvas().toDataURL("image/png");
+                                                            }
+                                                        } catch (e) {
+                                                            console.warn("Final signature capture failed:", e);
+                                                        }
+
+                                                        setIsSubmitting(true);
+                                                        const res = await submitGreenApplication(data, {
+                                                            ...rentalForm,
+                                                            signature: finalSig || rentalForm.signature,
+                                                            consentSignature: finalConsentSig || rentalForm.consentSignature,
+                                                            contractSignature: rentalForm.contractSignature
+                                                        }, draftId);
+                                                        setIsSubmitting(false);
+
+                                                        if (res.success) {
+                                                            showAlert(
+                                                                `그린리모델링 신청이 정상적으로 완료되었습니다.\n서류 검토 후 담당자를 통해 안내드리겠습니다.\n감사합니다.`,
+                                                                '신청 완료'
+                                                            );
+                                                            setIsRentalMode(false);
+                                                            setApplicationType(null);
+                                                            setRentalStep(1);
+                                                        } else {
+                                                            showAlert("신청 중 오류가 발생했습니다: " + res.message, "오류");
+                                                        }
+                                                    } else {
+                                                        const pdfFile = await generateSignedPdf();
                                                     if (!pdfFile) return;
 
                                                     setIsSubmitting(true);
@@ -2339,24 +3464,27 @@ const CustomerPage = () => {
                                                         showAlert("신청 중 오류가 발생했습니다: " + res.message, "오류");
                                                     }
                                                 }
+                                            }
                                             );
                                         }
                                     }}
                                     className="w-full bg-[#001a3d] text-white py-4 rounded-2xl text-lg font-black shadow-xl hover:bg-blue-900 active:scale-[0.98] transition-all disabled:opacity-50 disabled:scale-100 flex items-center justify-center gap-2"
                                 >
-                                    {isSubmitting ? <Loader2 className="animate-spin" /> : (
-                                        rentalStep === 4 ? '신청 완료하기' : (rentalStep === 3 ? '신용조회 동의하러 가기' : '다음으로')
+                                    {isSubmitting || isSaving ? <Loader2 className="animate-spin" /> : (
+                                        applicationType === 'green_remodeling' 
+                                            ? (rentalStep === 5 ? '임시저장하기' : rentalStep === 6 ? '최종 신청 완료하기' : '다음으로')
+                                            : (rentalStep === 4 ? '신청 완료하기' : (rentalStep === 3 && applicationType === 'rental' ? '신용조회 동의하러 가기' : '다음으로'))
                                     )}
-                                    {!isSubmitting && rentalStep < 4 && <ChevronRight size={20} />}
+                                    {!isSubmitting && !isSaving && rentalStep < (applicationType === 'green_remodeling' ? 6 : 4) && <ChevronRight size={20} />}
                                 </button>
                             </div>
                         )}
                         {showSaveToast && (
-                            <div className="fixed top-12 left-1/2 -translate-x-1/2 z-[300] bg-[#001a3d] text-[#c5a059] px-8 py-4 rounded-2xl font-black text-sm shadow-2xl animate-in fade-in slide-in-from-top-4 flex items-center gap-3 border-2 border-[#c5a059]/30 backdrop-blur-xl">
-                                <div className="w-6 h-6 bg-[#c5a059] text-[#001a3d] rounded-lg flex items-center justify-center shadow-lg">
+                            <div className="fixed top-12 left-1/2 -translate-x-1/2 z-[300] bg-[#001a3d] text-[#c5a059] px-6 py-4 rounded-2xl font-black text-sm shadow-2xl animate-in fade-in slide-in-from-top-4 flex items-center gap-3 border-2 border-[#c5a059]/30 backdrop-blur-xl w-max max-w-[90vw]">
+                                <div className="w-6 h-6 bg-[#c5a059] text-[#001a3d] rounded-lg flex items-center justify-center shadow-lg shrink-0">
                                     <CheckCircle size={16} />
                                 </div>
-                                <span className="text-white tracking-tight">{saveMessage}</span>
+                                <span className="text-white tracking-tight whitespace-nowrap">{saveMessage}</span>
                             </div>
                         )}
                     </div>
@@ -2394,6 +3522,132 @@ const CustomerPage = () => {
                                 {confirmModal.confirmText}
                             </button>
                         </div>
+                    </div>
+                </div>
+            )}
+            {/* 그린리모델링 이어서 신청 / 새로 신청 선택 모달 */}
+            {resumeChoice.show && (
+                <div className="fixed inset-0 z-[350] flex items-center justify-center p-6 animate-in fade-in duration-200">
+                    <div className="absolute inset-0 bg-[#001a3d]/90 backdrop-blur-md" onClick={() => setResumeChoice({ show: false, nextFlow: 'pre' })}></div>
+                    <div className="bg-white w-full max-w-sm rounded-3xl shadow-2xl relative z-10 overflow-hidden animate-in zoom-in-95 duration-200 border border-white/20">
+                        <div className="p-8 text-center space-y-6">
+                            <div className="w-20 h-20 bg-green-50 text-green-600 rounded-3xl flex items-center justify-center mx-auto mb-2 shadow-inner">
+                                <FileText size={40} />
+                            </div>
+                            <div className="space-y-2">
+                                <h3 className="text-xl font-black text-[#001a3d] leading-tight">기존 신청 내역이 있습니다</h3>
+                                <p className="text-gray-500 font-bold text-sm leading-relaxed break-keep">
+                                    이전에 입력하시던 정보를 불러와서<br />이어서 신청하시겠습니까?
+                                </p>
+                            </div>
+
+                            <div className="grid grid-cols-1 gap-3 pt-2">
+                                <button
+                                    onClick={() => {
+                                        setShouldSkipResume(false);
+                                        if (existingGreenApp) {
+                                            // 1. 모든 데이터 매핑 및 파일 카테고리 분류 복원
+                                            const flatFiles = existingGreenApp.files || [];
+                                            const restoredForm = {
+                                                ...rentalForm,
+                                                name: existingGreenApp.name || '',
+                                                phone: existingGreenApp.phone || '',
+                                                birthDate: existingGreenApp.birthDate || '',
+                                                gender: existingGreenApp.gender || '',
+                                                address: existingGreenApp.address || '',
+                                                loanMethod: existingGreenApp.loanMethod || '은행대출',
+                                                targetCategory: existingGreenApp.targetCategory || '해당없음',
+                                                greenAmount: existingGreenApp.selectedAmount || 0,
+                                                greenDownPayment: existingGreenApp.downPayment || 0,
+                                                greenBalance: existingGreenApp.balance || 0,
+                                                isFullGreen: existingGreenApp.isFullApplication || false,
+                                                startDate: existingGreenApp.startDate || '',
+                                                endDate: existingGreenApp.endDate || '',
+                                                signature: existingGreenApp.signature || null,
+                                                consentSignature: existingGreenApp.consentSignature || null,
+                                                contractSignature: existingGreenApp.contractSignature || null,
+                                                ownerConfirmSignature: existingGreenApp.ownerConfirmSignature || null,
+                                                agreements: {
+                                                    agree1: !!existingGreenApp.consentSignature,
+                                                    agree2: false,
+                                                    agree3: false
+                                                },
+                                                files: {
+                                                    ...rentalForm.files,
+                                                    green_target: flatFiles.filter(f => f.category === 'green_target'),
+                                                    before_photos: flatFiles.filter(f => f.category === 'before_photos'),
+                                                    registry: flatFiles.filter(f => f.category === 'registry'),
+                                                    contract: flatFiles.filter(f => f.category === 'contract'),
+                                                }
+                                            };
+                                            setRentalForm(restoredForm);
+                                            setDraftId(existingGreenApp._id);
+
+                                            // 2. 진행 단계 계산 (그린리모델링 Pre-construction 기준)
+                                            let nextStep = 1;
+                                            if (existingGreenApp.birthDate && existingGreenApp.gender) {
+                                                nextStep = 2;
+                                                if (existingGreenApp.targetCategory || existingGreenApp.greenAmount > 0) {
+                                                    nextStep = 3;
+                                                    // green_target 파일이 있으면 다음으로
+                                                    if (flatFiles.some(f => f.category === 'green_target')) {
+                                                        nextStep = 4;
+                                                        if (existingGreenApp.signature && existingGreenApp.startDate) {
+                                                            nextStep = 5;
+                                                            if (existingGreenApp.consentSignature) {
+                                                                nextStep = 6;
+                                                                if (existingGreenApp.contractSignature) {
+                                                                    nextStep = 7;
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                            setRentalStep(nextStep);
+                                        }
+                                        setGreenFlow(resumeChoice.nextFlow);
+                                        setResumeChoice({ show: false, nextFlow: 'pre' });
+                                    }}
+                                    className="w-full py-4 bg-green-600 text-white rounded-2xl font-black text-sm shadow-xl hover:bg-green-500 transition-all flex items-center justify-center gap-2"
+                                >
+                                    <Sparkles size={18} /> 이어서 신청하기
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        setShouldSkipResume(true);
+                                        setDraftId(null);
+                                        setRentalForm(prev => ({
+                                            ...prev,
+                                            birthDate: '',
+                                            gender: '',
+                                            agreements: { agree1: false, agree2: false, agree3: false },
+                                            targetCategory: '해당없음',
+                                            loanMethod: '은행대출',
+                                            startDate: '',
+                                            endDate: '',
+                                            files: { registry: [], contract: [], family: [], id_card: [], bank_book: [] },
+                                            signature: null,
+                                            consentSignature: null,
+                                            contractSignature: null,
+                                            ownerConfirmSignature: null
+                                        }));
+                                        setGreenFlow(resumeChoice.nextFlow);
+                                        setRentalStep(1);
+                                        setResumeChoice({ show: false, nextFlow: 'pre' });
+                                    }}
+                                    className="w-full py-4 bg-white border-2 border-gray-100 text-gray-400 rounded-2xl font-black text-sm hover:border-green-400 hover:text-green-600 transition-all"
+                                >
+                                    처음부터 새로 신청하기
+                                </button>
+                            </div>
+                        </div>
+                        <button 
+                            onClick={() => setResumeChoice({ show: false, nextFlow: 'pre' })}
+                            className="absolute top-4 right-4 p-2 text-gray-300 hover:text-gray-600 transition-colors"
+                        >
+                            <X size={20} />
+                        </button>
                     </div>
                 </div>
             )}

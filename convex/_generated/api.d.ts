@@ -10,11 +10,13 @@
 
 import type * as config from "../config.js";
 import type * as discord from "../discord.js";
+import type * as greenRemodeling from "../greenRemodeling.js";
 import type * as http from "../http.js";
 import type * as quotes from "../quotes.js";
 import type * as rentals from "../rentals.js";
 import type * as subscriptions from "../subscriptions.js";
 import type * as sync from "../sync.js";
+import type * as templates from "../templates.js";
 
 import type {
   ApiFromModules,
@@ -25,11 +27,13 @@ import type {
 declare const fullApi: ApiFromModules<{
   config: typeof config;
   discord: typeof discord;
+  greenRemodeling: typeof greenRemodeling;
   http: typeof http;
   quotes: typeof quotes;
   rentals: typeof rentals;
   subscriptions: typeof subscriptions;
   sync: typeof sync;
+  templates: typeof templates;
 }>;
 
 /**

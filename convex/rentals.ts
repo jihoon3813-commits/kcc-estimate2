@@ -65,7 +65,7 @@ export const submitApplication = mutation({
 });
 
 export const getDraft = query({
-    args: { quoteId: v.optional(v.id("quotes")), name: v.string(), phone: v.string() },
+    args: { quoteId: v.optional(v.id("quotes")), name: v.string(), phone: v.string(), amount: v.number() },
     handler: async (ctx, args) => {
         let draft;
         if (args.quoteId) {
@@ -79,8 +79,19 @@ export const getDraft = query({
             draft = await ctx.db
                 .query("rental_applications")
                 .withIndex("by_name_phone", (q) => q.eq("name", args.name).eq("phone", args.phone))
-                .filter((q) => q.eq(q.field("status"), "임시저장"))
-                .first();
+                .filter((q) => q.and(
+                    q.eq(q.field("status"), "임시저장"),
+                    q.eq(q.field("finalBenefit"), args.amount)
+                ))
+                .unique();
+        }
+
+        if (draft) {
+            const files = await Promise.all((draft.files || []).map(async (file) => ({
+                ...file,
+                url: file.storageId ? await ctx.storage.getUrl(file.storageId) : null
+            })));
+            return { ...draft, files };
         }
         return draft;
     },
@@ -125,8 +136,11 @@ export const saveDraft = mutation({
             existingDraft = await ctx.db
                 .query("rental_applications")
                 .withIndex("by_name_phone", (q) => q.eq("name", args.name).eq("phone", args.phone))
-                .filter((q) => q.eq(q.field("status"), "임시저장"))
-                .first();
+                .filter((q) => q.and(
+                    q.eq(q.field("status"), "임시저장"),
+                    q.eq(q.field("finalBenefit"), args.finalBenefit)
+                ))
+                .unique();
         }
 
         if (existingDraft) {
