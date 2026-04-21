@@ -2255,7 +2255,7 @@ const AdminPage = () => {
                                     <thead className="bg-[#064e3b] text-white">
                                         <tr>
                                             {[
-                                                "순번", "상태", "신청일", "고객명", "전화번호", "대상", "대출", "시작", "완료", "본인부담", "신청금액", "서명", "동의", "서류"
+                                                "순번", "상태", "신청일", "고객명", "전화번호", "생일", "성", "대상", "대출", "시작", "완료", "본인부담", "신청금액", "서명", "동의", "서류"
                                             ].map((th, i) => (
                                                 <th key={i} className="px-2 py-3.5 font-black whitespace-nowrap text-[11px] uppercase tracking-tighter first:pl-6 last:pr-6 text-center">{th}</th>
                                             ))}
@@ -2284,6 +2284,8 @@ const AdminPage = () => {
                                                     <td className="px-2 py-3.5 text-center whitespace-nowrap font-medium text-gray-400 text-[10px]">{formatDate(item.createdAt)}</td>
                                                     <td className="px-2 py-3.5 text-center whitespace-nowrap font-bold text-green-700 hover:text-green-900 cursor-pointer underline decoration-wavy underline-offset-4" onClick={() => handleRentalNameClick(item)}>{item.name}</td>
                                                     <td className="px-2 py-3.5 text-center whitespace-nowrap text-gray-500 font-mono text-[10px]">{item.phone}</td>
+                                                    <td className="px-2 py-3.5 text-center whitespace-nowrap text-gray-500 text-[10px]">{item.birthDate || '-'}</td>
+                                                    <td className="px-2 py-3.5 text-center whitespace-nowrap text-gray-500 text-[10px]">{item.gender ? (item.gender === 'male' ? '남' : '여') : '-'}</td>
                                                     <td className="px-2 py-3.5 text-center whitespace-nowrap text-gray-600 text-[10px] font-black">{item.targetCategory}</td>
                                                     <td className="px-2 py-3.5 text-center whitespace-nowrap text-gray-500 text-[10px]">{item.loanMethod}</td>
                                                     <td className="px-2 py-3.5 text-center whitespace-nowrap text-gray-400 text-[9px]">{item.startDate}</td>
@@ -2860,6 +2862,18 @@ const AdminPage = () => {
                                                 placeholder="예: 그린리모델링 신청서"
                                                 className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-2.5 text-xs font-bold outline-none focus:border-[#001a3d]"
                                             />
+                                        </div>
+                                        <div className="space-y-1.5 mt-4">
+                                            <label className="text-[10px] font-black text-gray-500 ml-1">양식 구분</label>
+                                            <select 
+                                                value={currentTemplate.type || 'rental'}
+                                                onChange={(e) => setCurrentTemplate({...currentTemplate, type: e.target.value})}
+                                                className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-2.5 text-xs font-bold outline-none focus:border-[#001a3d]"
+                                            >
+                                                <option value="rental">렌탈</option>
+                                                <option value="subscription">할부</option>
+                                                <option value="green_remodeling">그린리모델링</option>
+                                            </select>
                                         </div>
 
                                     </div>

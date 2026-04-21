@@ -544,6 +544,11 @@ const CustomerPage = () => {
                         amount: applicationType === 'green_remodeling' ? (rentalForm.greenAmount || data.finalBenefit).toLocaleString() : (data.finalBenefit || 0).toLocaleString(),
                         down: (rentalForm.greenDownPayment || 0).toLocaleString(),
                         balance: (rentalForm.greenBalance || data.finalBenefit).toLocaleString(),
+                        gender: rentalForm.gender === 'male' ? '남성' : (rentalForm.gender === 'female' ? '여성' : ''),
+                        transferDate: rentalForm.transferDate || '',
+                        jobCategory: rentalForm.jobCategory || '',
+                        ownershipType: rentalForm.ownershipType === 'own_own' ? '본인' : (rentalForm.ownershipType === 'family_own' ? '가족' : (rentalForm.ownershipType === 'move_own' ? '이사' : '')),
+                        monthlyAmount: (rentalForm.selectedAmount === 11 ? 111000 : rentalForm.selectedAmount === 22 ? 222000 : rentalForm.selectedAmount === 33 ? 333000 : 0).toLocaleString(),
                         
                         // Green Remodeling Specific IDs
                         field_1776057318852: rentalForm.startDate ? rentalForm.startDate.replace(/-/g, '.') : "",
@@ -2320,7 +2325,79 @@ const CustomerPage = () => {
                             )}
 
                             {/* [GREEN REMODELING] ACTION CENTER & INFOGRAPHIC (STEP 0) */}
-                            {applicationType === 'green_remodeling' && rentalStep === 0 && (
+                            {(() => {
+                                const restoreGreenAppAndProceed = (nextFlow) => {
+                                    setShouldSkipResume(false);
+                                    if (existingGreenApp) {
+                                        const flatFiles = existingGreenApp.files || [];
+                                        const restoredForm = {
+                                            ...rentalForm,
+                                            name: existingGreenApp.name || '',
+                                            phone: existingGreenApp.phone || '',
+                                            birthDate: existingGreenApp.birthDate || '',
+                                            gender: existingGreenApp.gender || '',
+                                            address: existingGreenApp.address || '',
+                                            loanMethod: existingGreenApp.loanMethod || '은행대출',
+                                            targetCategory: existingGreenApp.targetCategory || '해당없음',
+                                            greenAmount: existingGreenApp.selectedAmount || 0,
+                                            greenDownPayment: existingGreenApp.downPayment || 0,
+                                            greenBalance: existingGreenApp.balance || 0,
+                                            isFullGreen: existingGreenApp.isFullApplication || false,
+                                            startDate: existingGreenApp.startDate || '',
+                                            endDate: existingGreenApp.endDate || '',
+                                            signature: existingGreenApp.signature || null,
+                                            consentSignature: existingGreenApp.consentSignature || null,
+                                            contractSignature: existingGreenApp.contractSignature || null,
+                                            ownerConfirmSignature: existingGreenApp.ownerConfirmSignature || null,
+                                            agreements: {
+                                                agree1: !!existingGreenApp.consentSignature,
+                                                agree2: false,
+                                                agree3: false
+                                            },
+                                            files: {
+                                                ...rentalForm.files,
+                                                green_target: flatFiles.filter(f => f.category === 'green_target'),
+                                                before_photos: flatFiles.filter(f => f.category === 'before_photos'),
+                                                registry: flatFiles.filter(f => f.category === 'registry'),
+                                                contract: flatFiles.filter(f => f.category === 'contract'),
+                                            }
+                                        };
+                                        setRentalForm(restoredForm);
+                                        setDraftId(existingGreenApp._id);
+
+                                        let nextStep = 1;
+                                        if (existingGreenApp.birthDate && existingGreenApp.gender) {
+                                            nextStep = 2;
+                                            if (existingGreenApp.targetCategory || existingGreenApp.greenAmount > 0) {
+                                                nextStep = 3;
+                                                if (flatFiles.some(f => f.category === 'green_target')) {
+                                                    nextStep = 4;
+                                                    if (existingGreenApp.signature && existingGreenApp.startDate) {
+                                                        nextStep = 5;
+                                                        if (existingGreenApp.consentSignature) {
+                                                            nextStep = 6;
+                                                            if (existingGreenApp.contractSignature) {
+                                                                nextStep = 7;
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        setRentalStep(nextStep);
+                                    } else {
+                                        setRentalForm(prev => ({
+                                            ...prev,
+                                            greenAmount: data.finalBenefit || data.totalAmount || 0,
+                                            greenBalance: data.finalBenefit || data.totalAmount || 0,
+                                            greenDownPayment: 0
+                                        }));
+                                        setRentalStep(1); 
+                                    }
+                                    setGreenFlow(nextFlow); 
+                                };
+
+                                return applicationType === 'green_remodeling' && rentalStep === 0 && (
                                 <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
                                     {/* Infographic Intro */}
                                     <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 space-y-6">
@@ -2380,21 +2457,7 @@ const CustomerPage = () => {
                                     {/* Action Grid */}
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <button 
-                                            onClick={() => { 
-                                                if (existingGreenApp) {
-                                                    setResumeChoice({ show: true, nextFlow: 'pre' });
-                                                } else {
-                                                    // Initialize with quote values
-                                                    setRentalForm(prev => ({
-                                                        ...prev,
-                                                        greenAmount: data.finalBenefit || data.totalAmount || 0,
-                                                        greenBalance: data.finalBenefit || data.totalAmount || 0,
-                                                        greenDownPayment: 0
-                                                    }));
-                                                    setGreenFlow('pre'); 
-                                                    setRentalStep(1); 
-                                                }
-                                            }}
+                                            onClick={() => restoreGreenAppAndProceed('pre')}
                                             className="p-5 bg-white border border-gray-100 rounded-2xl flex flex-col items-center text-center gap-3 transition-all hover:border-green-400 hover:shadow-lg shadow-sm"
                                         >
                                             <div className="w-12 h-12 bg-green-50 text-green-600 rounded-xl flex items-center justify-center shadow-inner"><FileText size={24} /></div>
@@ -2417,14 +2480,7 @@ const CustomerPage = () => {
                                         </button>
 
                                         <button 
-                                            onClick={() => { 
-                                                if (existingGreenApp) {
-                                                    setResumeChoice({ show: true, nextFlow: 'post' });
-                                                } else {
-                                                    setGreenFlow('post'); 
-                                                    setRentalStep(1); 
-                                                }
-                                            }}
+                                            onClick={() => restoreGreenAppAndProceed('post')}
                                             className="p-5 bg-white border border-gray-100 rounded-2xl flex flex-col items-center text-center gap-3 transition-all hover:border-green-400 hover:shadow-lg shadow-sm"
                                         >
                                             <div className="w-12 h-12 bg-orange-50 text-orange-600 rounded-xl flex items-center justify-center shadow-inner"><CheckCircle2 size={24} /></div>
@@ -2447,7 +2503,7 @@ const CustomerPage = () => {
                                         </button>
                                     </div>
                                 </div>
-                            )}
+                            );})()}
 
                             {/* [GREEN REMODELING] PRE-CONSTRUCTION FLOW (7 STEPS) */}
                             {applicationType === 'green_remodeling' && greenFlow === 'pre' && (
@@ -3525,132 +3581,7 @@ const CustomerPage = () => {
                     </div>
                 </div>
             )}
-            {/* 그린리모델링 이어서 신청 / 새로 신청 선택 모달 */}
-            {resumeChoice.show && (
-                <div className="fixed inset-0 z-[350] flex items-center justify-center p-6 animate-in fade-in duration-200">
-                    <div className="absolute inset-0 bg-[#001a3d]/90 backdrop-blur-md" onClick={() => setResumeChoice({ show: false, nextFlow: 'pre' })}></div>
-                    <div className="bg-white w-full max-w-sm rounded-3xl shadow-2xl relative z-10 overflow-hidden animate-in zoom-in-95 duration-200 border border-white/20">
-                        <div className="p-8 text-center space-y-6">
-                            <div className="w-20 h-20 bg-green-50 text-green-600 rounded-3xl flex items-center justify-center mx-auto mb-2 shadow-inner">
-                                <FileText size={40} />
-                            </div>
-                            <div className="space-y-2">
-                                <h3 className="text-xl font-black text-[#001a3d] leading-tight">기존 신청 내역이 있습니다</h3>
-                                <p className="text-gray-500 font-bold text-sm leading-relaxed break-keep">
-                                    이전에 입력하시던 정보를 불러와서<br />이어서 신청하시겠습니까?
-                                </p>
-                            </div>
 
-                            <div className="grid grid-cols-1 gap-3 pt-2">
-                                <button
-                                    onClick={() => {
-                                        setShouldSkipResume(false);
-                                        if (existingGreenApp) {
-                                            // 1. 모든 데이터 매핑 및 파일 카테고리 분류 복원
-                                            const flatFiles = existingGreenApp.files || [];
-                                            const restoredForm = {
-                                                ...rentalForm,
-                                                name: existingGreenApp.name || '',
-                                                phone: existingGreenApp.phone || '',
-                                                birthDate: existingGreenApp.birthDate || '',
-                                                gender: existingGreenApp.gender || '',
-                                                address: existingGreenApp.address || '',
-                                                loanMethod: existingGreenApp.loanMethod || '은행대출',
-                                                targetCategory: existingGreenApp.targetCategory || '해당없음',
-                                                greenAmount: existingGreenApp.selectedAmount || 0,
-                                                greenDownPayment: existingGreenApp.downPayment || 0,
-                                                greenBalance: existingGreenApp.balance || 0,
-                                                isFullGreen: existingGreenApp.isFullApplication || false,
-                                                startDate: existingGreenApp.startDate || '',
-                                                endDate: existingGreenApp.endDate || '',
-                                                signature: existingGreenApp.signature || null,
-                                                consentSignature: existingGreenApp.consentSignature || null,
-                                                contractSignature: existingGreenApp.contractSignature || null,
-                                                ownerConfirmSignature: existingGreenApp.ownerConfirmSignature || null,
-                                                agreements: {
-                                                    agree1: !!existingGreenApp.consentSignature,
-                                                    agree2: false,
-                                                    agree3: false
-                                                },
-                                                files: {
-                                                    ...rentalForm.files,
-                                                    green_target: flatFiles.filter(f => f.category === 'green_target'),
-                                                    before_photos: flatFiles.filter(f => f.category === 'before_photos'),
-                                                    registry: flatFiles.filter(f => f.category === 'registry'),
-                                                    contract: flatFiles.filter(f => f.category === 'contract'),
-                                                }
-                                            };
-                                            setRentalForm(restoredForm);
-                                            setDraftId(existingGreenApp._id);
-
-                                            // 2. 진행 단계 계산 (그린리모델링 Pre-construction 기준)
-                                            let nextStep = 1;
-                                            if (existingGreenApp.birthDate && existingGreenApp.gender) {
-                                                nextStep = 2;
-                                                if (existingGreenApp.targetCategory || existingGreenApp.greenAmount > 0) {
-                                                    nextStep = 3;
-                                                    // green_target 파일이 있으면 다음으로
-                                                    if (flatFiles.some(f => f.category === 'green_target')) {
-                                                        nextStep = 4;
-                                                        if (existingGreenApp.signature && existingGreenApp.startDate) {
-                                                            nextStep = 5;
-                                                            if (existingGreenApp.consentSignature) {
-                                                                nextStep = 6;
-                                                                if (existingGreenApp.contractSignature) {
-                                                                    nextStep = 7;
-                                                                }
-                                                            }
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                            setRentalStep(nextStep);
-                                        }
-                                        setGreenFlow(resumeChoice.nextFlow);
-                                        setResumeChoice({ show: false, nextFlow: 'pre' });
-                                    }}
-                                    className="w-full py-4 bg-green-600 text-white rounded-2xl font-black text-sm shadow-xl hover:bg-green-500 transition-all flex items-center justify-center gap-2"
-                                >
-                                    <Sparkles size={18} /> 이어서 신청하기
-                                </button>
-                                <button
-                                    onClick={() => {
-                                        setShouldSkipResume(true);
-                                        setDraftId(null);
-                                        setRentalForm(prev => ({
-                                            ...prev,
-                                            birthDate: '',
-                                            gender: '',
-                                            agreements: { agree1: false, agree2: false, agree3: false },
-                                            targetCategory: '해당없음',
-                                            loanMethod: '은행대출',
-                                            startDate: '',
-                                            endDate: '',
-                                            files: { registry: [], contract: [], family: [], id_card: [], bank_book: [] },
-                                            signature: null,
-                                            consentSignature: null,
-                                            contractSignature: null,
-                                            ownerConfirmSignature: null
-                                        }));
-                                        setGreenFlow(resumeChoice.nextFlow);
-                                        setRentalStep(1);
-                                        setResumeChoice({ show: false, nextFlow: 'pre' });
-                                    }}
-                                    className="w-full py-4 bg-white border-2 border-gray-100 text-gray-400 rounded-2xl font-black text-sm hover:border-green-400 hover:text-green-600 transition-all"
-                                >
-                                    처음부터 새로 신청하기
-                                </button>
-                            </div>
-                        </div>
-                        <button 
-                            onClick={() => setResumeChoice({ show: false, nextFlow: 'pre' })}
-                            className="absolute top-4 right-4 p-2 text-gray-300 hover:text-gray-600 transition-colors"
-                        >
-                            <X size={20} />
-                        </button>
-                    </div>
-                </div>
-            )}
             </div>
         </div>
     );
