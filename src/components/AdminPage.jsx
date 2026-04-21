@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Upload, FileText, Calculator, Save, CheckCircle, Loader2, RefreshCw, ExternalLink, Search, ShieldCheck, Download, X, Trash2, Calendar, ChevronDown, FileArchive } from 'lucide-react';
+import { Upload, FileText, Calculator, Save, CheckCircle, Loader2, RefreshCw, ExternalLink, Search, ShieldCheck, Download, X, Trash2, Calendar, ChevronDown, FileArchive, AlignLeft, AlignCenter, AlignRight } from 'lucide-react';
 import { parseExcelEstimate } from '../lib/excelParser';
 import { saveQuote, updateRentalStatus, updateSubscriptionStatus, updateGreenStatus, getAdminQuoteList, getRentalApplicationList, getSubscriptionApplicationList, getGreenApplicationList, getTemplatePdfUrl, uploadTemplatePdf, savePdfTemplate, getTemplateList, deletePdfTemplate, getLatestTemplateByType, migrateInterestRates } from '../lib/api';
 import { PDFDocument, rgb } from 'pdf-lib';
@@ -2074,7 +2074,7 @@ const AdminPage = () => {
                                         <p className="text-[10px] text-gray-400 font-bold">{formatDate(t.createdAt)} 등록</p>
                                     </div>
                                     <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <button onClick={() => { setCurrentTemplate(t); setIsTemplateModal(true); }} className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-all"><FileText size={14} /></button>
+                                        <button onClick={() => { setCurrentTemplate({ ...t, fields: t.fields || [] }); setIsTemplateModal(true); }} className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-all"><FileText size={14} /></button>
                                         <button onClick={() => { if(confirm('삭제하시겠습니까?')) deletePdfTemplate(t._id).then(fetchList); }} className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-all"><RefreshCw size={14} className="rotate-45" /></button>
                                     </div>
                                 </div>
@@ -2770,7 +2770,7 @@ const AdminPage = () => {
                                             />
                                         )}
 
-                                        {currentTemplate.fields.map((f, i) => (
+                                        {currentTemplate.fields?.map((f, i) => (
                                             <div 
                                                 key={f.id}
                                                 className={`absolute border border-blue-500 bg-blue-500/10 group z-50 flex cursor-move ${draggingFieldId === f.id ? 'ring-2 ring-blue-600 z-[70]' : ''}`}
@@ -2866,9 +2866,9 @@ const AdminPage = () => {
                                 </div>
 
                                 <div className="space-y-4">
-                                    <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">지정된 영역 ({currentTemplate.fields.length})</h4>
+                                    <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">지정된 영역 ({currentTemplate.fields?.length || 0})</h4>
                                     <div className="space-y-3">
-                                        {currentTemplate.fields.map((f, idx) => (
+                                        {currentTemplate.fields?.map((f, idx) => (
                                             <div key={idx} className="bg-gray-50 p-4 rounded-xl border border-gray-100 space-y-3">
                                                 <div className="flex items-center justify-between">
                                                     <span className="text-[8px] font-black text-blue-600 bg-blue-100 px-1.5 py-0.5 rounded uppercase">AREA {idx + 1}</span>
