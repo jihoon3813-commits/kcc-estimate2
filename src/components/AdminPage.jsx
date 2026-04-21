@@ -988,9 +988,7 @@ const AdminPage = () => {
             setLoading(false);
             setStatus("");
         }
-            setLoading(false);
-            setStatus("");
-        }
+
     };
 
     const handleDownloadPhotoZip = async (item) => {
