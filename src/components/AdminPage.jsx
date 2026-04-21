@@ -532,7 +532,9 @@ const AdminPage = () => {
             const consentTemplateRes = await getLatestTemplateByType('green_remodeling', '개인정보 동의서(그린리모델링)');
 
             if (!appTemplateRes.success || !appTemplateRes.data) {
-                alert("신청서 템플릿을 찾을 수 없습니다. [설정 > PDF 템플릿]에서 먼저 등록해주세요.");
+                setLoading(false);
+                setStatus("");
+                alert(`신청서 템플릿을 찾을 수 없습니다. [설정 > PDF 템플릿]에서 이름이 '${appTemplateName}'인 서식을 등록해주세요.`);
                 return;
             }
 
@@ -978,9 +980,14 @@ const AdminPage = () => {
             link.click();
             URL.revokeObjectURL(url);
         } catch (error) {
+            setLoading(false);
+            setStatus("");
             console.error("PDF generation error:", error);
             alert("PDF 생성 중 오류가 발생했습니다: " + error.message);
         } finally {
+            setLoading(false);
+            setStatus("");
+        }
             setLoading(false);
             setStatus("");
         }
