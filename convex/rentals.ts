@@ -58,6 +58,7 @@ export const submitApplication = mutation({
             phone: args.phone,
             selectedAmount: `${args.selectedAmount}만원`,
             address: args.address,
+            isDraft: false,
         });
 
         return finalId;
@@ -149,11 +150,23 @@ export const saveDraft = mutation({
             });
             return existingDraft._id;
         } else {
-            return await ctx.db.insert("rental_applications", {
+            const id = await ctx.db.insert("rental_applications", {
                 ...args,
                 status: "임시저장",
                 createdAt: new Date().toISOString(),
             });
+
+            // Send Discord Notification for NEW temporary save
+            await ctx.scheduler.runAfter(0, internal.discord.sendNotification, {
+                type: 'rental',
+                name: args.name,
+                phone: args.phone,
+                selectedAmount: `${args.selectedAmount}만원`,
+                address: args.address,
+                isDraft: true,
+            });
+
+            return id;
         }
     },
 });

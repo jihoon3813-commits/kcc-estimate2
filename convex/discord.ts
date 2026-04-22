@@ -4,18 +4,34 @@ import { v } from "convex/values";
 
 export const sendNotification = internalAction({
     args: {
-        type: v.string(), // 'rental' or 'subscription'
+        type: v.string(), // 'rental', 'subscription', 'greenRemodeling'
         name: v.string(),
         phone: v.string(),
         selectedAmount: v.string(),
         address: v.string(),
+        isDraft: v.optional(v.boolean()),
     },
     handler: async (ctx, args) => {
         const webhookUrl = process.env.DISCORD_WEBHOOK_URL;
         if (!webhookUrl) return;
 
-        const title = args.type === 'subscription' ? '🏠 스마트 구독 서비스(할부) 신청 알림' : '🛡️ 렌탈 서비스 신청 알림';
-        const color = args.type === 'subscription' ? 0x1a3a3a : 0x2c3e50;
+        let title = '';
+        let color = 0x2c3e50;
+
+        const draftSuffix = args.isDraft ? ' (임시저장)' : '';
+
+        if (args.type === 'subscription') {
+            title = `🏠 스마트 구독 서비스(할부) 신청${draftSuffix}`;
+            color = args.isDraft ? 0x95a5a6 : 0x1a3a3a;
+        } else if (args.type === 'rental') {
+            title = `🛡️ 렌탈 서비스 신청${draftSuffix}`;
+            color = args.isDraft ? 0x95a5a6 : 0x2c3e50;
+        } else if (args.type === 'greenRemodeling') {
+            title = `🌿 그린리모델링 신청${draftSuffix}`;
+            color = args.isDraft ? 0x95a5a6 : 0x27ae60;
+        } else {
+            title = `🔔 알림: ${args.type}${draftSuffix}`;
+        }
 
         const content = {
             embeds: [
@@ -27,7 +43,7 @@ export const sendNotification = internalAction({
                         { name: '📞 연락처', value: args.phone, inline: true },
                         { name: '💰 신청내용', value: args.selectedAmount, inline: true },
                         { name: '📍 주소', value: args.address || '정보 없음' },
-                        { name: '🕒 신청일시', value: new Date().toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' }) },
+                        { name: '🕒 발생일시', value: new Date().toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' }) },
                     ],
                     footer: { text: 'KCC 견적계산(책임견적) 어드민' }
                 }

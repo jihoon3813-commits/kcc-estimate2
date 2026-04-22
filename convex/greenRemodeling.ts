@@ -1,5 +1,6 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { internal } from "./_generated/api";
 
 /**
  * 업로드 URL 생성
@@ -45,21 +46,33 @@ export const submitApplication = mutation({
     handler: async (ctx, args) => {
         const { id, ...data } = args;
         const now = new Date().toISOString();
+        let finalId;
 
         if (id) {
             await ctx.db.patch(id, {
                 ...data,
-                // Do not update status if already set, or you can manage it
+                status: "신청완료",
             });
-            return id;
+            finalId = id;
         } else {
-            const newId = await ctx.db.insert("green_remodeling_applications", {
+            finalId = await ctx.db.insert("green_remodeling_applications", {
                 ...data,
                 status: "신청완료",
                 createdAt: now,
             });
-            return newId;
         }
+
+        // Send Discord Notification
+        await ctx.scheduler.runAfter(0, internal.discord.sendNotification, {
+            type: 'greenRemodeling',
+            name: args.name,
+            phone: args.phone,
+            selectedAmount: `${args.selectedAmount.toLocaleString()}원`,
+            address: args.address,
+            isDraft: false,
+        });
+
+        return finalId;
     },
 });
 
@@ -154,6 +167,17 @@ export const saveDraft = mutation({
                 status: "임시저장",
                 createdAt: new Date().toISOString(),
             });
+
+            // Send Discord Notification for NEW temporary save
+            await ctx.scheduler.runAfter(0, internal.discord.sendNotification, {
+                type: 'greenRemodeling',
+                name: args.name,
+                phone: args.phone,
+                selectedAmount: `${args.selectedAmount.toLocaleString()}원`,
+                address: args.address,
+                isDraft: true,
+            });
+
             return id;
         }
     },
