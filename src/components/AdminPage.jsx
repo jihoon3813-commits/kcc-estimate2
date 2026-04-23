@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Upload, FileText, Calculator, Save, CheckCircle, Loader2, RefreshCw, ExternalLink, Search, ShieldCheck, Download, X, Trash2, Calendar, ChevronDown, FileArchive, AlignLeft, AlignCenter, AlignRight } from 'lucide-react';
+import { Upload, FileText, Calculator, Save, CheckCircle, Loader2, RefreshCw, ExternalLink, Search, ShieldCheck, Download, X, Trash2, Calendar, ChevronDown, FileArchive, AlignLeft, AlignCenter, AlignRight, Menu } from 'lucide-react';
 import { parseExcelEstimate } from '../lib/excelParser';
 import { saveQuote, updateRentalStatus, updateSubscriptionStatus, updateGreenStatus, getAdminQuoteList, getRentalApplicationList, getSubscriptionApplicationList, getGreenApplicationList, getTemplatePdfUrl, uploadTemplatePdf, savePdfTemplate, getTemplateList, deletePdfTemplate, getLatestTemplateByType, migrateInterestRates } from '../lib/api';
 import { PDFDocument, rgb } from 'pdf-lib';
@@ -90,6 +90,7 @@ const AdminPage = () => {
     const [previewScale, setPreviewScale] = useState(1);
     const [draggingFieldId, setDraggingFieldId] = useState(null);
     const [dragStartPos, setDragStartPos] = useState({ x: 0, y: 0 });
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const pdfContainerRef = React.useRef(null);
 
     const modalCalculations = useMemo(() => {
@@ -1415,9 +1416,23 @@ const AdminPage = () => {
     }
 
     return (
-        <div className="flex h-screen bg-[#f8fafc] overflow-hidden font-sans">
+        <div className="flex h-screen bg-[#f8fafc] overflow-hidden font-sans relative">
+            {/* Sidebar Overlay (Mobile Only) */}
+            {isSidebarOpen && (
+                <div 
+                    className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[55] md:hidden"
+                    onClick={() => setIsSidebarOpen(false)}
+                />
+            )}
+
             {/* --- SIDEBAR NAVIGATION --- */}
-            <aside className="w-72 bg-[#001a3d] flex flex-col shrink-0 border-r border-[#ffffff/10] shadow-2xl relative z-[60]">
+            <aside className={`fixed md:relative w-72 bg-[#001a3d] flex flex-col shrink-0 border-r border-[#ffffff/10] shadow-2xl z-[60] h-full transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
+                <button 
+                    onClick={() => setIsSidebarOpen(false)}
+                    className="absolute top-4 right-4 text-white/50 hover:text-white md:hidden"
+                >
+                    <X size={24} />
+                </button>
                 {/* Logo Area */}
                 <div className="p-8 border-b border-white/5 mb-6 text-center">
                     <img src="https://cdn.imweb.me/upload/S20250904697320f4fd9ed/e840c9a46f66a.png" alt="KCC Logo" className="h-10 mx-auto object-contain" />
@@ -1440,7 +1455,10 @@ const AdminPage = () => {
                     ].map(item => (
                         <button
                             key={item.id}
-                            onClick={() => setActiveTab(item.id)}
+                            onClick={() => {
+                                setActiveTab(item.id);
+                                setIsSidebarOpen(false);
+                            }}
                             className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl text-sm font-black transition-all ${
                                 activeTab === item.id 
                                 ? item.active + ' shadow-xl translate-x-1' 
@@ -1468,9 +1486,15 @@ const AdminPage = () => {
             {/* --- MAIN CONTENT AREA --- */}
             <main className="flex-1 flex flex-col overflow-hidden relative">
                 {/* Top Header Bar */}
-                <header className="h-20 bg-white border-b border-gray-100 flex items-center justify-between px-10 shrink-0">
-                    <div className="flex items-center gap-4">
-                        <h2 className="text-xl font-black text-[#001a3d] shrink-0">
+                <header className="h-16 md:h-20 bg-white border-b border-gray-100 flex items-center justify-between px-4 md:px-10 shrink-0">
+                    <div className="flex items-center gap-3 md:gap-4">
+                        <button 
+                            onClick={() => setIsSidebarOpen(true)}
+                            className="p-2 hover:bg-gray-100 rounded-xl md:hidden text-[#001a3d]"
+                        >
+                            <Menu size={24} />
+                        </button>
+                        <h2 className="text-sm md:text-xl font-black text-[#001a3d] truncate max-w-[150px] md:max-w-none">
                             {
                                 activeTab === 'send' ? '새 견적 발송' :
                                 activeTab === 'lookup' ? '전체 견적 데이터' :
@@ -1479,11 +1503,13 @@ const AdminPage = () => {
                                 activeTab === 'green_remodeling' ? '그린리모델링 신청 현황' : '문서 서식 매핑 에디터'
                             }
                         </h2>
-                        <span className="h-6 w-[1px] bg-gray-100"></span>
-                        <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">{new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })}</p>
+                        <span className="h-4 md:h-6 w-[1px] bg-gray-100 hidden sm:block"></span>
+                        <p className="text-[9px] md:text-[11px] font-bold text-gray-400 uppercase tracking-widest hidden lg:block">
+                            {new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })}
+                        </p>
                     </div>
 
-                    <div className="flex items-center gap-6">
+                    <div className="flex items-center gap-2 md:gap-6">
                         <button
                             onClick={async () => {
                                 if (window.confirm("기존 데이터들도 모두 연이율 9.4% 기준으로 재계산하시겠습니까?")) {
@@ -1498,23 +1524,23 @@ const AdminPage = () => {
                                     }
                                 }
                             }}
-                            className="flex items-center gap-2 bg-red-50 px-4 py-2 rounded-xl group cursor-pointer hover:bg-red-100 transition-all border border-red-100/50"
+                            className="flex items-center gap-1 md:gap-2 bg-red-50 px-2 md:px-4 py-1.5 md:py-2 rounded-lg md:rounded-xl group cursor-pointer hover:bg-red-100 transition-all border border-red-100/50"
                         >
-                            <RefreshCw size={14} className="text-red-400 group-hover:rotate-180 transition-all duration-500" />
-                            <span className="text-[10px] font-black text-red-400 uppercase tracking-tighter">9.4% 소급적용</span>
+                            <RefreshCw size={12} className="text-red-400 group-hover:rotate-180 transition-all duration-500" />
+                            <span className="text-[8px] md:text-[10px] font-black text-red-400 uppercase tracking-tighter">9.4% 소급</span>
                         </button>
-                        <div className="flex items-center gap-2 bg-gray-50 px-4 py-2 rounded-xl group cursor-pointer hover:bg-gray-100 transition-all">
+                        <div className="hidden sm:flex items-center gap-2 bg-gray-50 px-4 py-2 rounded-xl group cursor-pointer hover:bg-gray-100 transition-all">
                             <RefreshCw size={14} className="text-gray-400 group-hover:rotate-180 transition-all duration-500" />
                             <span className="text-[10px] font-black text-gray-400 uppercase tracking-tighter">System Live</span>
                         </div>
-                        <button className="w-10 h-10 rounded-xl hover:bg-gray-100 flex items-center justify-center text-gray-400 transition-all">
-                            <Search size={20} />
+                        <button className="w-8 h-8 md:w-10 md:h-10 rounded-xl hover:bg-gray-100 flex items-center justify-center text-gray-400 transition-all">
+                            <Search size={18} />
                         </button>
                     </div>
                 </header>
 
                 {/* Content Container */}
-                <div className="flex-1 overflow-y-auto p-10 custom-scrollbar relative">
+                <div className="flex-1 overflow-y-auto p-4 md:p-10 custom-scrollbar relative">
                     <div className="max-w-[1600px] mx-auto">
 
 
@@ -1523,14 +1549,14 @@ const AdminPage = () => {
                 <div className="space-y-6 animate-in fade-in">
 
                     {/* Branch & Status Selection */}
-                    <div className="flex justify-end gap-3 mb-4">
-                        <div className="flex bg-white p-1.5 rounded-[1.2rem] shadow-sm border border-gray-100">
+                    <div className="flex flex-col sm:flex-row justify-end gap-3 mb-4">
+                        <div className="flex bg-white p-1.5 rounded-[1.2rem] shadow-sm border border-gray-100 overflow-x-auto no-scrollbar">
                             {['가견적', '책임견적', '최종견적'].map(t => (
                                 <button
                                     key={t}
                                     type="button"
                                     onClick={() => setStatusType(t)}
-                                    className={`px-5 py-2.5 rounded-xl text-xs font-black transition-all ${statusType === t ? 'bg-[#c5a059] text-white shadow-lg' : 'text-gray-400 hover:text-gray-600'}`}
+                                    className={`px-4 md:px-5 py-2 md:py-2.5 rounded-xl text-[10px] md:text-xs font-black transition-all whitespace-nowrap ${statusType === t ? 'bg-[#c5a059] text-white shadow-lg' : 'text-gray-400 hover:text-gray-600'}`}
                                 >
                                     {t}
                                 </button>
@@ -1542,7 +1568,7 @@ const AdminPage = () => {
                                     key={b}
                                     type="button"
                                     onClick={() => setBranch(b)}
-                                    className={`px-5 py-2.5 rounded-xl text-xs font-black transition-all ${branch === b ? 'bg-kcc-navy text-white shadow-lg' : 'text-gray-400 hover:text-gray-600'}`}
+                                    className={`flex-1 sm:flex-none px-4 md:px-5 py-2 md:py-2.5 rounded-xl text-[10px] md:text-xs font-black transition-all whitespace-nowrap ${branch === b ? 'bg-kcc-navy text-white shadow-lg' : 'text-gray-400 hover:text-gray-600'}`}
                                 >
                                     {b}
                                 </button>
@@ -1756,85 +1782,91 @@ const AdminPage = () => {
             {activeTab === 'lookup' && (
                 <div className="space-y-6 animate-in fade-in">
                     {/* Filters */}
-                    <div className="glass-card p-4 rounded-[2rem] flex flex-wrap gap-4 items-center">
-                        {/* Search */}
-                        <div className="flex-1 min-w-[200px] relative">
-                            <input
-                                type="text"
-                                placeholder="고객명, 전화번호, 주소 검색"
-                                className="w-full pl-10 pr-4 py-3 bg-gray-50 rounded-xl border-none focus:ring-2 focus:ring-[#c5a059]/50 transition-all font-bold text-sm"
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                            />
-                            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-                                <FileText size={18} />
+                    <div className="glass-card p-3 md:p-4 rounded-2xl md:rounded-[2rem] flex flex-col gap-3 md:gap-4 mb-6">
+                        <div className="flex flex-col md:flex-row gap-3 md:gap-4 items-stretch md:items-center">
+                            {/* Search */}
+                            <div className="flex-1 relative">
+                                <input
+                                    type="text"
+                                    placeholder="고객명, 전화번호, 주소 검색"
+                                    className="w-full pl-10 pr-4 py-2.5 md:py-3 bg-gray-50 rounded-xl border-none focus:ring-2 focus:ring-[#c5a059]/50 transition-all font-bold text-xs md:text-sm"
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                />
+                                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                                    <FileText size={18} />
+                                </div>
+                            </div>
+
+                            <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+                                {/* Date Filter */}
+                                <select
+                                    className="flex-1 md:flex-none bg-gray-50 px-3 md:px-4 py-2.5 md:py-3 rounded-xl text-[10px] md:text-sm font-bold text-gray-600 border-none cursor-pointer focus:ring-2 focus:ring-[#c5a059]/50"
+                                    value={filterDate}
+                                    onChange={(e) => setFilterDate(e.target.value)}
+                                >
+                                    <option value="all">전체 기간</option>
+                                    <option value="today">오늘</option>
+                                    <option value="month">이번 달</option>
+                                    <option value="prev_month">전월</option>
+                                    <option value="3month">3개월</option>
+                                    <option value="6month">6개월</option>
+                                    <option value="year">1년</option>
+                                </select>
+
+                                {/* Branch Filter */}
+                                <select
+                                    className="flex-1 md:flex-none bg-gray-50 px-3 md:px-4 py-2.5 md:py-3 rounded-xl text-[10px] md:text-sm font-bold text-gray-600 border-none cursor-pointer focus:ring-2 focus:ring-[#c5a059]/50"
+                                    value={filterBranch}
+                                    onChange={(e) => setFilterBranch(e.target.value)}
+                                >
+                                    <option value="all">전체 지점</option>
+                                    <option value="인천지점">인천지점</option>
+                                    <option value="수원지점">수원지점</option>
+                                </select>
                             </div>
                         </div>
 
-                        {/* Date Filter */}
-                        <select
-                            className="bg-gray-50 px-4 py-3 rounded-xl text-sm font-bold text-gray-600 border-none cursor-pointer focus:ring-2 focus:ring-[#c5a059]/50"
-                            value={filterDate}
-                            onChange={(e) => setFilterDate(e.target.value)}
-                        >
-                            <option value="all">전체 기간</option>
-                            <option value="today">오늘</option>
-                            <option value="month">이번 달</option>
-                            <option value="prev_month">전월</option>
-                            <option value="3month">3개월</option>
-                            <option value="6month">6개월</option>
-                            <option value="year">1년</option>
-                        </select>
+                        <div className="flex flex-wrap md:flex-nowrap gap-2 items-center">
+                            {/* Type Filter */}
+                            <select
+                                className="flex-1 md:flex-none bg-gray-50 px-3 md:px-4 py-2.5 md:py-3 rounded-xl text-[10px] md:text-sm font-bold text-gray-600 border-none cursor-pointer focus:ring-2 focus:ring-[#c5a059]/50"
+                                value={filterType}
+                                onChange={(e) => setFilterType(e.target.value)}
+                            >
+                                <option value="all">전체 구분</option>
+                                <option value="가견적">가견적</option>
+                                <option value="책임견적">책임견적</option>
+                                <option value="최종견적">최종견적</option>
+                            </select>
 
-                        {/* Branch Filter */}
-                        <select
-                            className="bg-gray-50 px-4 py-3 rounded-xl text-sm font-bold text-gray-600 border-none cursor-pointer focus:ring-2 focus:ring-[#c5a059]/50"
-                            value={filterBranch}
-                            onChange={(e) => setFilterBranch(e.target.value)}
-                        >
-                            <option value="all">전체 지점</option>
-                            <option value="인천지점">인천지점</option>
-                            <option value="수원지점">수원지점</option>
-                        </select>
+                            {/* Sort Order */}
+                            <select
+                                className="flex-1 md:flex-none bg-gray-50 px-3 md:px-4 py-2.5 md:py-3 rounded-xl text-[10px] md:text-sm font-black text-[#001a3d] border-none cursor-pointer focus:ring-2 focus:ring-[#c5a059]/50"
+                                value={sortOrder}
+                                onChange={(e) => setSortOrder(e.target.value)}
+                            >
+                                <option value="desc">최신순</option>
+                                <option value="asc">과거순</option>
+                            </select>
+                            
+                            <button
+                                onClick={fetchList}
+                                className="p-2.5 md:p-3 bg-gray-50 text-gray-500 hover:text-kcc-blue hover:bg-blue-50 rounded-xl transition-all"
+                                title="새로고침"
+                            >
+                                <RefreshCw size={18} />
+                            </button>
 
-                        {/* Type Filter */}
-                        <select
-                            className="bg-gray-50 px-4 py-3 rounded-xl text-sm font-bold text-gray-600 border-none cursor-pointer focus:ring-2 focus:ring-[#c5a059]/50"
-                            value={filterType}
-                            onChange={(e) => setFilterType(e.target.value)}
-                        >
-                            <option value="all">전체 구분</option>
-                            <option value="가견적">가견적</option>
-                            <option value="책임견적">책임견적</option>
-                            <option value="최종견적">최종견적</option>
-                        </select>
-
-                        {/* Sort Order */}
-                        <select
-                            className="bg-gray-50 px-4 py-3 rounded-xl text-sm font-black text-[#001a3d] border-none cursor-pointer focus:ring-2 focus:ring-[#c5a059]/50"
-                            value={sortOrder}
-                            onChange={(e) => setSortOrder(e.target.value)}
-                        >
-                            <option value="desc">최신순</option>
-                            <option value="asc">과거순</option>
-                        </select>
-                        <button
-                            onClick={fetchList}
-                            className="p-3 bg-gray-50 text-gray-500 hover:text-kcc-blue hover:bg-blue-50 rounded-xl transition-all"
-                            title="새로고침"
-                        >
-                            <RefreshCw size={18} />
-                        </button>
-
-                        {/* Batch Fix Button (Hidden unless specific action or just visible for admin) */}
-                        <button
-                            onClick={handleBatchMigration}
-                            className="px-4 py-3 bg-red-50 text-red-500 hover:bg-red-100 rounded-xl transition-all text-xs font-bold flex items-center gap-2 ml-auto"
-                            title="전체 데이터 상세금액 재계산 (소급 적용)"
-                        >
-                            <Calculator size={16} /> 일괄 보정
-                        </button>
+                            <button
+                                onClick={handleBatchMigration}
+                                className="ml-auto px-4 py-2.5 md:py-3 bg-red-50 text-red-500 hover:bg-red-100 rounded-xl transition-all text-[10px] md:text-xs font-bold flex items-center gap-2"
+                                title="전체 데이터 상세금액 재계산 (소급 적용)"
+                            >
+                                <Calculator size={16} /> <span className="hidden sm:inline">일괄 보정</span>
+                            </button>
                     </div>
+                </div>
 
                     {/* Table View */}
                     <div className="bg-white rounded-[2rem] shadow-xl overflow-hidden border border-gray-100">
@@ -1931,12 +1963,12 @@ const AdminPage = () => {
             {activeTab === 'rental' && (
                 <div className="space-y-6 animate-in fade-in">
                     {/* Filters (Reduced for Rental) */}
-                    <div className="glass-card p-4 rounded-[2rem] flex flex-wrap gap-4 items-center">
-                        <div className="flex-1 min-w-[200px] relative">
+                    <div className="glass-card p-3 md:p-4 rounded-2xl md:rounded-[2rem] flex flex-col md:flex-row gap-3 md:gap-4 items-stretch md:items-center">
+                        <div className="flex-1 relative">
                             <input
                                 type="text"
                                 placeholder="고객명, 전화번호 검색"
-                                className="w-full pl-10 pr-4 py-3 bg-gray-50 rounded-xl border-none focus:ring-2 focus:ring-[#2c3e50]/50 transition-all font-bold text-sm"
+                                className="w-full pl-10 pr-4 py-2.5 md:py-3 bg-gray-50 rounded-xl border-none focus:ring-2 focus:ring-[#2c3e50]/50 transition-all font-bold text-xs md:text-sm"
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                             />
@@ -1944,20 +1976,22 @@ const AdminPage = () => {
                                 <Search size={18} />
                             </div>
                         </div>
-                        <select
-                            className="bg-gray-50 px-4 py-3 rounded-xl text-sm font-black text-[#001a3d] border-none cursor-pointer focus:ring-2 focus:ring-[#2c3e50]/50"
-                            value={sortOrder}
-                            onChange={(e) => setSortOrder(e.target.value)}
-                        >
-                            <option value="desc">최신순</option>
-                            <option value="asc">과거순</option>
-                        </select>
-                        <button
-                            onClick={fetchList}
-                            className="p-3 bg-gray-50 text-gray-500 hover:text-[#2c3e50] hover:bg-blue-50 rounded-xl transition-all"
-                        >
-                            <RefreshCw size={18} />
-                        </button>
+                        <div className="flex gap-2">
+                            <select
+                                className="flex-1 md:flex-none bg-gray-50 px-3 md:px-4 py-2.5 md:py-3 rounded-xl text-[10px] md:text-sm font-black text-[#001a3d] border-none cursor-pointer focus:ring-2 focus:ring-[#2c3e50]/50"
+                                value={sortOrder}
+                                onChange={(e) => setSortOrder(e.target.value)}
+                            >
+                                <option value="desc">최신순</option>
+                                <option value="asc">과거순</option>
+                            </select>
+                            <button
+                                onClick={fetchList}
+                                className="p-2.5 md:p-3 bg-gray-50 text-gray-500 hover:text-[#2c3e50] hover:bg-blue-50 rounded-xl transition-all"
+                            >
+                                <RefreshCw size={18} />
+                            </button>
+                        </div>
                     </div>
 
                     {/* Table View */}
@@ -2099,12 +2133,12 @@ const AdminPage = () => {
                 activeTab === 'subscription' && (
                     <div className="space-y-6 animate-in fade-in">
                         {/* Filters */}
-                        <div className="glass-card p-4 rounded-[2rem] flex flex-wrap gap-4 items-center">
-                            <div className="flex-1 min-w-[200px] relative">
+                        <div className="glass-card p-3 md:p-4 rounded-2xl md:rounded-[2rem] flex flex-col md:flex-row gap-3 md:gap-4 items-stretch md:items-center">
+                            <div className="flex-1 relative">
                                 <input
                                     type="text"
                                     placeholder="고객명, 전화번호 검색"
-                                    className="w-full pl-10 pr-4 py-3 bg-gray-50 rounded-xl border-none focus:ring-2 focus:ring-[#2c3e50]/50 transition-all font-bold text-sm"
+                                    className="w-full pl-10 pr-4 py-2.5 md:py-3 bg-gray-50 rounded-xl border-none focus:ring-2 focus:ring-[#2c3e50]/50 transition-all font-bold text-xs md:text-sm"
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
                                 />
@@ -2112,20 +2146,22 @@ const AdminPage = () => {
                                     <Search size={18} />
                                 </div>
                             </div>
-                            <select
-                                className="bg-gray-50 px-4 py-3 rounded-xl text-sm font-black text-[#001a3d] border-none cursor-pointer focus:ring-2 focus:ring-[#2c3e50]/50"
-                                value={sortOrder}
-                                onChange={(e) => setSortOrder(e.target.value)}
-                            >
-                                <option value="desc">최신순</option>
-                                <option value="asc">과거순</option>
-                            </select>
-                            <button
-                                onClick={fetchList}
-                                className="p-3 bg-gray-50 text-gray-500 hover:text-[#2c3e50] hover:bg-blue-50 rounded-xl transition-all"
-                            >
-                                <RefreshCw size={18} />
-                            </button>
+                            <div className="flex gap-2">
+                                <select
+                                    className="flex-1 md:flex-none bg-gray-50 px-3 md:px-4 py-2.5 md:py-3 rounded-xl text-[10px] md:text-sm font-black text-[#001a3d] border-none cursor-pointer focus:ring-2 focus:ring-[#2c3e50]/50"
+                                    value={sortOrder}
+                                    onChange={(e) => setSortOrder(e.target.value)}
+                                >
+                                    <option value="desc">최신순</option>
+                                    <option value="asc">과거순</option>
+                                </select>
+                                <button
+                                    onClick={fetchList}
+                                    className="p-2.5 md:p-3 bg-gray-50 text-gray-500 hover:text-[#2c3e50] hover:bg-blue-50 rounded-xl transition-all"
+                                >
+                                    <RefreshCw size={18} />
+                                </button>
+                            </div>
                         </div>
 
                         {/* Table View */}
@@ -2224,12 +2260,12 @@ const AdminPage = () => {
                 activeTab === 'green_remodeling' && (
                     <div className="space-y-6 animate-in fade-in">
                         {/* Filters */}
-                        <div className="glass-card p-4 rounded-[2rem] flex flex-wrap gap-4 items-center">
-                            <div className="flex-1 min-w-[200px] relative">
+                        <div className="glass-card p-3 md:p-4 rounded-2xl md:rounded-[2rem] flex flex-col md:flex-row gap-3 md:gap-4 items-stretch md:items-center">
+                            <div className="flex-1 relative">
                                 <input
                                     type="text"
                                     placeholder="고객명, 전화번호 검색"
-                                    className="w-full pl-10 pr-4 py-3 bg-gray-50 rounded-xl border-none focus:ring-2 focus:ring-[#064e3b]/50 transition-all font-bold text-sm"
+                                    className="w-full pl-10 pr-4 py-2.5 md:py-3 bg-gray-50 rounded-xl border-none focus:ring-2 focus:ring-[#064e3b]/50 transition-all font-bold text-xs md:text-sm"
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
                                 />
@@ -2237,20 +2273,22 @@ const AdminPage = () => {
                                     <Search size={18} />
                                 </div>
                             </div>
-                            <select
-                                className="bg-gray-50 px-4 py-3 rounded-xl text-sm font-black text-[#001a3d] border-none cursor-pointer focus:ring-2 focus:ring-[#064e3b]/50"
-                                value={sortOrder}
-                                onChange={(e) => setSortOrder(e.target.value)}
-                            >
-                                <option value="desc">최신순</option>
-                                <option value="asc">과거순</option>
-                            </select>
-                            <button
-                                onClick={fetchList}
-                                className="p-3 bg-gray-50 text-gray-500 hover:text-[#064e3b] hover:bg-green-50 rounded-xl transition-all"
-                            >
-                                <RefreshCw size={18} />
-                            </button>
+                            <div className="flex gap-2">
+                                <select
+                                    className="flex-1 md:flex-none bg-gray-50 px-3 md:px-4 py-2.5 md:py-3 rounded-xl text-[10px] md:text-sm font-black text-[#001a3d] border-none cursor-pointer focus:ring-2 focus:ring-[#064e3b]/50"
+                                    value={sortOrder}
+                                    onChange={(e) => setSortOrder(e.target.value)}
+                                >
+                                    <option value="desc">최신순</option>
+                                    <option value="asc">과거순</option>
+                                </select>
+                                <button
+                                    onClick={fetchList}
+                                    className="p-2.5 md:p-3 bg-gray-50 text-gray-500 hover:text-[#064e3b] hover:bg-green-50 rounded-xl transition-all"
+                                >
+                                    <RefreshCw size={18} />
+                                </button>
+                            </div>
                         </div>
 
                         {/* Table View */}
