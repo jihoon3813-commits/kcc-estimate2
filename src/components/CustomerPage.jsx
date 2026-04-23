@@ -349,7 +349,7 @@ const CustomerPage = () => {
             // Reset draft ID when closing
             setDraftId(null);
         }
-    }, [isRentalMode, data?._id, applicationType, rentalForm.greenAmount, shouldSkipResume, rentalForm.birthDate]);
+    }, [isRentalMode, data?._id, applicationType, rentalForm.greenAmount, shouldSkipResume]);
 
     // Fetch Latest Green Application for action center
     React.useEffect(() => {
@@ -365,7 +365,7 @@ const CustomerPage = () => {
             };
             fetchLatest();
         }
-    }, [isLoggedIn, data, applicationType, rentalForm.birthDate]);
+    }, [isLoggedIn, data, applicationType]);
 
     // Auto-save debounced fields
     React.useEffect(() => {
@@ -2144,7 +2144,7 @@ const CustomerPage = () => {
                                                         let val = e.target.value.replace(/\D/g, '');
                                                         if (val.length >= 5) val = val.slice(0, 4) + '-' + val.slice(4);
                                                         if (val.length >= 8) val = val.slice(0, 7) + '-' + val.slice(7);
-                                                        setRentalForm({ ...rentalForm, birthDate: val });
+                                                        setRentalForm(prev => ({ ...prev, birthDate: val }));
                                                     }}
                                                     className="w-full bg-white border border-gray-200 focus:border-[#c5a059] rounded-xl px-4 py-3.5 font-black text-lg text-[#001a3d] placeholder:text-gray-300 outline-none transition-all"
                                                 />
@@ -2512,7 +2512,7 @@ const CustomerPage = () => {
                                                                 let val = e.target.value.replace(/\D/g, '');
                                                                 if (val.length >= 5) val = val.slice(0, 4) + '-' + val.slice(4);
                                                                 if (val.length >= 8) val = val.slice(0, 7) + '-' + val.slice(7);
-                                                                setRentalForm({ ...rentalForm, birthDate: val });
+                                                                setRentalForm(prev => ({ ...prev, birthDate: val }));
                                                             }}
                                                             className="w-full bg-white border border-gray-200 focus:border-[#c5a059] rounded-xl px-4 py-3.5 font-black text-lg text-[#001a3d] placeholder:text-gray-300 outline-none transition-all"
                                                         />
