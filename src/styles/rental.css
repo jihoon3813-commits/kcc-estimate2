@@ -451,43 +451,64 @@
   gap: 10px;
 }
 
+.kcc-scope .r-button,
+.rental-dialog .r-button,
 .r-button {
-  border-radius: 10px;
-  min-height: 52px;
-  font-size: 14px;
-  font-weight: 700;
-  padding: 13px 18px;
-  cursor: pointer;
-  border: none;
-  transition: all 0.15s;
+  border-radius: 10px !important;
+  min-height: 52px !important;
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  padding: 13px 18px !important;
+  cursor: pointer !important;
+  border: none !important;
+  transition: all 0.15s !important;
 }
 
+.kcc-scope .r-primary,
+.rental-dialog .r-primary,
 .r-primary {
-  flex: 1;
-  background: #ed7426;
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  box-shadow: 0 5px 13px rgba(237, 116, 38, 0.25);
+  flex: 1 !important;
+  background: #ed7426 !important;
+  color: #ffffff !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 12px !important;
+  box-shadow: 0 5px 14px rgba(237, 116, 38, 0.35) !important;
+  border-radius: 10px !important;
+  border: none !important;
+  font-weight: 750 !important;
 }
+.kcc-scope .r-primary:hover:not(:disabled),
+.rental-dialog .r-primary:hover:not(:disabled),
 .r-primary:hover:not(:disabled) {
-  background: #dc6316;
+  background: #dc6316 !important;
+  color: #ffffff !important;
+  box-shadow: 0 7px 18px rgba(220, 99, 22, 0.45) !important;
 }
 
+.kcc-scope .r-secondary,
+.rental-dialog .r-secondary,
 .r-secondary {
-  background: #f1f4f8;
-  color: #52647a;
-  min-width: 74px;
+  background: #f1f4f8 !important;
+  color: #52647a !important;
+  min-width: 74px !important;
+  border-radius: 10px !important;
+  border: none !important;
+  font-weight: 700 !important;
 }
+.kcc-scope .r-secondary:hover:not(:disabled),
+.rental-dialog .r-secondary:hover:not(:disabled),
 .r-secondary:hover:not(:disabled) {
-  background: #e2e8f0;
+  background: #e2e8f0 !important;
+  color: #192c41 !important;
 }
 
+.kcc-scope .r-primary:disabled,
+.rental-dialog .r-primary:disabled,
 .r-primary:disabled {
-  opacity: .55;
-  cursor: wait;
+  opacity: .55 !important;
+  cursor: wait !important;
 }
 
 .r-upload-title {
@@ -595,21 +616,32 @@
   gap: 10px;
 }
 
+.kcc-scope .r-upload-buttons button,
 .r-upload-buttons button {
-  border: 1px solid #d5deea;
-  border-radius: 9px;
-  min-height: 48px;
-  font-size: 13px;
-  background: white;
-  font-weight: 650;
-  cursor: pointer;
-  transition: all 0.15s;
+  border: 1px solid #d5deea !important;
+  border-radius: 9px !important;
+  min-height: 48px !important;
+  font-size: 13px !important;
+  background: white !important;
+  color: #3b5068 !important;
+  font-weight: 650 !important;
+  cursor: pointer !important;
+  transition: all 0.15s !important;
 }
 
+.kcc-scope .r-upload-buttons button:first-child,
 .r-upload-buttons button:first-child {
-  background: #eaf1ff;
-  border-color: #cdddfa;
-  color: #285eaf;
+  background: #eaf1ff !important;
+  border-color: #cdddfa !important;
+  color: #285eaf !important;
+}
+.kcc-scope .r-upload-buttons button:first-child:hover,
+.r-upload-buttons button:first-child:hover {
+  background: #dbe7fc !important;
+}
+.kcc-scope .r-upload-buttons button:last-child:hover,
+.r-upload-buttons button:last-child:hover {
+  background: #f7f9fa !important;
 }
 
 .r-file-card {
@@ -757,16 +789,22 @@
   color: #192c41;
 }
 
+.kcc-scope .r-sign-top button,
 .r-sign-top button {
-  font-size: 11px;
-  color: #667a93;
-  padding: 6px 8px;
-  background: #f1f4f8;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  margin-left: 6px;
-  font-weight: 600;
+  font-size: 11px !important;
+  color: #4a627d !important;
+  padding: 6px 10px !important;
+  background: #f1f4f8 !important;
+  border: 1px solid #dce4ee !important;
+  border-radius: 6px !important;
+  cursor: pointer !important;
+  margin-left: 6px !important;
+  font-weight: 600 !important;
+}
+.kcc-scope .r-sign-top button:hover,
+.r-sign-top button:hover {
+  background: #e2e8f0 !important;
+  color: #192c41 !important;
 }
 
 .r-sign-wrap {

@@ -461,6 +461,19 @@ export default function RentalApplicationModal({
                 type="button"
                 onClick={handleCloseAttempt}
                 aria-label="렌탈 신청 닫기"
+                style={{
+                  width: '36px',
+                  height: '36px',
+                  display: 'grid',
+                  placeItems: 'center',
+                  background: '#f3f5f8',
+                  borderRadius: '50%',
+                  border: 'none',
+                  fontSize: '22px',
+                  lineHeight: 1,
+                  color: '#617387',
+                  cursor: 'pointer'
+                }}
               >
                 ×
               </button>
@@ -614,10 +627,36 @@ export default function RentalApplicationModal({
                   )}
 
                   <div className="r-upload-buttons">
-                    <button type="button" onClick={() => fileInputRef.current?.click()}>
+                    <button
+                      type="button"
+                      style={{
+                        background: '#eaf1ff',
+                        color: '#285eaf',
+                        border: '1px solid #cdddfa',
+                        borderRadius: '9px',
+                        minHeight: '48px',
+                        fontSize: '13px',
+                        fontWeight: 650,
+                        cursor: 'pointer'
+                      }}
+                      onClick={() => fileInputRef.current?.click()}
+                    >
                       사진 선택
                     </button>
-                    <button type="button" onClick={() => cameraInputRef.current?.click()}>
+                    <button
+                      type="button"
+                      style={{
+                        background: '#ffffff',
+                        color: '#3b5068',
+                        border: '1px solid #d5deea',
+                        borderRadius: '9px',
+                        minHeight: '48px',
+                        fontSize: '13px',
+                        fontWeight: 650,
+                        cursor: 'pointer'
+                      }}
+                      onClick={() => cameraInputRef.current?.click()}
+                    >
                       카메라로 촬영
                     </button>
                   </div>
@@ -715,11 +754,35 @@ export default function RentalApplicationModal({
                     <div>
                       <button
                         type="button"
+                        style={{
+                          fontSize: '11px',
+                          color: '#4a627d',
+                          padding: '6px 10px',
+                          background: '#f1f4f8',
+                          border: '1px solid #dce4ee',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          marginRight: '6px',
+                          fontWeight: 600
+                        }}
                         onClick={() => setIsSignatureExpanded((prev) => !prev)}
                       >
                         {isSignatureExpanded ? '작게 보기' : '크게 쓰기'}
                       </button>
-                      <button type="button" onClick={clearSignature}>
+                      <button
+                        type="button"
+                        style={{
+                          fontSize: '11px',
+                          color: '#4a627d',
+                          padding: '6px 10px',
+                          background: '#f1f4f8',
+                          border: '1px solid #dce4ee',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          fontWeight: 600
+                        }}
+                        onClick={clearSignature}
+                      >
                         다시 쓰기
                       </button>
                     </div>
@@ -808,6 +871,17 @@ export default function RentalApplicationModal({
                       type="button"
                       onClick={handlePrev}
                       disabled={isSubmitting}
+                      style={{
+                        background: '#f1f4f8',
+                        color: '#52647a',
+                        border: 'none',
+                        borderRadius: '10px',
+                        minHeight: '52px',
+                        minWidth: '74px',
+                        fontWeight: 700,
+                        fontSize: '14px',
+                        cursor: 'pointer'
+                      }}
                     >
                       이전
                     </button>
@@ -817,6 +891,22 @@ export default function RentalApplicationModal({
                     type="button"
                     onClick={handleNext}
                     disabled={isSubmitting}
+                    style={{
+                      flex: 1,
+                      background: '#ed7426',
+                      color: '#ffffff',
+                      border: 'none',
+                      borderRadius: '10px',
+                      minHeight: '52px',
+                      fontWeight: 750,
+                      fontSize: '14px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px',
+                      boxShadow: '0 5px 14px rgba(237, 116, 38, 0.35)',
+                      cursor: 'pointer'
+                    }}
                   >
                     {isSubmitting
                       ? '신청 내용을 전송하고 있어요…'
@@ -832,7 +922,18 @@ export default function RentalApplicationModal({
               <button
                 className="r-button r-primary"
                 type="button"
-                style={{ width: '100%' }}
+                style={{
+                  width: '100%',
+                  background: '#ed7426',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: '10px',
+                  minHeight: '52px',
+                  fontWeight: 750,
+                  fontSize: '14px',
+                  boxShadow: '0 5px 14px rgba(237, 116, 38, 0.35)',
+                  cursor: 'pointer'
+                }}
                 onClick={onClose}
               >
                 내 견적서로 돌아가기
@@ -852,6 +953,17 @@ export default function RentalApplicationModal({
                   <button
                     className="r-button r-primary"
                     type="button"
+                    style={{
+                      flex: 1,
+                      background: '#ed7426',
+                      color: '#ffffff',
+                      border: 'none',
+                      borderRadius: '10px',
+                      minHeight: '48px',
+                      fontWeight: 750,
+                      fontSize: '14px',
+                      cursor: 'pointer'
+                    }}
                     onClick={() => setShowExitConfirm(false)}
                   >
                     계속 작성하기
@@ -859,6 +971,17 @@ export default function RentalApplicationModal({
                   <button
                     className="r-button r-secondary"
                     type="button"
+                    style={{
+                      flex: 1,
+                      background: '#f1f4f8',
+                      color: '#52647a',
+                      border: 'none',
+                      borderRadius: '10px',
+                      minHeight: '48px',
+                      fontWeight: 700,
+                      fontSize: '14px',
+                      cursor: 'pointer'
+                    }}
                     onClick={() => {
                       setShowExitConfirm(false);
                       onClose();
