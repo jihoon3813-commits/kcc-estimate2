@@ -191,11 +191,9 @@ export default function KccMobileEstimate({
   // State
   const [selectedPlan, setSelectedPlan] = useState('cash');
   const [activeNav, setActiveNav] = useState('estimate');
-  const [deposit, setDeposit] = useState(halfAmount);
-  const [depositError, setDepositError] = useState(false);
 
-  // Dialog State
-  const dialogRef = useRef(null);
+  // Consultation Modal State
+  const [isConsultOpen, setIsConsultOpen] = useState(false);
   const [dialogContext, setDialogContext] = useState('');
   const [selectedTopics, setSelectedTopics] = useState([]);
   const [preferredTime, setPreferredTime] = useState('상관없음');
@@ -245,31 +243,23 @@ export default function KccMobileEstimate({
     setTimeout(() => setShowToast(false), 3000);
   };
 
+  useEffect(() => {
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, []);
+
   const openConsult = (topic = '', context = '') => {
     setConsultSubmitted(false);
     setSelectedTopics(topic ? [topic] : ['총비용과 추가 비용']);
     setDialogContext(context || `견적 No. ${data._id ? data._id.slice(-4) : '0870'} · ${topic || '견적 상담'}`);
-    if (dialogRef.current) {
-      dialogRef.current.showModal();
-      document.body.style.overflow = 'hidden';
-    }
+    setIsConsultOpen(true);
+    document.body.style.overflow = 'hidden';
   };
 
   const closeConsult = () => {
-    if (dialogRef.current) {
-      dialogRef.current.close();
-      document.body.style.overflow = '';
-    }
-  };
-
-  const handleDepositChange = (e) => {
-    const val = Number(e.target.value);
-    setDeposit(val);
-    if (isNaN(val) || val < 0 || val > finalBenefit) {
-      setDepositError(true);
-    } else {
-      setDepositError(false);
-    }
+    setIsConsultOpen(false);
+    document.body.style.overflow = '';
   };
 
   const handleConsultSubmit = async (e) => {
@@ -281,7 +271,6 @@ export default function KccMobileEstimate({
       customerName: data.name,
       customerPhone: data.phone || '010-****-8355',
       paymentMethod: selectedPlan,
-      depositAmount: deposit,
       topics: selectedTopics,
       preferredTime: preferredTime,
       memo: memo,
@@ -339,28 +328,15 @@ export default function KccMobileEstimate({
           </a>
           <span className="header-label">나의 창호 견적</span>
           
-          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            {onOpenSearch && (
-              <button
-                type="button"
-                className="icon-btn"
-                onClick={onOpenSearch}
-                aria-label="견적 조회하기"
-                title={isLoggedIn ? '다른 견적 조회' : '견적 조회하기'}
-                style={{ fontSize: '11px', fontWeight: 600, width: 'auto', padding: '0 12px', borderRadius: '20px' }}
-              >
-                {isLoggedIn ? '다른 견적 조회' : '견적 조회'}
-              </button>
-            )}
-            <button
-              type="button"
-              className="icon-btn"
-              onClick={() => openConsult('견적 상담')}
-              aria-label="견적 상담 열기"
-            >
-              <svg><use href="#i-chat" /></svg>
-            </button>
-          </div>
+          <button
+            type="button"
+            className="icon-btn"
+            style={{ marginLeft: 'auto' }}
+            onClick={() => openConsult('견적 상담')}
+            aria-label="견적 상담 열기"
+          >
+            <svg><use href="#i-chat" /></svg>
+          </button>
         </div>
       </header>
 
@@ -589,111 +565,6 @@ export default function KccMobileEstimate({
             <p className="fineprint">
               렌탈 총 납부액은 초기 납입액과 60개월 월 납부액의 합계입니다. 계약 조건은 상담 시 확인해주세요.
             </p>
-
-            <div className="more-methods">
-              {/* Smart Subscription */}
-              <details className="method">
-                <summary>
-                  <span className="method-icon">S</span>
-                  <span>
-                    <strong>스마트 구독</strong>
-                    <small>내 선납금에 맞는 구독 조건 확인</small>
-                  </span>
-                  <svg><use href="#i-plus" /></svg>
-                </summary>
-                <div className="method-body">
-                  <p>
-                    먼저 낼 금액과 구독으로 전환할 금액을 정해보세요. 월 구독료와 총 납부금액은 상담에서 안내해드립니다.
-                  </p>
-                  <label htmlFor="deposit">먼저 낼 금액</label>
-                  <div className="money-input">
-                    <input
-                      id="deposit"
-                      type="number"
-                      min="0"
-                      max={finalBenefit}
-                      step="10000"
-                      value={deposit}
-                      inputMode="numeric"
-                      onChange={handleDepositChange}
-                    />
-                    <span>원</span>
-                  </div>
-                  <div className="range-label">
-                    <span>구독 전환 대상 금액</span>
-                    <strong>{depositError ? '금액을 확인해주세요' : money(Math.max(0, finalBenefit - deposit))}</strong>
-                  </div>
-                  {depositError && (
-                    <p className="error" style={{ fontSize: '11px', color: '#b94126', marginBottom: '10px' }}>
-                      0원부터 {money(finalBenefit)} 사이로 입력해주세요.
-                    </p>
-                  )}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <button
-                      className="outline full"
-                      type="button"
-                      onClick={() => {
-                        if (depositError) return;
-                        openConsult(
-                          '결제 방식 비교',
-                          `스마트 구독 · 선납금 ${money(deposit)} / 구독 전환 ${money(finalBenefit - deposit)}`
-                        );
-                      }}
-                    >
-                      이 조건으로 구독 상담하기
-                      <svg><use href="#i-arrow" /></svg>
-                    </button>
-                    {onOpenApplication && (
-                      <button
-                        className="text-button"
-                        type="button"
-                        style={{ justifyContent: 'center', padding: '6px' }}
-                        onClick={() => onOpenApplication('subscription')}
-                      >
-                        온라인 할부/구독 신청서 작성하기 <svg><use href="#i-arrow" /></svg>
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </details>
-
-              {/* Green Remodeling */}
-              <details className="method">
-                <summary>
-                  <span className="method-icon green">G</span>
-                  <span>
-                    <strong>그린리모델링</strong>
-                    <small>우리 집 정부 이자지원 대상 확인</small>
-                  </span>
-                  <svg><use href="#i-plus" /></svg>
-                </summary>
-                <div className="method-body">
-                  <p>
-                    창호 교체를 위한 정부 이자지원 사업의 신청 대상 여부와 이용 조건을 확인해보세요. 지원 여부와 월 납부금액은 심사 및 금융기관 조건에 따라 달라집니다.
-                  </p>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <button
-                      className="outline full"
-                      type="button"
-                      onClick={() => openConsult('그린리모델링 지원 대상 확인')}
-                    >
-                      우리 집 지원 대상 상담하기
-                      <svg><use href="#i-arrow" /></svg>
-                    </button>
-                    {onOpenApplication && (
-                      <button
-                        className="text-button"
-                        type="button"
-                        style={{ justifyContent: 'center', padding: '6px' }}
-                        onClick={() => onOpenApplication('green_remodeling')}
-                      >
-                        정부 이자지원 온라인 신청하기 <svg><use href="#i-arrow" /></svg>
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </details>
-            </div>
 
             <button
               className="help-link"
@@ -1065,133 +936,304 @@ export default function KccMobileEstimate({
         </div>
       </div>
 
-      {/* Consultation Dialog / Bottom Sheet */}
-      <dialog ref={dialogRef} className="kcc-dialog" aria-labelledby="consult-title">
-        <div className="sheet-grip"></div>
-        <button
-          className="close-dialog icon-btn"
-          type="button"
+      {/* Consultation Modal / Bottom Sheet */}
+      {isConsultOpen && (
+        <div
+          className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-[#12232e]/70 backdrop-blur-sm animate-in fade-in duration-200"
           onClick={closeConsult}
-          aria-label="상담 화면 닫기"
         >
-          <svg><use href="#i-close" /></svg>
-        </button>
+          <div
+            className="bg-white w-full sm:max-w-lg rounded-t-[24px] sm:rounded-2xl shadow-2xl p-6 sm:p-8 max-h-[92dvh] overflow-y-auto relative animate-in slide-in-from-bottom-5 duration-300 text-[#192838]"
+            onClick={(e) => e.stopPropagation()}
+            style={{ overscrollBehavior: 'contain' }}
+          >
+            {/* Sheet grip for mobile */}
+            <div className="sm:hidden w-8 h-1 bg-gray-300 rounded-full mx-auto mb-4" />
 
-        {!consultSubmitted ? (
-          <div id="consult-content">
-            <span className="mini-label">PERSONAL CONSULTATION</span>
-            <h2 id="consult-title">궁금한 점을 남겨주세요.</h2>
-            <p className="dialog-sub">{customerName} 고객님의 견적을 기준으로 안내해드립니다.</p>
-
-            <div className="selected-plan">{dialogContext}</div>
-
-            <form onSubmit={handleConsultSubmit}>
-              <fieldset>
-                <legend>어떤 부분이 궁금하신가요? <span>복수 선택</span></legend>
-                <div className="topic-options">
-                  {topics.map((t, idx) => (
-                    <label key={idx}>
-                      <input
-                        type="checkbox"
-                        name="topic"
-                        value={t}
-                        checked={selectedTopics.includes(t)}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setSelectedTopics(prev => [...prev, t]);
-                          } else {
-                            setSelectedTopics(prev => prev.filter(x => x !== t));
-                          }
-                        }}
-                      />
-                      <span>{t}</span>
-                    </label>
-                  ))}
-                </div>
-              </fieldset>
-
-              <fieldset>
-                <legend>연락받기 편한 시간 <span>선택</span></legend>
-                <div className="time-options">
-                  {['오전', '오후', '상관없음'].map((t) => (
-                    <label key={t}>
-                      <input
-                        type="radio"
-                        name="time"
-                        value={t}
-                        checked={preferredTime === t}
-                        onChange={() => setPreferredTime(t)}
-                      />
-                      <span>{t}</span>
-                    </label>
-                  ))}
-                </div>
-              </fieldset>
-
-              <label className="field-label" htmlFor="memo">
-                추가로 궁금한 점 <span>선택</span>
-              </label>
-              <textarea
-                id="memo"
-                rows="3"
-                maxLength={500}
-                placeholder="변경하고 싶은 창호나 궁금한 점을 남겨주세요."
-                value={memo}
-                onChange={(e) => setMemo(e.target.value)}
-              />
-
-              <div className="contact-confirm">
-                <span>연락처 확인</span>
-                <strong>{data.phone ? data.phone.replace(/(\d{3})\d{4}(\d{4})/, '$1-****-$2') : '010-****-8355'}</strong>
-                <small>이름과 연락처를 다시 입력할 필요가 없어요.</small>
-              </div>
-
-              <div className="preview-notice">
-                <svg><use href="#i-info" /></svg>
-                <span>상담 요청을 접수하시면 담당자가 확인 후 지정하신 시간에 맞춰 연락드립니다.</span>
-              </div>
-
-              <button
-                className="primary full large"
-                type="submit"
-                disabled={isSubmittingConsult}
-              >
-                {isSubmittingConsult ? '상담 요청 접수 중...' : '상담 요청 접수하기'}
-                <svg><use href="#i-arrow" /></svg>
-              </button>
-            </form>
-          </div>
-        ) : (
-          <div id="success-content">
-            <div className="success-icon">
-              <svg><use href="#i-check" /></svg>
-            </div>
-            <span className="mini-label">CONSULTATION RECEIVED</span>
-            <h2>상담 요청이<br />정상 접수되었습니다.</h2>
-            <p>
-              전문 상담사가 고객님의 견적과<br />
-              문의 내용을 확인한 뒤 안내해 드립니다.
-            </p>
-            <div id="success-summary">
-              <p><b>{customerName} 고객님</b> · 견적 No. {quoteNo}</p>
-              <p>문의: {selectedTopics.join(', ') || '견적 전반 상담'}</p>
-              <p>희망 시간: {preferredTime}</p>
-              {memo && <p>메모: {memo}</p>}
-            </div>
-            <p className="fineprint">
-              빠른 상담을 원하시면 하단의 [전화 상담]을 이용해 주세요.
-            </p>
             <button
-              className="primary full close-success"
+              className="absolute right-4 top-4 w-9 h-9 bg-gray-100 hover:bg-gray-200 rounded-full flex items-center justify-center text-gray-500 hover:text-gray-800 transition-colors"
               type="button"
               onClick={closeConsult}
+              aria-label="상담 화면 닫기"
             >
-              내 견적 다시 보기
-              <svg><use href="#i-arrow" /></svg>
+              <svg style={{ width: '16px', height: '16px' }}><use href="#i-close" /></svg>
             </button>
+
+            {!consultSubmitted ? (
+              <div id="consult-content">
+                <span className="mini-label" style={{ fontSize: '9px', letterSpacing: '0.15em', color: '#86938e', fontWeight: 700 }}>
+                  PERSONAL CONSULTATION
+                </span>
+                <h2 id="consult-title" style={{ fontSize: '24px', fontWeight: 800, marginTop: '8px', lineHeight: 1.3 }}>
+                  궁금한 점을 남겨주세요.
+                </h2>
+                <p className="dialog-sub" style={{ fontSize: '12px', color: '#8a969f', marginTop: '6px' }}>
+                  {customerName} 고객님의 견적을 기준으로 안내해드립니다.
+                </p>
+
+                <div
+                  className="selected-plan"
+                  style={{
+                    margin: '18px 0',
+                    background: '#fff5ed',
+                    border: '1px solid #f3e1d3',
+                    padding: '12px 14px',
+                    borderRadius: '8px',
+                    fontSize: '12px',
+                    color: '#986239',
+                    fontWeight: 600,
+                    lineHeight: 1.6
+                  }}
+                >
+                  {dialogContext}
+                </div>
+
+                <form onSubmit={handleConsultSubmit}>
+                  <fieldset style={{ border: 0, padding: 0, margin: '20px 0' }}>
+                    <legend style={{ fontSize: '13px', fontWeight: 700, marginBottom: '10px', display: 'block' }}>
+                      어떤 부분이 궁금하신가요? <span style={{ fontSize: '11px', color: '#9da7af', fontWeight: 400, marginLeft: '4px' }}>복수 선택</span>
+                    </legend>
+                    <div className="topic-options" style={{ display: 'grid', gap: '8px' }}>
+                      {topics.map((t, idx) => (
+                        <label
+                          key={idx}
+                          style={{
+                            display: 'flex',
+                            gap: '10px',
+                            alignItems: 'center',
+                            fontSize: '12px',
+                            border: `1px solid ${selectedTopics.includes(t) ? '#84949f' : '#e4e8eb'}`,
+                            background: selectedTopics.includes(t) ? '#f5f8fa' : '#fff',
+                            padding: '12px 14px',
+                            borderRadius: '8px',
+                            cursor: 'pointer',
+                            fontWeight: 500
+                          }}
+                        >
+                          <input
+                            type="checkbox"
+                            name="topic"
+                            value={t}
+                            checked={selectedTopics.includes(t)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedTopics(prev => [...prev, t]);
+                              } else {
+                                setSelectedTopics(prev => prev.filter(x => x !== t));
+                              }
+                            }}
+                            style={{ width: '16px', height: '16px', accentColor: '#192838' }}
+                          />
+                          <span>{t}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </fieldset>
+
+                  <fieldset style={{ border: 0, padding: 0, margin: '20px 0' }}>
+                    <legend style={{ fontSize: '13px', fontWeight: 700, marginBottom: '10px', display: 'block' }}>
+                      연락받기 편한 시간 <span style={{ fontSize: '11px', color: '#9da7af', fontWeight: 400, marginLeft: '4px' }}>선택</span>
+                    </legend>
+                    <div className="time-options" style={{ display: 'flex', gap: '8px' }}>
+                      {['오전', '오후', '상관없음'].map((t) => (
+                        <label key={t} style={{ flex: 1, cursor: 'pointer' }}>
+                          <input
+                            type="radio"
+                            name="time"
+                            value={t}
+                            checked={preferredTime === t}
+                            onChange={() => setPreferredTime(t)}
+                            style={{ position: 'absolute', opacity: 0 }}
+                          />
+                          <span
+                            style={{
+                              display: 'block',
+                              textAlign: 'center',
+                              padding: '11px',
+                              border: `1px solid ${preferredTime === t ? '#192838' : '#e4e8eb'}`,
+                              borderRadius: '8px',
+                              fontSize: '12px',
+                              fontWeight: preferredTime === t ? 700 : 500,
+                              background: preferredTime === t ? '#192838' : '#fff',
+                              color: preferredTime === t ? '#fff' : '#192838',
+                              transition: 'all 0.15s'
+                            }}
+                          >
+                            {t}
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                  </fieldset>
+
+                  <div style={{ margin: '20px 0' }}>
+                    <label
+                      htmlFor="memo"
+                      style={{ fontSize: '13px', fontWeight: 700, marginBottom: '8px', display: 'block' }}
+                    >
+                      추가로 궁금한 점 <span style={{ fontSize: '11px', color: '#9da7af', fontWeight: 400, marginLeft: '4px' }}>선택</span>
+                    </label>
+                    <textarea
+                      id="memo"
+                      rows={3}
+                      maxLength={500}
+                      placeholder="변경하고 싶은 창호나 궁금한 점을 남겨주세요."
+                      value={memo}
+                      onChange={(e) => setMemo(e.target.value)}
+                      style={{
+                        border: '1px solid #e2e6e9',
+                        borderRadius: '8px',
+                        width: '100%',
+                        padding: '12px 14px',
+                        color: '#374e5e',
+                        resize: 'vertical',
+                        fontSize: '13px',
+                        background: '#fbfcfc',
+                        outline: 'none'
+                      }}
+                    />
+                  </div>
+
+                  <div
+                    className="contact-confirm"
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      flexWrap: 'wrap',
+                      background: '#f6f8f9',
+                      padding: '13px 14px',
+                      margin: '15px 0',
+                      borderRadius: '8px',
+                      fontSize: '12px',
+                      color: '#8b969f'
+                    }}
+                  >
+                    <span>연락처 확인</span>
+                    <strong style={{ color: '#192838', fontWeight: 700 }}>
+                      {data.phone ? data.phone.replace(/(\d{3})\d{4}(\d{4})/, '$1-****-$2') : '010-****-8355'}
+                    </strong>
+                    <small style={{ width: '100%', fontSize: '10px', color: '#9aa6ae', marginTop: '4px' }}>
+                      이름과 연락처를 다시 입력할 필요가 없어요.
+                    </small>
+                  </div>
+
+                  <div
+                    className="preview-notice"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      gap: '8px',
+                      fontSize: '11px',
+                      color: '#8b969f',
+                      lineHeight: 1.6,
+                      margin: '16px 0'
+                    }}
+                  >
+                    <svg style={{ width: '16px', height: '16px', flexShrink: 0, marginTop: '2px' }}><use href="#i-info" /></svg>
+                    <span>상담 요청을 접수하시면 담당자가 확인 후 지정하신 시간에 맞춰 연락드립니다.</span>
+                  </div>
+
+                  <button
+                    className="primary full large"
+                    type="submit"
+                    disabled={isSubmittingConsult}
+                    style={{
+                      width: '100%',
+                      minHeight: '52px',
+                      padding: '14px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px',
+                      borderRadius: '10px',
+                      fontWeight: 700,
+                      fontSize: '14px',
+                      background: '#192838',
+                      color: '#fff',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {isSubmittingConsult ? '상담 요청 접수 중...' : '상담 요청 접수하기'}
+                    <svg style={{ width: '18px', height: '18px' }}><use href="#i-arrow" /></svg>
+                  </button>
+                </form>
+              </div>
+            ) : (
+              <div id="success-content" style={{ padding: '20px 0', textAlign: 'center' }}>
+                <div
+                  className="success-icon"
+                  style={{
+                    width: '64px',
+                    height: '64px',
+                    borderRadius: '50%',
+                    background: '#edf5ef',
+                    color: '#678a77',
+                    display: 'grid',
+                    placeItems: 'center',
+                    margin: '10px auto 20px'
+                  }}
+                >
+                  <svg style={{ width: '32px', height: '32px' }}><use href="#i-check" /></svg>
+                </div>
+                <span className="mini-label" style={{ fontSize: '9px', letterSpacing: '0.15em', color: '#86938e', fontWeight: 700 }}>
+                  CONSULTATION RECEIVED
+                </span>
+                <h2 style={{ fontSize: '24px', fontWeight: 800, marginTop: '8px', lineHeight: 1.3 }}>
+                  상담 요청이<br />정상 접수되었습니다.
+                </h2>
+                <p style={{ fontSize: '13px', color: '#8b98a1', lineHeight: 1.8, marginTop: '12px' }}>
+                  전문 상담사가 고객님의 견적과<br />
+                  문의 내용을 확인한 뒤 안내해 드립니다.
+                </p>
+                <div
+                  id="success-summary"
+                  style={{
+                    background: '#f5f7f8',
+                    padding: '18px',
+                    textAlign: 'left',
+                    fontSize: '12px',
+                    color: '#556976',
+                    borderRadius: '10px',
+                    margin: '22px 0',
+                    lineHeight: 1.8
+                  }}
+                >
+                  <p><b>{customerName} 고객님</b> · 견적 No. {quoteNo}</p>
+                  <p>문의: {selectedTopics.join(', ') || '견적 전반 상담'}</p>
+                  <p>희망 시간: {preferredTime}</p>
+                  {memo && <p>메모: {memo}</p>}
+                </div>
+                <p className="fineprint" style={{ fontSize: '11px', color: '#9aa2a9' }}>
+                  빠른 상담을 원하시면 하단의 [전화 상담]을 이용해 주세요.
+                </p>
+                <button
+                  className="primary full"
+                  type="button"
+                  onClick={closeConsult}
+                  style={{
+                    width: '100%',
+                    minHeight: '50px',
+                    marginTop: '20px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    borderRadius: '10px',
+                    fontWeight: 700,
+                    fontSize: '14px',
+                    background: '#192838',
+                    color: '#fff',
+                    cursor: 'pointer'
+                  }}
+                >
+                  내 견적 다시 보기
+                  <svg style={{ width: '18px', height: '18px' }}><use href="#i-arrow" /></svg>
+                </button>
+              </div>
+            )}
           </div>
-        )}
-      </dialog>
+        </div>
+      )}
 
       {/* Floating Toast */}
       <div id="toast" className={showToast ? 'show' : ''} role="status" aria-live="polite">

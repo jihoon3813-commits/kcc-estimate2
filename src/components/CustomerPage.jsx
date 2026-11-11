@@ -15,7 +15,6 @@ const CustomerPage = () => {
     const [data, setData] = useState(null);
     const [banners, setBanners] = useState([]);
     const [modalType, setModalType] = useState(null); // 'A' or 'B'
-    const [showSearchModal, setShowSearchModal] = useState(false);
 
     const handleSaveConsultation = async (consultData) => {
         if (data?._id) {
@@ -1105,84 +1104,9 @@ const CustomerPage = () => {
                 <KccMobileEstimate
                     data={data}
                     isLoggedIn={isLoggedIn}
-                    onOpenSearch={() => setShowSearchModal(true)}
                     onOpenApplication={handleOpenApplication}
                     onSaveConsultation={handleSaveConsultation}
                 />
-
-                {/* Modern Search Modal */}
-                {showSearchModal && (
-                    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
-                        <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl p-6 space-y-5 relative border border-gray-100">
-                            <button
-                                type="button"
-                                onClick={() => setShowSearchModal(false)}
-                                className="absolute right-4 top-4 text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100 transition-colors"
-                                aria-label="닫기"
-                            >
-                                <X size={20} />
-                            </button>
-                            <div className="text-center space-y-1">
-                                <img src={logoImg} alt="KCC Logo" className="h-6 mx-auto mb-2 object-contain" />
-                                <h3 className="text-lg font-bold text-[#192838]">나의 창호 견적 조회</h3>
-                                <p className="text-xs text-gray-400">성함과 연락처를 입력하시면 저장된 견적을 불러옵니다.</p>
-                            </div>
-                            <form onSubmit={async (e) => {
-                                e.preventDefault();
-                                await executeSearch(searchForm.name, searchForm.phone, statusType);
-                                setShowSearchModal(false);
-                            }} className="space-y-4">
-                                <div className="grid grid-cols-3 gap-2 p-1 bg-gray-100 rounded-xl">
-                                    {['가견적', '책임견적', '최종견적'].map((type) => (
-                                        <button
-                                            key={type}
-                                            type="button"
-                                            onClick={() => setStatusType(type)}
-                                            className={`py-2 rounded-lg text-xs font-bold transition-all ${
-                                                statusType === type
-                                                    ? 'bg-[#192838] text-white shadow-sm'
-                                                    : 'text-gray-500 hover:text-gray-900'
-                                            }`}
-                                        >
-                                            {type}
-                                        </button>
-                                    ))}
-                                </div>
-                                <div className="space-y-1">
-                                    <label className="text-[11px] font-bold text-gray-500 ml-1">성함</label>
-                                    <input
-                                        type="text"
-                                        required
-                                        placeholder="성함을 입력하세요"
-                                        value={searchForm.name}
-                                        onChange={(e) => setSearchForm(prev => ({ ...prev, name: e.target.value }))}
-                                        className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-[#192838] focus:border-[#ed7426] focus:outline-none"
-                                    />
-                                </div>
-                                <div className="space-y-1">
-                                    <label className="text-[11px] font-bold text-gray-500 ml-1">연락처</label>
-                                    <input
-                                        type="tel"
-                                        inputMode="numeric"
-                                        required
-                                        placeholder="연락처를 입력하세요"
-                                        value={searchForm.phone}
-                                        onChange={handlePhoneChange}
-                                        className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-[#192838] focus:border-[#ed7426] focus:outline-none"
-                                    />
-                                </div>
-                                <button
-                                    type="submit"
-                                    disabled={loading}
-                                    className="w-full bg-[#ed7426] text-white py-3.5 rounded-xl font-bold text-sm shadow hover:bg-[#d96018] active:scale-[0.99] transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-                                >
-                                    {loading ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />}
-                                    {loading ? '조회 중...' : '견적 조회하기'}
-                                </button>
-                            </form>
-                        </div>
-                    </div>
-                )}
 
             {modalType && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
