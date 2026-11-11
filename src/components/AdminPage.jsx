@@ -1318,15 +1318,18 @@ const AdminPage = () => {
         setReviewStatus(rental.status || 'received');
         setReviewMemo('');
         setReviewFeedback({ type: '', text: '' });
-        setReviewChecks(
-            rental.checks && rental.checks.length === 3
-                ? rental.checks
-                : [
-                    Boolean(rental.idDocumentStorageId || rental.idDocumentUrl || (rental.files && rental.files.length > 0)),
-                    Boolean(rental.signature || rental.signatureUrl),
-                    Boolean(rental.consents && rental.consents.length > 0)
-                ]
-        );
+        const c = rental.checks;
+        if (c && typeof c === 'object' && !Array.isArray(c)) {
+            setReviewChecks([Boolean(c.id), Boolean(c.signature), Boolean(c.consent)]);
+        } else if (Array.isArray(c) && c.length === 3) {
+            setReviewChecks(c);
+        } else {
+            setReviewChecks([
+                Boolean(rental.idDocumentStorageId || rental.idDocumentUrl || (rental.files && rental.files.length > 0)),
+                Boolean(rental.signature || rental.signatureUrl),
+                Boolean(rental.consents && rental.consents.length > 0)
+            ]);
+        }
     };
 
     const handleSaveReview = async () => {
@@ -1351,11 +1354,16 @@ const AdminPage = () => {
 
         setIsSavingReview(true);
         try {
+            const checksObj = {
+                id: Boolean(reviewChecks[0]),
+                signature: Boolean(reviewChecks[1]),
+                consent: Boolean(reviewChecks[2]),
+            };
             const res = await updateRentalReview({
                 id: selectedRental._id,
                 status: reviewStatus,
                 adminMemo: reviewMemo.trim(),
-                checks: reviewChecks,
+                checks: checksObj,
             });
             if (res.success) {
                 setReviewFeedback({
@@ -1371,7 +1379,7 @@ const AdminPage = () => {
                 const updatedItem = {
                     ...selectedRental,
                     status: reviewStatus,
-                    checks: reviewChecks,
+                    checks: checksObj,
                     adminMemo: reviewMemo.trim() || selectedRental.adminMemo,
                     history: [newHistoryItem, ...(selectedRental.history || [])]
                 };

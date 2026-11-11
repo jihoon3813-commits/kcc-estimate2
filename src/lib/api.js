@@ -1,8 +1,30 @@
 import { ConvexReactClient } from "convex/react";
 import { api } from "../../convex/_generated/api";
 
-const convexUrl = import.meta.env.VITE_CONVEX_URL;
-console.log("Initializing Convex client with URL:", convexUrl);
+const DEV_CONVEX_URL = "https://combative-caterpillar-181.convex.cloud";
+const PROD_CONVEX_URL = "https://beaming-elk-778.convex.cloud";
+
+export const getConvexUrl = () => {
+    if (typeof window !== "undefined") {
+        const hostname = window.location.hostname;
+        const isLocal = hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1";
+
+        if (isLocal) {
+            // 로컬 개발 환경에서는 항상 개발 Convex 서버 사용
+            return import.meta.env.VITE_CONVEX_URL_DEV || DEV_CONVEX_URL;
+        } else {
+            // 운영 환경(GitHub Pages, 도메인 배포)에서는 항상 운영 Convex 서버 사용
+            return import.meta.env.VITE_CONVEX_URL_PROD || 
+                   (import.meta.env.PROD ? import.meta.env.VITE_CONVEX_URL : null) || 
+                   PROD_CONVEX_URL;
+        }
+    }
+
+    return import.meta.env.PROD ? PROD_CONVEX_URL : DEV_CONVEX_URL;
+};
+
+const convexUrl = getConvexUrl();
+console.log(`[Convex Config] Host: ${typeof window !== 'undefined' ? window.location.hostname : 'SSR'}, URL: ${convexUrl}`);
 const convex = new ConvexReactClient(convexUrl);
 
 /**

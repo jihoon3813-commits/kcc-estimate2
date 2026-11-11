@@ -203,8 +203,9 @@ export const listApplications = query({
                 }
             }
 
+            const rawFiles = app.files || [];
             const filesWithUrls = await Promise.all(
-                app.files.map(async (f) => ({
+                rawFiles.map(async (f) => ({
                     ...f,
                     url: await ctx.storage.getUrl(f.storageId as any),
                 }))
