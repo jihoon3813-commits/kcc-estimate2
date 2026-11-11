@@ -330,6 +330,24 @@ export const updateRentalStatus = async (id, status) => {
     }
 };
 
+export const submitRentalNewApplication = async (params) => {
+    try {
+        const result = await convex.mutation(api.rentals.submitRentalNewApplication, params);
+        return result;
+    } catch (error) {
+        return { success: false, message: error.message };
+    }
+};
+
+export const updateRentalReview = async (params) => {
+    try {
+        const result = await convex.mutation(api.rentals.updateRentalReview, params);
+        return result;
+    } catch (error) {
+        return { success: false, message: error.message };
+    }
+};
+
 export const updateSubscriptionStatus = async (id, status) => {
     try {
         await convex.mutation(api.subscriptions.updateStatus, { id, status });

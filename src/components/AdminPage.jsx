@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Upload, FileText, Calculator, Save, CheckCircle, Loader2, RefreshCw, ExternalLink, Search, ShieldCheck, Download, X, Trash2, Calendar, ChevronDown, FileArchive, AlignLeft, AlignCenter, AlignRight, Menu, MessageSquare, Clock, PhoneCall, MessageCircle, CheckCheck, AlertCircle } from 'lucide-react';
+import { Upload, FileText, Calculator, Save, CheckCircle, Loader2, RefreshCw, ExternalLink, Search, ShieldCheck, Download, X, Trash2, Calendar, ChevronDown, FileArchive, AlignLeft, AlignCenter, AlignRight, Menu, MessageSquare, Clock, PhoneCall, MessageCircle, CheckCheck, AlertCircle, AlertTriangle, Inbox, Check } from 'lucide-react';
 import { parseExcelEstimate } from '../lib/excelParser';
-import { saveQuote, updateRentalStatus, updateSubscriptionStatus, updateGreenStatus, getAdminQuoteList, getRentalApplicationList, getSubscriptionApplicationList, getGreenApplicationList, getTemplatePdfUrl, uploadTemplatePdf, savePdfTemplate, getTemplateList, deletePdfTemplate, getLatestTemplateByType, migrateInterestRates, getInquiryList, updateInquiryStatus, updateInquiryAdminMemo, deleteInquiry } from '../lib/api';
+import { saveQuote, updateRentalStatus, updateRentalReview, updateSubscriptionStatus, updateGreenStatus, getAdminQuoteList, getRentalApplicationList, getSubscriptionApplicationList, getGreenApplicationList, getTemplatePdfUrl, uploadTemplatePdf, savePdfTemplate, getTemplateList, deletePdfTemplate, getLatestTemplateByType, migrateInterestRates, getInquiryList, updateInquiryStatus, updateInquiryAdminMemo, deleteInquiry } from '../lib/api';
 import { PDFDocument, rgb } from 'pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
+import '../styles/rental-admin.css';
 
 const INQUIRY_STATUS_OPTIONS = [
     { label: '접수대기', value: 'pending', color: 'bg-amber-100 text-amber-800' },
@@ -12,10 +13,28 @@ const INQUIRY_STATUS_OPTIONS = [
 ];
 
 const RENTAL_STATUS_OPTIONS = [
-    { label: '임시저장', value: '임시저장', color: 'bg-gray-100 text-gray-500' },
-    { label: '신청완료', value: '신청완료', color: 'bg-green-100 text-green-600' },
-    { label: '신청취소', value: '신청취소', color: 'bg-red-100 text-red-600' },
+    { label: '신규 접수', value: 'received', color: 'status-received' },
+    { label: '서류 확인 중', value: 'review', color: 'status-review' },
+    { label: '보완 요청', value: 'needs_info', color: 'status-needs_info' },
+    { label: '심사 중', value: 'screening', color: 'status-screening' },
+    { label: '계약 확정', value: 'confirmed', color: 'status-confirmed' },
+    { label: '취소', value: 'cancelled', color: 'status-cancelled' },
+    // Legacy options
+    { label: '신청완료 (구)', value: '신청완료', color: 'status-received' },
+    { label: '임시저장 (구)', value: '임시저장', color: 'status-cancelled' },
 ];
+
+const RENTAL_STATUS_LABELS = {
+    received: '신규 접수',
+    review: '서류 확인 중',
+    needs_info: '보완 요청',
+    screening: '심사 중',
+    confirmed: '계약 확정',
+    cancelled: '취소',
+    '신청완료': '신규 접수',
+    '임시저장': '임시저장',
+    '신청취소': '취소',
+};
 
 const SUBSCRIPTION_STATUS_OPTIONS = [
     { label: '임시저장', value: '임시저장', color: 'bg-gray-100 text-gray-500' },
@@ -27,6 +46,36 @@ const GREEN_REMODELING_STATUS_OPTIONS = [
     { label: '임시저장', value: '임시저장', color: 'bg-gray-100 text-gray-500' },
     { label: '신청완료', value: '신청완료', color: 'bg-green-100 text-green-700' },
     { label: '신청취소', value: '신청취소', color: 'bg-red-100 text-red-600' },
+];
+
+const DEFAULT_RENTAL_TERMS = [
+    {
+        id: 'collection',
+        title: '개인(신용)정보 수집·이용 동의서',
+        body: `[개인(신용)정보 수집·이용 안내]
+1. 수집·이용 목적: KCC 창호 렌탈 서비스 신청 접수, 본인 확인, 계약 체결 여부 심사 및 상담 안내
+2. 수집 항목: 성명, 생년월일, 휴대전화번호, 주소, 신분증 사본, 전자서명 정보
+3. 보유 및 이용 기간: 렌탈 서비스 신청 접수일로부터 계약 종료 및 법정 의무 보존 기간까지
+4. 귀하는 개인정보 수집·이용에 동의하지 않을 권리가 있으나, 미동의 시 렌탈 서비스 신청 및 심사가 불가합니다.`
+    },
+    {
+        id: 'inquiry',
+        title: '개인(신용)정보 조회 동의서',
+        body: `[개인(신용)정보 조회 안내]
+1. 조회 목적: 렌탈 계약 체결 및 유지를 위한 신용조회 및 렌탈 자격 심사
+2. 조회 기관: 렌탈 제휴 금융사 및 신용정보집중기관(NICE평가정보, 코리아크레딧뷰로 등)
+3. 조회 항목: 개인식별정보, 신용도평가정보(신용평점, 대출현황, 연체정보 등)
+4. 동의의 효력 기간: 본 동의일로부터 렌탈 신청 심사 완료 및 계약 체결 종료일까지`
+    },
+    {
+        id: 'provision',
+        title: '개인(신용)정보 제공 동의서',
+        body: `[개인(신용)정보 제3자 제공 안내]
+1. 제공받는 자: KCC글라스 공식 파트너사, 렌탈 제휴 금융사
+2. 제공 목적: 렌탈 심사 진행, 시공 일정 조율 및 사후 A/S 관리
+3. 제공 항목: 성명, 연락처, 주소, 견적 및 시공 세부 사양, 렌탈 신청 정보
+4. 보유 및 이용 기간: 서비스 제공 목적 달성 및 관계 법령에 따른 보존 기간까지`
+    }
 ];
 
 const AdminPage = () => {
@@ -82,6 +131,17 @@ const AdminPage = () => {
     const [greenList, setGreenList] = useState([]);
     const [filteredGreenList, setFilteredGreenList] = useState([]);
     const [templateList, setTemplateList] = useState([]);
+
+    // Rental Tab Extended States
+    const [rentalFilterTab, setRentalFilterTab] = useState('all'); // 'all' | 'received' | 'review' | 'needs_info' | 'screening' | 'confirmed' | 'cancelled'
+    const [selectedRental, setSelectedRental] = useState(null); // Active application for detail drawer
+    const [rentalDetailTab, setRentalDetailTab] = useState('info'); // 'info' | 'consent' | 'history'
+    const [reviewStatus, setReviewStatus] = useState('received');
+    const [reviewMemo, setReviewMemo] = useState('');
+    const [reviewChecks, setReviewChecks] = useState([false, false, false]); // [id, sig, consent]
+    const [reviewFeedback, setReviewFeedback] = useState({ type: '', text: '' });
+    const [isSavingReview, setIsSavingReview] = useState(false);
+    const [docViewer, setDocViewer] = useState({ isOpen: false, type: 'id', title: '', url: '', name: '', description: '' });
 
     // Inquiry States
     const [inquiryList, setInquiryList] = useState([]);
@@ -540,18 +600,27 @@ const AdminPage = () => {
 
         // Filtering for Rental List
         let tempRentals = [...rentalList];
+        if (rentalFilterTab !== 'all') {
+            tempRentals = tempRentals.filter(item => {
+                const s = item.status || 'received';
+                if (rentalFilterTab === 'received') return s === 'received' || s === '신청완료';
+                return s === rentalFilterTab;
+            });
+        }
         if (searchTerm) {
             const normalizedSearch = searchTerm.trim().normalize('NFC').toLowerCase();
             tempRentals = tempRentals.filter(item => {
                 const name = (item.name || '').normalize('NFC').toLowerCase();
                 const phone = (item.phone || '').toLowerCase();
+                const receiptId = (item.receiptId || '').toLowerCase();
+                const planTitle = (item.planTitle || '').toLowerCase();
                 const address = (item.address || '').normalize('NFC').toLowerCase();
-                return name.includes(normalizedSearch) || phone.includes(normalizedSearch) || address.includes(normalizedSearch);
+                return name.includes(normalizedSearch) || phone.includes(normalizedSearch) || receiptId.includes(normalizedSearch) || planTitle.includes(normalizedSearch) || address.includes(normalizedSearch);
             });
         }
         tempRentals.sort((a, b) => {
-            const dateA = new Date(a.createdAt).getTime();
-            const dateB = new Date(b.createdAt).getTime();
+            const dateA = new Date(a.createdAt || 0).getTime();
+            const dateB = new Date(b.createdAt || 0).getTime();
             return sortOrder === 'desc' ? dateB - dateA : dateA - dateB;
         });
         setFilteredRentalList(tempRentals);
@@ -591,7 +660,7 @@ const AdminPage = () => {
             return sortOrder === 'desc' ? dateB - dateA : dateA - dateB;
         });
         setFilteredGreenList(tempGreen);
-    }, [quoteList, rentalList, subscriptionList, greenList, inquiryList, searchTerm, filterBranch, filterType, filterDate, sortOrder, inquiryStatusFilter, onlyWithInquiries, getInquiriesForQuote, fetchList]);
+    }, [quoteList, rentalList, subscriptionList, greenList, inquiryList, searchTerm, filterBranch, filterType, filterDate, sortOrder, inquiryStatusFilter, onlyWithInquiries, getInquiriesForQuote, fetchList, rentalFilterTab]);
 
     // 그린리모델링 신청서 PDF 생성 및 다운로드 (신청서 + 동의서 통합)
     const handleDownloadGreenPdf = async (item) => {
@@ -1243,6 +1312,113 @@ const AdminPage = () => {
         }
     };
 
+    const handleOpenRentalDetail = (rental) => {
+        setSelectedRental(rental);
+        setRentalDetailTab('info');
+        setReviewStatus(rental.status || 'received');
+        setReviewMemo('');
+        setReviewFeedback({ type: '', text: '' });
+        setReviewChecks(
+            rental.checks && rental.checks.length === 3
+                ? rental.checks
+                : [
+                    Boolean(rental.idDocumentStorageId || rental.idDocumentUrl || (rental.files && rental.files.length > 0)),
+                    Boolean(rental.signature || rental.signatureUrl),
+                    Boolean(rental.consents && rental.consents.length > 0)
+                ]
+        );
+    };
+
+    const handleSaveReview = async () => {
+        if (!selectedRental) return;
+        setReviewFeedback({ type: '', text: '' });
+
+        if (['needs_info', 'cancelled', 'confirmed'].includes(reviewStatus) && !reviewMemo.trim()) {
+            setReviewFeedback({
+                type: 'error',
+                text: reviewStatus === 'confirmed' ? '계약 확정 근거를 메모에 남겨주세요.' : '보완 또는 취소 사유를 메모에 남겨주세요.'
+            });
+            return;
+        }
+
+        if (['screening', 'confirmed'].includes(reviewStatus) && !reviewChecks.every(Boolean)) {
+            setReviewFeedback({
+                type: 'error',
+                text: '신분증, 서명, 필수 동의의 확인 체크를 먼저 완료해주세요.'
+            });
+            return;
+        }
+
+        setIsSavingReview(true);
+        try {
+            const res = await updateRentalReview({
+                id: selectedRental._id,
+                status: reviewStatus,
+                adminMemo: reviewMemo.trim(),
+                checks: reviewChecks,
+            });
+            if (res.success) {
+                setReviewFeedback({
+                    type: 'success',
+                    text: '검토 내용과 상태가 반영되었습니다.'
+                });
+                const nowStr = new Date().toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' });
+                const newHistoryItem = {
+                    title: `${RENTAL_STATUS_LABELS[reviewStatus] || reviewStatus} (상태 변경)`,
+                    time: nowStr,
+                    note: reviewMemo.trim() || '검토 내용 반영'
+                };
+                const updatedItem = {
+                    ...selectedRental,
+                    status: reviewStatus,
+                    checks: reviewChecks,
+                    adminMemo: reviewMemo.trim() || selectedRental.adminMemo,
+                    history: [newHistoryItem, ...(selectedRental.history || [])]
+                };
+                setSelectedRental(updatedItem);
+                setRentalList(prev => prev.map(item => item._id === selectedRental._id ? updatedItem : item));
+                setReviewMemo('');
+            } else {
+                setReviewFeedback({
+                    type: 'error',
+                    text: res.message || '저장에 실패했습니다.'
+                });
+            }
+        } catch (err) {
+            setReviewFeedback({
+                type: 'error',
+                text: '저장 중 오류가 발생했습니다: ' + err.message
+            });
+        } finally {
+            setIsSavingReview(false);
+        }
+    };
+
+    const handleOpenDocViewer = (type) => {
+        if (!selectedRental) return;
+        if (type === 'id') {
+            const idUrl = selectedRental.idDocumentUrl || selectedRental.files?.find(f => f.category === 'id_card')?.url || null;
+            setDocViewer({
+                isOpen: true,
+                type: 'id',
+                title: '신분증 사본 열람',
+                url: idUrl,
+                name: selectedRental.idDocumentName || '신분증 사본',
+                description: '신분증 이미지'
+            });
+        } else if (type === 'signature') {
+            const sigUrl = selectedRental.signatureUrl || selectedRental.signature || null;
+            setDocViewer({
+                isOpen: true,
+                type: 'signature',
+                title: '전자 서명 열람',
+                url: sigUrl,
+                name: '전자 서명 원본',
+                description: '전자 서명'
+            });
+        }
+    };
+
     const handleSubscriptionStatusChange = async (item, newStatus) => {
         // Optimistic update
         setSubscriptionList(prev => prev.map(s => s._id === item._id ? { ...s, status: newStatus } : s));
@@ -1347,6 +1523,7 @@ const AdminPage = () => {
     };
 
     const pendingInquiryCount = inquiryList.filter(i => (i.status || 'pending') === 'pending').length;
+    const pendingRentalCount = rentalList.filter(r => r.status === 'received' || r.status === '신청완료' || !r.status).length;
 
     // === BATCH MIGRATION (Retroactive Item Price Fix) ===
     const handleBatchMigration = async () => {
@@ -1591,7 +1768,7 @@ const AdminPage = () => {
                         { id: 'send', label: '견적발송', icon: <Calculator size={18} />, color: 'hover:bg-[#c5a059]/20 hover:text-[#c5a059]', active: 'bg-[#c5a059] text-white' },
                         { id: 'lookup', label: '견적조회', icon: <FileText size={18} />, color: 'hover:bg-[#c5a059]/20 hover:text-[#c5a059]', active: 'bg-[#c5a059] text-white' },
                         { id: 'inquiry', label: '고객문의 내역', icon: <MessageSquare size={18} />, color: 'hover:bg-amber-500/20 hover:text-amber-400', active: 'bg-amber-500 text-white', badge: pendingInquiryCount },
-                        { id: 'rental', label: '렌탈신청 내역', icon: <ShieldCheck size={18} />, color: 'hover:bg-blue-500/20 hover:text-blue-400', active: 'bg-blue-600 text-white' },
+                        { id: 'rental', label: '렌탈신청 내역', icon: <ShieldCheck size={18} />, color: 'hover:bg-blue-500/20 hover:text-blue-400', active: 'bg-blue-600 text-white', badge: pendingRentalCount },
                         { id: 'subscription', label: '할부신청 내역', icon: <Save size={18} />, color: 'hover:bg-teal-500/20 hover:text-teal-400', active: 'bg-teal-600 text-white' },
                         { id: 'green_remodeling', label: '그린리모델링 내역', icon: <ShieldCheck size={18} />, color: 'hover:bg-green-500/20 hover:text-green-400', active: 'bg-green-700 text-white' },
                         { id: 'document', label: '문서 서식 관리', icon: <FileText size={18} />, color: 'hover:bg-purple-500/20 hover:text-purple-400', active: 'bg-purple-600 text-white' },
@@ -2455,130 +2632,263 @@ const AdminPage = () => {
             )}
 
             {/* TAB CONTENT: RENTAL APPLICATIONS (NEW) */}
+            {/* TAB CONTENT: RENTAL APPLICATIONS (NEW DESIGN MATCHING MOCKUP) */}
             {activeTab === 'rental' && (
-                <div className="space-y-6 animate-in fade-in">
-                    {/* Filters (Reduced for Rental) */}
-                    <div className="glass-card p-3 md:p-4 rounded-2xl md:rounded-[2rem] flex flex-col md:flex-row gap-3 md:gap-4 items-stretch md:items-center">
-                        <div className="flex-1 relative">
-                            <input
-                                type="text"
-                                placeholder="고객명, 전화번호 검색"
-                                className="w-full pl-10 pr-4 py-2.5 md:py-3 bg-gray-50 rounded-xl border-none focus:ring-2 focus:ring-[#2c3e50]/50 transition-all font-bold text-xs md:text-sm"
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                            />
-                            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-                                <Search size={18} />
+                <div className="space-y-6 animate-in fade-in rental-admin-wrap">
+                    {/* Header Info */}
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2 border-b border-gray-200">
+                        <div>
+                            <div className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+                                운영 관리 <span className="text-gray-300 mx-1">/</span> 렌탈 접수 관리
                             </div>
+                            <h2 className="text-2xl font-black text-[#172a3b] mt-1">좋은 시작을, 꼼꼼하게.</h2>
+                            <p className="text-xs text-gray-500 mt-1">접수부터 서류 확인, 계약 확정까지 한곳에서 관리하세요.</p>
                         </div>
-                        <div className="flex gap-2">
-                            <select
-                                className="flex-1 md:flex-none bg-gray-50 px-3 md:px-4 py-2.5 md:py-3 rounded-xl text-[10px] md:text-sm font-black text-[#001a3d] border-none cursor-pointer focus:ring-2 focus:ring-[#2c3e50]/50"
-                                value={sortOrder}
-                                onChange={(e) => setSortOrder(e.target.value)}
-                            >
-                                <option value="desc">최신순</option>
-                                <option value="asc">과거순</option>
-                            </select>
+                        <div className="flex items-center gap-2">
                             <button
                                 onClick={fetchList}
-                                className="p-2.5 md:p-3 bg-gray-50 text-gray-500 hover:text-[#2c3e50] hover:bg-blue-50 rounded-xl transition-all"
+                                className="flex items-center gap-1.5 px-3.5 py-2 bg-white border border-gray-200 hover:border-gray-300 rounded-xl text-xs font-bold text-gray-700 shadow-sm transition-all"
                             >
-                                <RefreshCw size={18} />
+                                <RefreshCw size={14} /> 새로고침
                             </button>
                         </div>
                     </div>
 
-                    {/* Table View */}
-                    <div className="bg-white rounded-[2rem] shadow-xl overflow-hidden border border-gray-100">
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-sm min-w-[1600px]">
-                                <thead className="bg-[#2c3e50] text-white">
+                    {/* Stats Cards */}
+                    <section className="admin-stats" aria-label="접수 현황">
+                        <div className="stat-card">
+                            <div>
+                                전체 신청
+                                <span className="stat-mark"><FileText size={16} /></span>
+                            </div>
+                            <strong>{rentalList.length}<small>건</small></strong>
+                            <p>전체 신청 건수</p>
+                        </div>
+                        <div className="stat-card accent">
+                            <div>
+                                새로 접수됐어요
+                                <span className="stat-mark"><Inbox size={16} /></span>
+                            </div>
+                            <strong>
+                                {rentalList.filter(r => r.status === 'received' || r.status === '신청완료' || !r.status).length}
+                                <small>건</small>
+                            </strong>
+                            <p>확인을 기다리는 신청</p>
+                        </div>
+                        <div className="stat-card needs_info">
+                            <div>
+                                보완이 필요해요
+                                <span className="stat-mark"><AlertTriangle size={16} /></span>
+                            </div>
+                            <strong>
+                                {rentalList.filter(r => r.status === 'needs_info').length}
+                                <small>건</small>
+                            </strong>
+                            <p>추가 서류 확인 필요</p>
+                        </div>
+                        <div className="stat-card confirmed">
+                            <div>
+                                계약 확정
+                                <span className="stat-mark"><CheckCircle size={16} /></span>
+                            </div>
+                            <strong>
+                                {rentalList.filter(r => r.status === 'confirmed').length}
+                                <small>건</small>
+                            </strong>
+                            <p>계약 절차 확인 완료</p>
+                        </div>
+                    </section>
+
+                    {/* Inbox & Table */}
+                    <section className="admin-inbox">
+                        <div className="inbox-title">
+                            <h2>
+                                렌탈 신청 목록
+                                <span>{filteredRentalList.length}건</span>
+                            </h2>
+                            <small>행이나 접수번호를 클릭하면 상세 서류와 처리 이력을 확인할 수 있습니다.</small>
+                        </div>
+
+                        {/* Filters & Search */}
+                        <div className="admin-filters">
+                            <div className="admin-filter-tabs" role="group" aria-label="상태 필터">
+                                {[
+                                    { id: 'all', label: '전체' },
+                                    { id: 'received', label: '신규 접수' },
+                                    { id: 'review', label: '서류 확인 중' },
+                                    { id: 'needs_info', label: '보완 요청' },
+                                    { id: 'screening', label: '심사 중' },
+                                    { id: 'confirmed', label: '계약 확정' },
+                                    { id: 'cancelled', label: '취소' },
+                                ].map(tab => (
+                                    <button
+                                        key={tab.id}
+                                        type="button"
+                                        className={rentalFilterTab === tab.id ? 'active' : ''}
+                                        onClick={() => setRentalFilterTab(tab.id)}
+                                    >
+                                        {tab.label}
+                                    </button>
+                                ))}
+                            </div>
+
+                            <div className="admin-search-wrap">
+                                <label className="admin-search">
+                                    <Search size={16} />
+                                    <input
+                                        type="text"
+                                        placeholder="이름 · 접수번호 · 연락처 검색"
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                        autoComplete="off"
+                                    />
+                                </label>
+                                <select
+                                    value={sortOrder}
+                                    onChange={(e) => setSortOrder(e.target.value)}
+                                    className="bg-gray-50 px-3 py-2 rounded-xl text-xs font-bold text-gray-700 border border-gray-200 outline-none cursor-pointer"
+                                >
+                                    <option value="desc">최신순</option>
+                                    <option value="asc">과거순</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        {/* Table */}
+                        <div className="admin-table-wrap">
+                            <table className="rental-admin-table">
+                                <thead>
                                     <tr>
-                                        {[
-                                            "순번", "상태", "일자", "고객명", "전화번호", "생일", "성", "이체", "직군", "소유", "할인가", "선납금", "잔금", "구분", "개월", "구독료", "서류"
-                                        ].map((th, i) => (
-                                            <th key={i} className="px-2 py-3.5 font-black whitespace-nowrap text-[11px] uppercase tracking-tighter first:pl-6 last:pr-6 text-center">{th}</th>
-                                        ))}
+                                        <th>접수번호 / 접수일</th>
+                                        <th>계약자</th>
+                                        <th>선택 렌탈</th>
+                                        <th>제출 자료</th>
+                                        <th>진행 상태</th>
+                                        <th>최근 메모 / 이력</th>
+                                        <th className="text-right">상세</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-gray-100">
+                                <tbody>
                                     {filteredRentalList.length === 0 ? (
                                         <tr>
-                                            <td colSpan="17" className="text-center py-20 text-gray-400 font-bold">렌탈 신청 내역이 없습니다.</td>
+                                            <td colSpan="7" className="text-center py-20 text-gray-400 font-bold">
+                                                조건에 맞는 렌탈 신청 내역이 없습니다.
+                                            </td>
                                         </tr>
                                     ) : (
-                                        filteredRentalList.map((item, idx) => (
-                                            <tr key={idx} className="hover:bg-blue-50/30 transition-colors">
-                                                <td className="px-2 py-3.5 text-center font-bold text-gray-300">{filteredRentalList.length - idx}</td>
-                                                <td className="px-2 py-3.5 text-center whitespace-nowrap">
-                                                    <select
-                                                        value={item.status || '신청완료'}
-                                                        onChange={(e) => handleRentalStatusChange(item, e.target.value)}
-                                                        className={`text-[9px] font-black px-1.5 py-0.5 rounded-lg border-none cursor-pointer focus:ring-1 focus:ring-[#2c3e50]/30 transition-all ${RENTAL_STATUS_OPTIONS.find(opt => opt.value === (item.status || '신청완료'))?.color || 'bg-gray-100 text-gray-600'}`}
-                                                    >
-                                                        {RENTAL_STATUS_OPTIONS.map(opt => (
-                                                            <option key={opt.value} value={opt.value} className="bg-white text-gray-700">{opt.label}</option>
-                                                        ))}
-                                                    </select>
-                                                </td>
-                                                <td className="px-2 py-3.5 text-center whitespace-nowrap font-medium text-gray-400 text-[10px]">{formatDate(item.createdAt)}</td>
-                                                <td className="px-2 py-3.5 text-center whitespace-nowrap font-bold text-blue-600 hover:text-blue-800 cursor-pointer underline decoration-wavy underline-offset-4" onClick={() => handleRentalNameClick(item)}>{item.name}</td>
-                                                <td className="px-2 py-3.5 text-center whitespace-nowrap text-gray-500 font-mono text-[10px]">{item.phone}</td>
-                                                <td className="px-2 py-3.5 text-center whitespace-nowrap text-gray-500 text-[10px]">{item.birthDate}</td>
-                                                <td className="px-2 py-3.5 text-center whitespace-nowrap text-gray-500 text-[10px]">{item.gender === 'male' ? '남' : '여'}</td>
-                                                <td className="px-2 py-3.5 text-center whitespace-nowrap text-gray-500 text-[10px] font-bold text-blue-700">{item.transferDate || '-'}</td>
-                                                <td className="px-2 py-3.5 text-center whitespace-nowrap text-gray-500 text-[10px] font-bold">{item.jobCategory || '-'}</td>
-                                                <td className="px-2 py-3.5 text-center whitespace-nowrap text-gray-500 text-[10px]">
-                                                    {item.ownershipType === 'own_own' ? '본인' : (item.ownershipType === 'family_own' ? '가족' : '이사')}
-                                                </td>
-                                                <td className="px-2 py-3.5 text-right whitespace-nowrap text-gray-700 text-[10px]">
-                                                    {item.finalBenefit ? Number(item.finalBenefit).toLocaleString() + '원' : '-'}
-                                                </td>
-                                                <td className="px-2 py-3.5 text-right whitespace-nowrap text-[#001a3d] font-bold text-[10px]">
-                                                    {item.downPayment ? Number(item.downPayment).toLocaleString() + '원' : '0원'}
-                                                </td>
-                                                <td className="px-2 py-3.5 text-right whitespace-nowrap text-gray-600 text-[10px]">
-                                                    {item.balance ? Number(item.balance).toLocaleString() + '원' : '-'}
-                                                </td>
-                                                <td className="px-2 py-3.5 text-center whitespace-nowrap text-gray-600 text-[10px] font-bold">
-                                                    {item.conversionMode === 'full' ? '전액' : (item.conversionMode === 'balance' ? '잔금' : item.conversionMode?.replace('구독','') || '전액')}
-                                                </td>
-                                                <td className="px-2 py-3.5 text-center whitespace-nowrap text-blue-600 font-bold text-[10px]">
-                                                    60개월
-                                                </td>
-                                                <td className="px-2 py-3.5 text-right whitespace-nowrap font-bold text-blue-600 text-[10px]">
-                                                    {item.monthlyAmount ? Number(item.monthlyAmount).toLocaleString() + '원' : (item.selectedAmount >= 11 && item.selectedAmount <= 33 ? Number(item.selectedAmount * 10000).toLocaleString() + '원' : '0원')}
-                                                </td>
-                                                <td className="px-2 py-3.5 text-left">
-                                                    <div className="flex flex-wrap gap-1 min-w-[100px]">
-                                                        {item.files.map((file, fIdx) => (
-                                                            <a
-                                                                key={fIdx}
-                                                                href={file.url}
-                                                                target="_blank"
-                                                                rel="noopener noreferrer"
-                                                                title={file.name}
-                                                                className="flex items-center gap-1 px-1.5 py-1 bg-gray-50 hover:bg-blue-50 text-gray-400 hover:text-blue-600 rounded-lg transition-all border border-gray-100"
-                                                            >
-                                                                <FileText size={12} />
-                                                                <span className="text-[9px] font-black whitespace-nowrap">
-                                                                    {file.category === 'registry' ? '등기' : (file.category === 'contract' ? '계약' : (file.category === 'id_card' ? '신분증' : (file.category === 'family' ? '가족' : ((file.category === 'agreementsPdf' || file.category === 'agreements') ? '동의서' : '기타'))))}
-                                                                </span>
-                                                            </a>
-                                                        ))}
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))
+                                        filteredRentalList.map((item, idx) => {
+                                            const receiptDisplay = item.receiptId || `R-${(item._id || '').slice(-6).toUpperCase()}`;
+                                            const hasIdDoc = Boolean(item.idDocumentStorageId || item.idDocumentUrl || item.files?.some(f => f.category === 'id_card'));
+                                            const hasSig = Boolean(item.signature || item.signatureUrl);
+                                            const hasConsents = Boolean(item.consents && item.consents.length > 0);
+                                            const monthlyVal = Number(item.monthly || item.monthlyAmount || 0);
+                                            const upfrontVal = Number(item.upfront || item.downPayment || 0);
+                                            const monthsVal = Number(item.months || 60);
+                                            const statusKey = item.status || 'received';
+                                            const statusClass = `status-${statusKey}`;
+
+                                            return (
+                                                <tr
+                                                    key={item._id || idx}
+                                                    onClick={() => handleOpenRentalDetail(item)}
+                                                    className="cursor-pointer"
+                                                >
+                                                    <td>
+                                                        <button
+                                                            type="button"
+                                                            className="row-open"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                handleOpenRentalDetail(item);
+                                                            }}
+                                                        >
+                                                            {receiptDisplay}
+                                                        </button>
+                                                        <small>{formatDateTime(item.createdAt)}</small>
+                                                    </td>
+                                                    <td>
+                                                        <strong>{item.name}</strong>
+                                                        <small className="font-mono">{item.phone} {item.birthDate ? `· ${item.birthDate}` : ''}</small>
+                                                    </td>
+                                                    <td>
+                                                        <strong>월 {monthlyVal.toLocaleString()}원</strong>
+                                                        <small>초기 {upfrontVal.toLocaleString()}원 · {monthsVal}개월</small>
+                                                    </td>
+                                                    <td>
+                                                        <div className="file-tags">
+                                                            {hasIdDoc ? (
+                                                                <span>신분증</span>
+                                                            ) : (
+                                                                <span className="no-file">신분증 미등록</span>
+                                                            )}
+                                                            {hasSig ? (
+                                                                <span>서명</span>
+                                                            ) : (
+                                                                <span className="no-file">서명 미등록</span>
+                                                            )}
+                                                            {hasConsents && <span>동의 3건</span>}
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        <span className={`status-pill ${statusClass}`}>
+                                                            {RENTAL_STATUS_LABELS[statusKey] || statusKey}
+                                                        </span>
+                                                    </td>
+                                                    <td>
+                                                        <div className="max-w-[200px] truncate text-xs text-gray-600">
+                                                            {item.adminMemo || (item.history && item.history[0]?.note) || '신규 접수 상태'}
+                                                        </div>
+                                                        <small className="text-gray-400">
+                                                            {item.history && item.history[0] ? item.history[0].time : '접수 완료'}
+                                                        </small>
+                                                    </td>
+                                                    <td className="text-right">
+                                                        <button
+                                                            type="button"
+                                                            className="row-arrow"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                handleOpenRentalDetail(item);
+                                                            }}
+                                                            title="상세 열람"
+                                                        >
+                                                            ↗
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })
                                     )}
                                 </tbody>
                             </table>
                         </div>
-                    </div>
+
+                        <div className="inbox-bottom">
+                            <span>민감정보(신분증, 서명)는 상세 화면의 검토 확인 후 열람 · 다운로드 제한</span>
+                            <span>전체 신청 {filteredRentalList.length}건</span>
+                        </div>
+                    </section>
+
+                    {/* Management Principles */}
+                    <section className="admin-principles">
+                        <div>
+                            <span>01</span>
+                            <h3>누락 없이 확인</h3>
+                            <p>신분증 · 필수 동의 · 서명을 각각 확인하고 다음 단계(심사, 계약)로 이동합니다.</p>
+                        </div>
+                        <div>
+                            <span>02</span>
+                            <h3>진행 과정이 보이게</h3>
+                            <p>담당자, 보완 사유, 상태 변경을 한 타임라인으로 투명하게 확인하고 기록합니다.</p>
+                        </div>
+                        <div>
+                            <span>03</span>
+                            <h3>필요한 사람만 열람</h3>
+                            <p>원본 열람 권한과 열람 기록을 고객 기본정보와 분리하여 안전하게 보호합니다.</p>
+                        </div>
+                    </section>
                 </div>
-            )
-            }
+            )}
 
             {activeTab === 'document' && (
                 <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
@@ -3772,6 +4082,345 @@ const AdminPage = () => {
                                     닫기
                                 </button>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* RENTAL DETAIL DRAWER MODAL */}
+            {selectedRental && (
+                <div
+                    className="rental-drawer-backdrop"
+                    onClick={() => setSelectedRental(null)}
+                >
+                    <div
+                        className="rental-drawer"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {/* Header */}
+                        <div className="detail-head">
+                            <div>
+                                <span className="detail-breadcrumb">
+                                    {selectedRental.receiptId || `R-${(selectedRental._id || '').slice(-6).toUpperCase()}`} · 렌탈 신청 상세
+                                </span>
+                                <h2>{selectedRental.name} 고객님</h2>
+                            </div>
+                            <button
+                                type="button"
+                                className="detail-close-btn"
+                                onClick={() => setSelectedRental(null)}
+                                title="닫기"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        {/* Scroll Area */}
+                        <div className="detail-scroll">
+                            {/* Hero Card */}
+                            <div className="detail-hero">
+                                <div>
+                                    <span>진행 상태</span>
+                                    <div className="mt-1.5">
+                                        <span className={`status-pill status-${selectedRental.status || 'received'}`}>
+                                            {RENTAL_STATUS_LABELS[selectedRental.status || 'received'] || selectedRental.status}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div>
+                                    <span>접수 일시</span>
+                                    <strong>{formatDateTime(selectedRental.createdAt)}</strong>
+                                </div>
+                                <div>
+                                    <span>연결 견적</span>
+                                    <strong>
+                                        {selectedRental.quoteId ? (
+                                            <span
+                                                className="text-blue-600 underline cursor-pointer"
+                                                onClick={() => handleRentalNameClick(selectedRental)}
+                                            >
+                                                No. {selectedRental.quoteId}
+                                            </span>
+                                        ) : '일반 접수'}
+                                    </strong>
+                                </div>
+                            </div>
+
+                            {/* Detail Tabs */}
+                            <div className="detail-tabs" role="tablist">
+                                <button
+                                    type="button"
+                                    className={rentalDetailTab === 'info' ? 'active' : ''}
+                                    onClick={() => setRentalDetailTab('info')}
+                                >
+                                    신청·서류
+                                </button>
+                                <button
+                                    type="button"
+                                    className={rentalDetailTab === 'consent' ? 'active' : ''}
+                                    onClick={() => setRentalDetailTab('consent')}
+                                >
+                                    동의 내역
+                                </button>
+                                <button
+                                    type="button"
+                                    className={rentalDetailTab === 'history' ? 'active' : ''}
+                                    onClick={() => setRentalDetailTab('history')}
+                                >
+                                    처리 이력 ({selectedRental.history?.length || 1})
+                                </button>
+                            </div>
+
+                            {/* TAB 1: 신청·서류 */}
+                            {rentalDetailTab === 'info' && (
+                                <section>
+                                    <h3>계약자 정보</h3>
+                                    <dl className="detail-dl">
+                                        <div>
+                                            <dt>계약자 성명</dt>
+                                            <dd>{selectedRental.name}</dd>
+                                        </div>
+                                        <div>
+                                            <dt>휴대폰 번호</dt>
+                                            <dd className="font-mono">{selectedRental.phone}</dd>
+                                        </div>
+                                        <div>
+                                            <dt>생년월일</dt>
+                                            <dd className="font-mono">{selectedRental.birthDate || '-'}</dd>
+                                        </div>
+                                        <div>
+                                            <dt>주소 / 현장 위치</dt>
+                                            <dd>{selectedRental.address || '-'}</dd>
+                                        </div>
+                                    </dl>
+
+                                    <h3>신청 금액 플랜 <small>{selectedRental.planTitle || 'KCC 홈씨씨 창호 렌탈'}</small></h3>
+                                    <div className="detail-price">
+                                        <div>
+                                            <span>초기 납입액</span>
+                                            <b>{(selectedRental.upfront || selectedRental.downPayment || 0).toLocaleString()}원</b>
+                                        </div>
+                                        <div>
+                                            <span>월 납부액</span>
+                                            <b>{(selectedRental.monthly || selectedRental.monthlyAmount || 0).toLocaleString()}원</b>
+                                        </div>
+                                        <div>
+                                            <span>납부 기간</span>
+                                            <b>{selectedRental.months || 60}개월</b>
+                                        </div>
+                                        <div>
+                                            <span>총 납부 예정금액</span>
+                                            <b>
+                                                {((selectedRental.upfront || selectedRental.downPayment || 0) + (selectedRental.monthly || selectedRental.monthlyAmount || 0) * (selectedRental.months || 60)).toLocaleString()}원
+                                            </b>
+                                        </div>
+                                    </div>
+
+                                    <h3>제출 서류 및 서명</h3>
+                                    <div className="detail-docs">
+                                        <button
+                                            type="button"
+                                            className="doc-btn"
+                                            onClick={() => handleOpenDocViewer('id')}
+                                        >
+                                            <span className="doc-icon">▧</span>
+                                            <strong>신분증 사본</strong>
+                                            <small>
+                                                {selectedRental.idDocumentStorageId || selectedRental.idDocumentUrl || selectedRental.files?.some(f => f.category === 'id_card')
+                                                    ? '등록 완료 · 열람하기 →'
+                                                    : '미등록 서류'}
+                                            </small>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className="doc-btn"
+                                            onClick={() => handleOpenDocViewer('signature')}
+                                        >
+                                            <span className="doc-icon">✎</span>
+                                            <strong>전자 서명</strong>
+                                            <small>
+                                                {selectedRental.signature || selectedRental.signatureUrl
+                                                    ? '서명 완료 · 열람하기 →'
+                                                    : '미서명'}
+                                            </small>
+                                        </button>
+                                    </div>
+
+                                    {/* Checklist */}
+                                    <div className="detail-checks">
+                                        <label>
+                                            <input
+                                                type="checkbox"
+                                                checked={reviewChecks[0]}
+                                                onChange={(e) => {
+                                                    const next = [...reviewChecks];
+                                                    next[0] = e.target.checked;
+                                                    setReviewChecks(next);
+                                                }}
+                                            />
+                                            신분증 확인
+                                        </label>
+                                        <label>
+                                            <input
+                                                type="checkbox"
+                                                checked={reviewChecks[1]}
+                                                onChange={(e) => {
+                                                    const next = [...reviewChecks];
+                                                    next[1] = e.target.checked;
+                                                    setReviewChecks(next);
+                                                }}
+                                            />
+                                            서명 확인
+                                        </label>
+                                        <label>
+                                            <input
+                                                type="checkbox"
+                                                checked={reviewChecks[2]}
+                                                onChange={(e) => {
+                                                    const next = [...reviewChecks];
+                                                    next[2] = e.target.checked;
+                                                    setReviewChecks(next);
+                                                }}
+                                            />
+                                            필수 동의 확인
+                                        </label>
+                                    </div>
+                                    <p className="detail-help">
+                                        ※ 신분증 식별 여부, 서명 일치 여부, 필수 약관 동의를 점검 후 심사/계약 확정으로 전환할 수 있습니다.
+                                    </p>
+                                </section>
+                            )}
+
+                            {/* TAB 2: 동의 내역 */}
+                            {rentalDetailTab === 'consent' && (
+                                <section>
+                                    <h3>필수 동의 내역</h3>
+                                    {(selectedRental.consents && selectedRental.consents.length > 0 ? selectedRental.consents : DEFAULT_RENTAL_TERMS).map((term, i) => (
+                                        <div key={term.id || i} className="consent-card">
+                                            <strong>✓ {term.title} · 동의 완료</strong>
+                                            <p>동의 시각: {selectedRental.createdAt ? formatDateTime(selectedRental.createdAt) : '접수 시'} · 필수 항목</p>
+                                            <details>
+                                                <summary>약관 원문 보기</summary>
+                                                <pre>{term.body || DEFAULT_RENTAL_TERMS[i]?.body || '약관 본문이 정상적으로 저장되었습니다.'}</pre>
+                                            </details>
+                                        </div>
+                                    ))}
+                                    <p className="detail-help">
+                                        ※ 전자서명 시 고객이 직접 확인하고 동의한 약관 원문 및 접수 시각입니다.
+                                    </p>
+                                </section>
+                            )}
+
+                            {/* TAB 3: 처리 이력 */}
+                            {rentalDetailTab === 'history' && (
+                                <section>
+                                    <h3>처리 타임라인</h3>
+                                    <ul className="admin-timeline">
+                                        {(selectedRental.history && selectedRental.history.length > 0
+                                            ? selectedRental.history
+                                            : [{ title: '렌탈 신청 접수', time: formatDateTime(selectedRental.createdAt), note: '고객 견적서에서 렌탈 3단계 신청 완료' }]
+                                        ).map((h, i) => (
+                                            <li key={i}>
+                                                <strong>{h.title}</strong>
+                                                <small>{h.time}</small>
+                                                {h.note && <p>{h.note}</p>}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </section>
+                            )}
+
+                            {/* Processing & Transition Section */}
+                            <section className="admin-processing">
+                                <h3>상태 변경 및 검토 내용 기록</h3>
+                                <label htmlFor="admin-status-select">변경할 진행 상태</label>
+                                <select
+                                    id="admin-status-select"
+                                    value={reviewStatus}
+                                    onChange={(e) => setReviewStatus(e.target.value)}
+                                >
+                                    <option value="received">신규 접수</option>
+                                    <option value="review">서류 확인 중</option>
+                                    <option value="needs_info">보완 요청</option>
+                                    <option value="screening">심사 중</option>
+                                    <option value="confirmed">계약 확정</option>
+                                    <option value="cancelled">취소</option>
+                                </select>
+
+                                <label htmlFor="admin-memo">처리 메모 / 보완 사유</label>
+                                <textarea
+                                    id="admin-memo"
+                                    rows="3"
+                                    maxLength="500"
+                                    placeholder="예: 신분증 사진 반사로 재촬영 요청 필요 / 심사 승인 완료"
+                                    value={reviewMemo}
+                                    onChange={(e) => setReviewMemo(e.target.value)}
+                                />
+
+                                {reviewFeedback.text && (
+                                    <div className={`admin-feedback-msg ${reviewFeedback.type}`}>
+                                        {reviewFeedback.text}
+                                    </div>
+                                )}
+
+                                <button
+                                    type="button"
+                                    className="admin-save-btn"
+                                    onClick={handleSaveReview}
+                                    disabled={isSavingReview}
+                                >
+                                    {isSavingReview ? '저장 중...' : '검토 내용 및 상태 반영하기'}
+                                </button>
+                            </section>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* DOCUMENT VIEWER MODAL */}
+            {docViewer.isOpen && (
+                <div
+                    className="doc-modal-backdrop"
+                    onClick={() => setDocViewer({ isOpen: false, type: 'id', title: '', url: '', name: '', description: '' })}
+                >
+                    <div
+                        className="doc-modal"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="detail-head">
+                            <div>
+                                <span className="detail-breadcrumb">문서 보안 열람</span>
+                                <h2>{docViewer.title}</h2>
+                            </div>
+                            <button
+                                type="button"
+                                className="detail-close-btn"
+                                onClick={() => setDocViewer({ isOpen: false, type: 'id', title: '', url: '', name: '', description: '' })}
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        <div className="doc-preview-area">
+                            <div className="doc-watermark">KCC HOMECC · 보안 열람 워터마크</div>
+                            {docViewer.url ? (
+                                <img
+                                    src={docViewer.url}
+                                    alt={docViewer.description}
+                                    className="doc-img-view"
+                                />
+                            ) : (
+                                <div className="doc-placeholder-box">
+                                    <span>{docViewer.type === 'id' ? '▧' : '✎'}</span>
+                                    <h3>{docViewer.description} 미리보기 없음</h3>
+                                    <p>등록된 첨부 파일이 없거나 브라우저에서 직접 열람할 수 없는 형식입니다.</p>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="doc-access-note">
+                            <strong>보안 열람 안내</strong>
+                            <p>개인정보보호법에 따라 본 서류는 렌탈 계약 심사 목적 외 사용이 엄격히 금지되며, 관리자의 열람 시각 및 이력이 시스템에 자동 기록됩니다.</p>
                         </div>
                     </div>
                 </div>

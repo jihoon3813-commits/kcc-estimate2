@@ -43,29 +43,57 @@ export default defineSchema({
 
     rental_applications: defineTable({
         quoteId: v.optional(v.id("quotes")),
+        receiptId: v.optional(v.string()), // e.g. R-20261111-0001
         name: v.string(),
         phone: v.string(),
-        address: v.string(),
+        address: v.optional(v.string()),
         birthDate: v.string(),
-        gender: v.string(),
-        selectedAmount: v.number(),
-        ownershipType: v.string(),
+        gender: v.optional(v.string()),
+        selectedAmount: v.optional(v.number()),
+        ownershipType: v.optional(v.string()),
+        planKey: v.optional(v.string()), // 'lowupfront' | 'lowmonthly'
+        planTitle: v.optional(v.string()),
+        upfront: v.optional(v.number()),
+        monthly: v.optional(v.number()),
+        months: v.optional(v.number()),
+        totalAmount: v.optional(v.number()),
         finalBenefit: v.optional(v.number()),
         downPayment: v.optional(v.number()),
         balance: v.optional(v.number()),
         conversionMode: v.optional(v.string()),
         monthlyAmount: v.optional(v.number()),
-        files: v.array(v.object({
+        files: v.optional(v.array(v.object({
             category: v.string(), // registry, contract, family, id_card
             name: v.string(),
             storageId: v.string(),
-        })),
-        agreements: v.object({
+        }))),
+        idDocumentStorageId: v.optional(v.string()),
+        idDocumentName: v.optional(v.string()),
+        signature: v.optional(v.string()),
+        agreements: v.optional(v.object({
             agree1: v.boolean(),
             agree2: v.boolean(),
             agree3: v.boolean(),
-        }),
-        status: v.string(), // pending
+        })),
+        consents: v.optional(v.array(v.object({
+            id: v.string(),
+            title: v.string(),
+            agreed: v.boolean(),
+            version: v.optional(v.string()),
+        }))),
+        checks: v.optional(v.object({
+            id: v.boolean(),
+            signature: v.boolean(),
+            consent: v.boolean(),
+        })),
+        history: v.optional(v.array(v.object({
+            title: v.string(),
+            time: v.string(),
+            note: v.string(),
+            actor: v.optional(v.string()),
+        }))),
+        adminMemo: v.optional(v.string()),
+        status: v.string(), // received, review, needs_info, screening, confirmed, cancelled
         transferDate: v.optional(v.string()),
         jobCategory: v.optional(v.string()),
         createdAt: v.string(),

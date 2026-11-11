@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { Search, User, Phone, MapPin, Download, Gift, ShieldCheck, ChevronRight, MessageCircle, ExternalLink, X, Calendar, CheckCircle2, CheckCircle, Loader2, Upload, Calculator, ArrowRightLeft, Wallet, Clock, Sparkles, FileText, Camera, Check } from 'lucide-react';
-import { searchQuote, saveRentalDraft, saveSubscriptionDraft, saveGreenDraft, submitRentalApplication, submitSubscriptionApplication, submitGreenApplication, getRentalDraft, getSubscriptionDraft, getGreenDraft, uploadSingleFile, getLatestTemplateByType, getGreenLatestApplication, updateQuoteRemark, createInquiry } from '../lib/api';
+import { searchQuote, saveRentalDraft, saveSubscriptionDraft, saveGreenDraft, submitRentalApplication, submitRentalNewApplication, submitSubscriptionApplication, submitGreenApplication, getRentalDraft, getSubscriptionDraft, getGreenDraft, uploadSingleFile, getLatestTemplateByType, getGreenLatestApplication, updateQuoteRemark, createInquiry } from '../lib/api';
 import KccMobileEstimate from './KccMobileEstimate';
 import logoImg from '../assets/logo.png';
 import { PDFDocument, rgb } from 'pdf-lib';
@@ -39,6 +39,21 @@ const CustomerPage = () => {
             }
         } catch (err) {
             console.error("Failed to save consultation remark:", err);
+        }
+    };
+
+    const handleSubmitRentalApplication = async (payload) => {
+        try {
+            const res = await submitRentalNewApplication(payload);
+            if (data?._id) {
+                const prevRemark = data.remark ? data.remark + '\n' : '';
+                const newRemark = `${prevRemark}[렌탈신청접수 ${new Date().toLocaleDateString('ko-KR')}] ${payload.planTitle} (접수번호: ${res.receiptId || '신규'})`;
+                setData(prev => prev ? ({ ...prev, remark: newRemark }) : prev);
+            }
+            return res;
+        } catch (err) {
+            console.error("Failed to submit rental application:", err);
+            throw err;
         }
     };
 
@@ -1200,6 +1215,7 @@ const CustomerPage = () => {
                     isLoggedIn={isLoggedIn}
                     onOpenApplication={handleOpenApplication}
                     onSaveConsultation={handleSaveConsultation}
+                    onSubmitRentalApplication={handleSubmitRentalApplication}
                 />
 
             {modalType && (

@@ -1,15 +1,18 @@
 import React, { useState, useEffect, useRef } from 'react';
 import '../styles/kcc-estimate.scoped.css';
+import '../styles/rental.css';
 import logoImg from '../assets/logo.png';
 import windowImg from '../assets/window.webp';
 import kitchenImg from '../assets/kitchen.webp';
+import RentalApplicationModal from './RentalApplicationModal';
 
 export default function KccMobileEstimate({
   data: propData,
   isLoggedIn = false,
   onOpenSearch,
   onOpenApplication,
-  onSaveConsultation
+  onSaveConsultation,
+  onSubmitRentalApplication
 }) {
   // Use propData if provided, otherwise fallback to the default sample quote
   const data = propData || {
@@ -62,6 +65,29 @@ export default function KccMobileEstimate({
       detail: `초기 ${money(upfrontB)} + 월 ${money(monthlyB)} × 60개월`,
       button: `월 ${Math.round(monthlyB / 10000)}만${Math.round((monthlyB % 10000) / 1000)}천원 조건 상담하기`
     }
+  };
+
+  const rentalPlansData = {
+    lowupfront: {
+      title: '초기 부담을 줄이는 렌탈',
+      upfront: upfrontA,
+      monthly: monthlyA,
+      months: 60
+    },
+    lowmonthly: {
+      title: '월 부담을 줄이는 렌탈',
+      upfront: upfrontB,
+      monthly: monthlyB,
+      months: 60
+    }
+  };
+
+  const rentalQuoteData = {
+    id: data._id || '0870',
+    customerName: data.name || '주원',
+    phone: data.phone || '010-3261-8355',
+    location: data.address || '용인시 수지구 · 51평',
+    product: 'KCC 홈씨씨 창호 교체'
   };
 
   const defaultWindows = [
@@ -191,6 +217,10 @@ export default function KccMobileEstimate({
   // State
   const [selectedPlan, setSelectedPlan] = useState('cash');
   const [activeNav, setActiveNav] = useState('estimate');
+
+  // Rental Application Modal State
+  const [isRentalModalOpen, setIsRentalModalOpen] = useState(false);
+  const [rentalPlanKey, setRentalPlanKey] = useState('lowupfront');
 
   // Consultation Modal State
   const [isConsultOpen, setIsConsultOpen] = useState(false);
@@ -494,75 +524,123 @@ export default function KccMobileEstimate({
               </button>
 
               {/* Low Upfront Rental Card */}
-              <button
-                className={`pay-card ${selectedPlan === 'lowupfront' ? 'selected' : ''}`}
-                type="button"
-                role="radio"
-                aria-checked={selectedPlan === 'lowupfront'}
-                onClick={() => setSelectedPlan('lowupfront')}
-              >
-                <div className="pay-heading">
-                  <span className="radio-mark"></span>
-                  <span>처음 내는 금액을 줄이고 싶다면</span>
-                  <span className="pay-tag">60개월 렌탈</span>
-                </div>
-                <div className="pay-main">
-                  <span>월 납부금액</span>
-                  <strong>
-                    {new Intl.NumberFormat('ko-KR').format(monthlyA)}
-                    <small>원</small>
-                  </strong>
-                </div>
-                <div className="pay-facts">
-                  <span>초기 납입액 <b>{money(upfrontA)}</b></span>
-                  <span>납부기간 <b>60개월</b></span>
-                </div>
-                <div className="pay-footer">
-                  <span>초기 납입액 + 월 납부액 합계</span>
-                  <b>총 {money(totalA)}</b>
-                </div>
-              </button>
+              <div className="rental-option">
+                <button
+                  className={`pay-card ${selectedPlan === 'lowupfront' ? 'selected' : ''}`}
+                  type="button"
+                  role="radio"
+                  aria-checked={selectedPlan === 'lowupfront'}
+                  onClick={() => setSelectedPlan('lowupfront')}
+                >
+                  <div className="pay-heading">
+                    <span className="radio-mark"></span>
+                    <span>처음 내는 금액을 줄이고 싶다면</span>
+                    <span className="pay-tag">60개월 렌탈</span>
+                  </div>
+                  <div className="pay-main">
+                    <span>월 납부금액</span>
+                    <strong>
+                      {new Intl.NumberFormat('ko-KR').format(monthlyA)}
+                      <small>원</small>
+                    </strong>
+                  </div>
+                  <div className="pay-facts">
+                    <span>초기 납입액 <b>{money(upfrontA)}</b></span>
+                    <span>납부기간 <b>60개월</b></span>
+                  </div>
+                  <div className="pay-footer">
+                    <span>초기 납입액 + 월 납부액 합계</span>
+                    <b>총 {money(totalA)}</b>
+                  </div>
+                </button>
+                {selectedPlan === 'lowupfront' && (
+                  <div className="rental-actions" data-plan-actions="lowupfront">
+                    <button
+                      type="button"
+                      className="rental-consult"
+                      onClick={() => openConsult('결제 방식 비교', `${plans.lowupfront.name} · ${plans.lowupfront.detail}`)}
+                    >
+                      상담하기
+                    </button>
+                    <button
+                      type="button"
+                      className="rental-apply"
+                      onClick={() => {
+                        setRentalPlanKey('lowupfront');
+                        setIsRentalModalOpen(true);
+                      }}
+                    >
+                      렌탈 신청하기 <span aria-hidden="true">→</span>
+                    </button>
+                  </div>
+                )}
+              </div>
 
               {/* Low Monthly Rental Card */}
-              <button
-                className={`pay-card ${selectedPlan === 'lowmonthly' ? 'selected' : ''}`}
-                type="button"
-                role="radio"
-                aria-checked={selectedPlan === 'lowmonthly'}
-                onClick={() => setSelectedPlan('lowmonthly')}
-              >
-                <div className="pay-heading">
-                  <span className="radio-mark"></span>
-                  <span>매월 내는 금액을 줄이고 싶다면</span>
-                  <span className="pay-tag">60개월 렌탈</span>
-                </div>
-                <div className="pay-main">
-                  <span>월 납부금액</span>
-                  <strong>
-                    {new Intl.NumberFormat('ko-KR').format(monthlyB)}
-                    <small>원</small>
-                  </strong>
-                </div>
-                <div className="pay-facts">
-                  <span>초기 납입액 <b>{money(upfrontB)}</b></span>
-                  <span>납부기간 <b>60개월</b></span>
-                </div>
-                <div className="pay-footer">
-                  <span>초기 납입액 + 월 납부액 합계</span>
-                  <b>총 {money(totalB)}</b>
-                </div>
-              </button>
+              <div className="rental-option">
+                <button
+                  className={`pay-card ${selectedPlan === 'lowmonthly' ? 'selected' : ''}`}
+                  type="button"
+                  role="radio"
+                  aria-checked={selectedPlan === 'lowmonthly'}
+                  onClick={() => setSelectedPlan('lowmonthly')}
+                >
+                  <div className="pay-heading">
+                    <span className="radio-mark"></span>
+                    <span>매월 내는 금액을 줄이고 싶다면</span>
+                    <span className="pay-tag">60개월 렌탈</span>
+                  </div>
+                  <div className="pay-main">
+                    <span>월 납부금액</span>
+                    <strong>
+                      {new Intl.NumberFormat('ko-KR').format(monthlyB)}
+                      <small>원</small>
+                    </strong>
+                  </div>
+                  <div className="pay-facts">
+                    <span>초기 납입액 <b>{money(upfrontB)}</b></span>
+                    <span>납부기간 <b>60개월</b></span>
+                  </div>
+                  <div className="pay-footer">
+                    <span>초기 납입액 + 월 납부액 합계</span>
+                    <b>총 {money(totalB)}</b>
+                  </div>
+                </button>
+                {selectedPlan === 'lowmonthly' && (
+                  <div className="rental-actions" data-plan-actions="lowmonthly">
+                    <button
+                      type="button"
+                      className="rental-consult"
+                      onClick={() => openConsult('결제 방식 비교', `${plans.lowmonthly.name} · ${plans.lowmonthly.detail}`)}
+                    >
+                      상담하기
+                    </button>
+                    <button
+                      type="button"
+                      className="rental-apply"
+                      onClick={() => {
+                        setRentalPlanKey('lowmonthly');
+                        setIsRentalModalOpen(true);
+                      }}
+                    >
+                      렌탈 신청하기 <span aria-hidden="true">→</span>
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
 
-            <button
-              className="primary full"
-              id="plan-cta"
-              type="button"
-              onClick={() => openConsult('결제 방식 비교', `${plans[selectedPlan].name} · ${plans[selectedPlan].detail}`)}
-            >
-              {plans[selectedPlan].button}
-              <svg><use href="#i-arrow" /></svg>
-            </button>
+            {selectedPlan === 'cash' && (
+              <button
+                className="primary full"
+                id="plan-cta"
+                type="button"
+                onClick={() => openConsult('결제 방식 비교', `${plans[selectedPlan].name} · ${plans[selectedPlan].detail}`)}
+              >
+                {plans[selectedPlan].button}
+                <svg><use href="#i-arrow" /></svg>
+              </button>
+            )}
             <p className="fineprint">
               렌탈 총 납부액은 초기 납입액과 60개월 월 납부액의 합계입니다. 계약 조건은 상담 시 확인해주세요.
             </p>
@@ -1240,6 +1318,16 @@ export default function KccMobileEstimate({
       <div id="toast" className={showToast ? 'show' : ''} role="status" aria-live="polite">
         {toastMessage}
       </div>
+
+      {/* 3-Step Rental Application Modal */}
+      <RentalApplicationModal
+        isOpen={isRentalModalOpen}
+        onClose={() => setIsRentalModalOpen(false)}
+        planKey={rentalPlanKey}
+        plan={rentalPlansData[rentalPlanKey]}
+        quote={rentalQuoteData}
+        onSubmitApplication={onSubmitRentalApplication}
+      />
     </div>
   );
 }
