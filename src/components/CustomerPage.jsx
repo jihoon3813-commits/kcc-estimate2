@@ -1,6 +1,8 @@
 import React, { useState, useRef } from 'react';
 import { Search, User, Phone, MapPin, Download, Gift, ShieldCheck, ChevronRight, MessageCircle, ExternalLink, X, Calendar, CheckCircle2, CheckCircle, Loader2, Upload, Calculator, ArrowRightLeft, Wallet, Clock, Sparkles, FileText, Camera, Check } from 'lucide-react';
-import { searchQuote, saveQuote, saveRentalDraft, saveSubscriptionDraft, saveGreenDraft, submitRentalApplication, submitSubscriptionApplication, submitGreenApplication, getRentalDraft, getSubscriptionDraft, getGreenDraft, updateRentalStatus, updateSubscriptionStatus, updateGreenStatus, getAdminQuoteList, getRentalApplicationList, getSubscriptionApplicationList, getGreenApplicationList, getTemplatePdfUrl, uploadSingleFile, savePdfTemplate, getTemplateList, deletePdfTemplate, getLatestTemplateByType, getGreenLatestApplication } from '../lib/api';
+import { searchQuote, saveRentalDraft, saveSubscriptionDraft, saveGreenDraft, submitRentalApplication, submitSubscriptionApplication, submitGreenApplication, getRentalDraft, getSubscriptionDraft, getGreenDraft, uploadSingleFile, getLatestTemplateByType, getGreenLatestApplication, updateQuoteRemark } from '../lib/api';
+import KccMobileEstimate from './KccMobileEstimate';
+import logoImg from '../assets/logo.png';
 import { PDFDocument, rgb } from 'pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
 import SignatureCanvas from 'react-signature-canvas';
@@ -13,6 +15,36 @@ const CustomerPage = () => {
     const [data, setData] = useState(null);
     const [banners, setBanners] = useState([]);
     const [modalType, setModalType] = useState(null); // 'A' or 'B'
+    const [showSearchModal, setShowSearchModal] = useState(false);
+
+    const handleSaveConsultation = async (consultData) => {
+        if (data?._id) {
+            try {
+                const prevRemark = data.remark ? data.remark + '\n' : '';
+                const newRemark = `${prevRemark}[상담접수 ${new Date().toLocaleDateString('ko-KR')}] ${consultData.paymentMethod} / ${consultData.topics.join(', ')} / 시간: ${consultData.preferredTime} / 메모: ${consultData.memo || '없음'}`;
+                await updateQuoteRemark({ id: data._id, remark: newRemark });
+            } catch (err) {
+                console.error("Failed to save consultation remark:", err);
+            }
+        }
+    };
+
+    const handleOpenApplication = (type) => {
+        if (type === 'green_remodeling') {
+            setApplicationType('green_remodeling');
+            setIsRentalMode(true);
+            setRentalStep(0);
+            setGreenFlow('intro');
+        } else if (type === 'subscription') {
+            setApplicationType('subscription');
+            setIsRentalMode(true);
+            setRentalStep(1);
+        } else if (type === 'rental') {
+            setApplicationType('rental');
+            setIsRentalMode(true);
+            setRentalStep(1);
+        }
+    };
     const [appliances, setAppliances] = useState({ A: [], B: [] });
     const [loading, setLoading] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -964,990 +996,193 @@ const CustomerPage = () => {
 
     if (!isLoggedIn) {
         return (
-            <div className="min-h-screen flex items-center justify-center p-4 bg-[#001a3d] relative overflow-hidden text-sm">
-                <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-[#001a3d] to-[#003366] opacity-90"></div>
+            <div className="min-h-screen flex items-center justify-center p-4 bg-[#192838] relative overflow-hidden text-sm selection:bg-[#ed7426]/30">
+                {/* Background decorative gradient */}
+                <div className="absolute inset-0 bg-gradient-to-br from-[#192838] via-[#20313f] to-[#121c27] opacity-95"></div>
 
-                <div className="w-full max-w-[420px] bg-white/10 backdrop-blur-xl p-10 rounded-[2.5rem] shadow-2xl relative z-10 border border-white/20">
-                    <div className="text-center mb-8 space-y-4">
-                        <div className="flex justify-center mb-4">
-                            <img src="https://cdn.imweb.me/upload/S20250904697320f4fd9ed/e840c9a46f66a.png" alt="KCC Logo" className="h-10 object-contain" />
+                <div className="w-full max-w-[420px] bg-white/10 backdrop-blur-xl p-8 md:p-10 rounded-[2rem] shadow-2xl relative z-10 border border-white/15">
+                    <div className="text-center mb-8 space-y-3">
+                        <div className="flex justify-center mb-3">
+                            <div className="bg-white px-4 py-2 rounded-xl shadow-md inline-block">
+                                <img src={logoImg} alt="KCC 홈씨씨" className="h-7 object-contain" />
+                            </div>
                         </div>
-                        <h1 className="text-lg font-extrabold text-white tracking-tight leading-tight">
-                            프리미엄 견적 시스템
+                        <h1 className="text-xl font-extrabold text-white tracking-tight leading-tight">
+                            나의 창호 견적 조회
                         </h1>
-                        <p className="text-white/60 text-[9px] font-bold uppercase tracking-widest">이름과 전화번호를 입력해주세요</p>
+                        <p className="text-white/70 text-xs font-medium">
+                            성함과 연락처를 입력하시면 맞춤 견적서를 확인하실 수 있습니다.
+                        </p>
                     </div>
 
-                    <form onSubmit={handleSearch} className="space-y-4">
+                    <form onSubmit={(e) => {
+                        e.preventDefault();
+                        executeSearch(searchForm.name, searchForm.phone, statusType);
+                    }} className="space-y-4">
                         {/* Status Type Selector */}
-                        <div className="grid grid-cols-3 gap-2 mb-4 bg-black/20 p-1 rounded-xl">
+                        <div className="grid grid-cols-3 gap-2 mb-4 bg-black/25 p-1 rounded-xl border border-white/10">
                             {['가견적', '책임견적', '최종견적'].map((type) => (
                                 <button
                                     key={type}
                                     type="button"
                                     onClick={() => {
                                         setStatusType(type);
-                                        // If already has name/phone, re-trigger search to find the specific type
                                         if (searchForm.name && searchForm.phone) {
                                             executeSearch(searchForm.name, searchForm.phone, type);
                                         }
                                     }}
-                                    className={`py-2 rounded-lg text-[10px] md:text-xs font-bold transition-all ${statusType === type
-                                        ? 'bg-[#c5a059] text-white shadow-md'
-                                        : 'text-white/60 hover:text-white hover:bg-white/5'
-                                        }`}
+                                    className={`py-2 rounded-lg text-xs font-bold transition-all ${
+                                        statusType === type
+                                            ? 'bg-[#ed7426] text-white shadow-md'
+                                            : 'text-white/60 hover:text-white hover:bg-white/5'
+                                    }`}
                                 >
                                     {type}
                                 </button>
                             ))}
                         </div>
 
-                        <div className="space-y-1">
-                            <label className="text-white/50 text-[9px] font-bold uppercase tracking-widest ml-1">성함</label>
+                        <div className="space-y-1.5">
+                            <label className="text-white/70 text-xs font-bold ml-1">고객명 (성함)</label>
                             <div className="relative">
-                                <User className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40" size={14} />
+                                <User className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40" size={16} />
                                 <input
                                     type="text"
                                     required
                                     placeholder="성함을 입력하세요"
-                                    className="w-full bg-white/5 border border-white/10 rounded-2xl py-3.5 pl-10 pr-4 text-xs text-white placeholder:text-white/20 focus:bg-white/10 outline-none transition-all font-semibold"
+                                    className="w-full bg-white/10 border border-white/15 rounded-xl py-3.5 pl-11 pr-4 text-sm text-white placeholder:text-white/30 focus:bg-white/15 focus:border-[#ed7426] outline-none transition-all font-medium"
                                     value={searchForm.name}
                                     onChange={(e) => setSearchForm(prev => ({ ...prev, name: e.target.value }))}
                                 />
                             </div>
                         </div>
-                        <div className="space-y-1">
-                            <label className="text-white/50 text-[9px] font-bold uppercase tracking-widest ml-1">연락처</label>
+
+                        <div className="space-y-1.5">
+                            <label className="text-white/70 text-xs font-bold ml-1">연락처 (휴대폰 번호)</label>
                             <div className="relative">
-                                <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40" size={14} />
+                                <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40" size={16} />
                                 <input
                                     type="tel"
                                     inputMode="numeric"
                                     required
-                                    placeholder="연락처를 입력하세요"
-                                    className="w-full bg-white/5 border border-white/10 rounded-2xl py-3.5 pl-10 pr-4 text-xs text-white placeholder:text-white/20 focus:bg-white/10 outline-none transition-all font-semibold"
+                                    placeholder="연락처를 입력하세요 (010-0000-0000)"
+                                    className="w-full bg-white/10 border border-white/15 rounded-xl py-3.5 pl-11 pr-4 text-sm text-white placeholder:text-white/30 focus:bg-white/15 focus:border-[#ed7426] outline-none transition-all font-medium"
                                     value={searchForm.phone}
                                     onChange={handlePhoneChange}
                                 />
                             </div>
                         </div>
-                        <button type="submit" disabled={loading} className="w-full bg-[#c5a059] text-white text-xs font-black py-4 rounded-2xl shadow-lg hover:brightness-110 active:scale-[0.98] transition-all flex items-center justify-center gap-2 mt-4 uppercase disabled:opacity-50">
-                            {loading ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />}
-                            {loading ? '조회 중...' : '조회 결과 확인하기'}
+
+                        <button
+                            type="submit"
+                            disabled={loading}
+                            className="w-full bg-[#ed7426] hover:bg-[#d96018] text-white text-sm font-black py-4 rounded-xl shadow-lg active:scale-[0.98] transition-all flex items-center justify-center gap-2 mt-4 disabled:opacity-50"
+                        >
+                            {loading ? <Loader2 size={18} className="animate-spin" /> : <Search size={18} />}
+                            {loading ? '조회 중...' : '견적서 확인하기'}
                         </button>
                     </form>
 
-                    <div className="mt-8 text-center border-t border-white/10 pt-4">
-                        <p className="text-white/40 text-[10px] font-bold">(주)티유디지털 | 공식파트너</p>
+                    <div className="mt-8 text-center border-t border-white/10 pt-4 space-y-1">
+                        <p className="text-white/50 text-[11px] font-medium">(주)티유디지털 | KCC글라스 공식 파트너</p>
+                        <p className="text-white/30 text-[9px] tracking-widest uppercase">A BETTER WINDOW, A BETTER HOME.</p>
                     </div>
                 </div>
             </div>
         );
     }
 
-    if (!data) return <div className="min-h-screen flex items-center justify-center text-[#001a3d] font-bold text-xs uppercase tracking-widest">Loading Premium Data...</div>;
-
     return (
-        <div className="min-h-screen bg-slate-900 flex justify-center selection:bg-[#c5a059]/30">
-            <div className="w-full max-w-[480px] bg-[#f7f9fc] min-h-screen pb-16 font-sans text-sm relative shadow-2xl overflow-x-hidden flex flex-col">
-                <header className="bg-white sticky top-0 z-50 border-b border-gray-100 shadow-sm">
-                    <div className="w-full px-5 py-3.5 flex justify-between items-center">
-                    <img src="https://cdn.imweb.me/upload/S20250904697320f4fd9ed/5b115594e9a66.png" alt="KCC Logo" className="h-6 object-contain" />
-                    <div className="flex items-center gap-1.5">
-                        <span className={`text-white text-[9px] font-black px-2.5 py-1.5 rounded-md shadow-sm ${data.type === '최종견적' ? 'bg-red-500' :
-                            data.type === '책임견적' ? 'bg-[#c5a059]' :
-                                'bg-gray-400'
-                            }`}>
-                            {data.type || '가견적'}
-                        </span>
-                        <div className="bg-[#f0f4f9] text-[#2c3e50] text-[9px] font-black px-2.5 py-1.5 rounded-full border border-gray-200 flex items-center gap-1">
-                            <Calendar size={10} />
-                            견적일: <span className="font-outfit">{data.date}</span>
-                        </div>
+        <div className="min-h-screen bg-[#f1f2f3]">
+            <div>
+                {loading && (
+                    <div className="fixed inset-0 z-[500] flex items-center justify-center bg-black/40 backdrop-blur-sm text-white font-bold gap-3">
+                        <Loader2 className="animate-spin" size={24} />
+                        <span>견적 정보를 불러오는 중입니다...</span>
                     </div>
-                </div>
-            </header>
+                )}
 
-            <div className="w-full p-4 md:p-6 space-y-8">
-            <div className="bg-[#001a3d] -mx-4 md:-mx-6 -mt-4 md:-mt-6 px-4 md:px-6 py-6 md:py-10 space-y-4 relative overflow-hidden flex flex-col items-center justify-center">
-                {/* Background Image with Overlay */}
-                <div className="absolute inset-0 z-0">
-                    <img 
-                        src="https://res.cloudinary.com/dx7l09wwu/image/upload/v1775622415/HW_ONE_%ED%95%B8%EB%93%A4_%ED%95%A9%EC%84%B12_%EC%84%B8%EB%A1%9C_ssfa1u.png" 
-                        alt="Hero Background" 
-                        className="w-full h-full object-cover opacity-60"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-b from-[#001a3d]/80 via-[#001a3d]/50 to-[#001a3d]"></div>
-                </div>
+                <KccMobileEstimate
+                    data={data}
+                    isLoggedIn={isLoggedIn}
+                    onOpenSearch={() => setShowSearchModal(true)}
+                    onOpenApplication={handleOpenApplication}
+                    onSaveConsultation={handleSaveConsultation}
+                />
 
-                {/* Decorative Elements */}
-                <div className="absolute top-0 right-0 w-48 h-48 bg-blue-500/10 rounded-full blur-3xl -mr-24 -mt-24"></div>
-                <div className="absolute bottom-0 left-0 w-48 h-48 bg-[#c5a059]/10 rounded-full blur-3xl -ml-24 -mb-24"></div>
-
-                <div className="text-center space-y-3 relative z-10 w-full max-w-lg">
-                    <div className="inline-block border border-[#c5a059]/40 bg-[#c5a059]/10 px-3 py-1 rounded-full backdrop-blur-md">
-                        <span className="text-[#c5a059] text-[9px] font-black tracking-[0.2em] uppercase">OFFICIAL QUOTATION</span>
-                    </div>
-                    
-                    <div className="space-y-2">
-                        <h2 className="text-2xl md:text-3xl font-extrabold text-white leading-[1.2] tracking-tight break-keep">
-                            결제는 더 유연하게,<br />
-                            창호는 더 <span className="text-[#facc15]">프리미엄하게</span>
-                        </h2>
-                        
-                        <div className="flex flex-col items-center gap-2 pt-2 w-full max-w-xs mx-auto">
-                            {[
-                                '60개월 구독/렌탈/일시불 할인',
-                                'KCC홈씨씨 본사 시공 13년 보증',
-                                '유리 · 방충망 무료 업그레이드'
-                            ].map((text, idx) => (
-                                <div key={idx} className="flex items-center gap-2.5 px-4 py-1.5 bg-black/30 backdrop-blur-md rounded-lg border border-white/10 w-full group/item hover:bg-white/5 transition-all">
-                                    <div className="w-1 h-1 bg-[#facc15] rounded-full shadow-[0_0_8px_rgba(250,204,21,0.8)]"></div>
-                                    <span className="text-white/90 text-[11px] md:text-xs font-black tracking-tight flex-1 text-left">{text}</span>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                </div>
-
-                <div className="max-w-xl mx-auto">
-                    <div className="bg-white/5 backdrop-blur-xl border border-white/10 p-4 rounded-2xl shadow-2xl relative overflow-hidden group">
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-[#c5a059]/10 rounded-full blur-2xl -mr-16 -mt-16 group-hover:bg-[#c5a059]/20 transition-all duration-700"></div>
-                        
-                        <div className="relative z-10 space-y-4">
-                            <div className="flex justify-between items-center px-1">
-                                <div>
-                                    <p className="text-[9px] font-black text-[#c5a059] uppercase tracking-[0.1em] mb-1">Customer details</p>
-                                    <h3 className="text-xl md:text-2xl font-black text-white leading-none">{data.name} 고객님</h3>
-                                </div>
-                                <div className={`px-4 py-2 rounded-lg text-[10px] font-black shadow-lg transition-all ${data.type === '최종견적' ? 'bg-[#c5a059] text-[#001a3d]' :
-                                    data.type === '책임견적' ? 'bg-[#c5a059] text-[#001a3d]' :
-                                        'bg-white/10 text-white/50 border border-white/10'
-                                    }`}>
-                                    {data.statusType || data.type || '가견적'}
-                                </div>
-                            </div>
-
-                            <div className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
-
-                            <div className="grid grid-cols-1 gap-3">
-                                <div className="flex items-start gap-4 p-3 bg-white/5 rounded-xl border border-white/5 group/info hover:bg-white/10 transition-all">
-                                    <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center text-[#c5a059] group-hover/info:scale-110 transition-transform shadow-inner shrink-0">
-                                        <MapPin size={18} />
-                                    </div>
-                                    <div className="min-w-0 flex-1 flex items-center h-10">
-                                        <p className="text-[12px] md:text-sm font-bold text-white/90 leading-normal break-keep">{data.address}</p>
-                                    </div>
-                                </div>
-                                <div className="flex items-center gap-4 p-3 bg-white/5 rounded-xl border border-white/5 group/info hover:bg-white/10 transition-all">
-                                    <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center text-[#c5a059] group-hover/info:scale-110 transition-transform shadow-inner shrink-0">
-                                        <Phone size={18} />
-                                    </div>
-                                    <div className="flex-1 flex items-center h-10">
-                                        <p className="text-[12px] md:text-sm font-bold text-white/90 font-outfit tracking-wide">{formatPhoneNumber(data.phone || searchForm.phone)}</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {/* New Navigation Section */}
-            <div className="space-y-4 py-2 animate-in fade-in slide-in-from-bottom-4 duration-700">
-                <div className="text-center space-y-2">
-                    <div className="inline-block bg-[#001a3d] px-4 py-1.5 rounded-full shadow-xl border border-[#c5a059]/30">
-                        <span className="text-[#c5a059] text-[9px] font-black tracking-[0.1em] uppercase">결제 방식 안내</span>
-                    </div>
-                    <h3 className="text-2xl md:text-3xl font-black text-[#001a3d] tracking-tight">결제 방식별 상세 제안</h3>
-                </div>
-
-                <div className="grid grid-cols-1 gap-4 max-w-lg mx-auto">
-                    {[
-                        { id: 1, title: '일시불 특별 할인' },
-                        { id: 2, title: '그린리모델링(정부 지원)' },
-                        { id: 3, title: '스마트 구독 서비스' },
-                        { id: 4, title: '60개월 렌탈 패키지' }
-                    ].map((item) => (
-                        <div key={item.id} className="bg-white p-3.5 rounded-xl shadow-lg shadow-gray-200/50 border border-gray-100 flex items-center gap-4 hover:shadow-2xl hover:scale-[1.02] transition-all cursor-pointer group relative overflow-hidden">
-                            <div className="absolute inset-0 w-[200%] h-full bg-gradient-to-r from-transparent via-[#c5a059]/5 to-transparent -translate-x-full group-hover:animate-[shimmer_2s_infinite] pointer-events-none"></div>
-                            <div className="w-8 h-8 bg-[#001a3d] text-white rounded-full flex items-center justify-center font-black text-sm shadow-lg group-hover:bg-[#c5a059] group-hover:text-[#001a3d] transition-all duration-300 shrink-0">
-                                {item.id}
-                            </div>
-                            <span className="text-base font-black text-[#001a3d] tracking-tight group-hover:translate-x-1 transition-transform duration-300">{item.title}</span>
-                            <div className="ml-auto w-8 h-8 bg-gray-50 rounded-full flex items-center justify-center text-gray-300 group-hover:text-[#c5a059] group-hover:bg-[#001a3d]/5 transition-all duration-300">
-                                <ChevronRight size={16} />
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            </div>
-
-                {data.status === '책임견적' && (
-                    <div className="bg-gradient-to-r from-[#001a3d] to-[#012a5e] p-6 md:p-8 rounded-xl shadow-xl border-l-[6px] border-[#c5a059] text-white space-y-4 animate-in fade-in slide-in-from-top-4">
-                        <div className="flex items-center gap-3">
-                            <div className="bg-[#c5a059] p-2 rounded-xl text-[#001a3d]">
-                                <ShieldCheck size={24} />
-                            </div>
-                            <h4 className="text-lg font-black tracking-tight">KCC글라스 공식 <span className="text-[#c5a059]">책임견적</span> 안내</h4>
-                        </div>
-                        <div className="space-y-3">
-                            <p className="text-sm font-bold text-white/90 leading-relaxed break-keep">
-                                본 견적서는 실측 후에도 금액 변동에 대한 고객 부담을 최소화하기 위해 <span className="text-[#c5a059] underline underline-offset-4 font-black">책임 견적 제도</span>를 적용합니다.
-                            </p>
-                            <div className="bg-white/10 p-4 rounded-2xl border border-white/5 space-y-2">
-                                <p className="text-[11px] font-black text-[#c5a059] uppercase tracking-widest">책임견적 제도란?</p>
-                                <p className="text-[13px] font-bold text-white/80 leading-relaxed break-keep">
-                                    가견적과 동일 사양이면, 실측 후 창 사이즈가 커져도 <span className="text-white font-black underline underline-offset-4 decoration-[#c5a059]">추가금은 없고</span>, 작아지면 그만큼 <span className="text-white font-black underline underline-offset-4 decoration-[#c5a059]">자동으로 할인</span>됩니다. 금액이 달라지는 경우는 창을 추가하거나, 사양·옵션을 바꾸실 때 뿐입니다.
-                                </p>
-                            </div>
-                            <p className="text-xs font-bold text-white/60 text-center pt-1 italic break-keep leading-relaxed">
-                                지금 책임견적으로 확정하시면,<br className="md:hidden" /> 빠른 실측 및 시공이 가능합니다.
-                            </p>
+                {/* Modern Search Modal */}
+                {showSearchModal && (
+                    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
+                        <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl p-6 space-y-5 relative border border-gray-100">
                             <button
-                                onClick={() => setModalType('precautions')}
-                                className="w-full mt-2 py-3 bg-white/10 hover:bg-white/20 rounded-xl text-[11px] font-black text-[#c5a059] border border-[#c5a059]/30 transition-all flex items-center justify-center gap-2"
+                                type="button"
+                                onClick={() => setShowSearchModal(false)}
+                                className="absolute right-4 top-4 text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100 transition-colors"
+                                aria-label="닫기"
                             >
-                                <X size={14} className="rotate-45" /> 책임 견적 적용 제외 사항 확인하기
+                                <X size={20} />
                             </button>
-                        </div>
-                    </div>
-                )}
-
-                <div className="space-y-6">
-                    <h3 className="text-lg font-black text-[#001a3d] flex items-center gap-2 px-1">
-                        <div className="w-8 h-8 bg-[#001a3d] text-[#c5a059] rounded-lg flex items-center justify-center shadow-md"><ChevronRight size={18} /></div>
-                        결제 방식별 상세 제안
-                    </h3>
-
-                    <div className="grid grid-cols-1 gap-4">
-                        <div className="bg-[#001a3d] rounded-2xl p-4 md:p-8 shadow-2xl relative overflow-hidden border border-white/5">
-                            <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/5 rounded-full blur-3xl -mr-32 -mt-32"></div>
-                            
-                            <div className="relative z-10 space-y-6">
-                                <div className="flex items-center gap-4">
-                                    <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center text-blue-400 shadow-inner">
-                                        <Wallet size={24} />
-                                    </div>
-                                    <div>
-                                        <h4 className="text-lg md:text-xl font-black text-white tracking-tight">일시불 특별 할인</h4>
-                                        <p className="text-white/40 text-[10px] font-medium">현금 또는 카드 일시불 결제 시 제공되는 혜택입니다.</p>
-                                    </div>
-                                </div>
-
-                                <div className="space-y-3">
-                                    <div className="flex justify-between items-center px-4 py-2 bg-white/5 rounded-xl border border-white/5">
-                                        <span className="text-white/50 text-[10px] font-bold">최종견적가</span>
-                                        <span className="text-white/80 font-black text-sm font-outfit">{formatKrw(data.finalQuote)}</span>
-                                    </div>
-                                    <div className="flex justify-between items-center px-4 py-2 bg-blue-500/10 rounded-xl border border-blue-500/10">
-                                        <span className="text-blue-400 text-[10px] font-bold">할인금액</span>
-                                        <span className="text-blue-400 font-black text-sm font-outfit">-{formatKrw(data.finalQuote - data.finalBenefit)}</span>
-                                    </div>
-                                    <div className="bg-white/[0.03] backdrop-blur-md rounded-2xl p-6 md:p-8 border border-white/5 text-center space-y-2 shadow-inner">
-                                        <p className="text-white/30 text-[9px] font-black uppercase tracking-[0.2em]">최종 할인 적용금액</p>
-                                        <div className="text-2xl md:text-3xl font-black text-[#facc15] font-outfit tracking-tighter">
-                                            {formatKrw(data.finalBenefit)}
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="space-y-2 px-1">
-                                    <div className="flex items-center gap-3 py-2 border-b border-white/5">
-                                        <div className="w-5 h-5 bg-blue-500/20 text-blue-400 rounded-full flex items-center justify-center">
-                                            <CheckCircle2 size={12} />
-                                        </div>
-                                        <span className="text-xs font-bold text-white/80">카드 : 결제 링크 제공</span>
-                                    </div>
-                                    <div className="flex items-center gap-3 py-2 border-b border-white/5">
-                                        <div className="w-5 h-5 bg-blue-500/20 text-blue-400 rounded-full flex items-center justify-center">
-                                            <CheckCircle2 size={12} />
-                                        </div>
-                                        <span className="text-xs font-bold text-white/80">현금 : 현금영수증 발행 가능</span>
-                                    </div>
-                                </div>
-
-                                <div className="bg-blue-600/10 border border-blue-500/20 py-3 rounded-xl text-center">
-                                    <span className="text-blue-400 text-xs font-black tracking-tight">선금 50% / 잔금 50% 분할 결제 지원</span>
-                                </div>
+                            <div className="text-center space-y-1">
+                                <img src={logoImg} alt="KCC Logo" className="h-6 mx-auto mb-2 object-contain" />
+                                <h3 className="text-lg font-bold text-[#192838]">나의 창호 견적 조회</h3>
+                                <p className="text-xs text-gray-400">성함과 연락처를 입력하시면 저장된 견적을 불러옵니다.</p>
                             </div>
-                        </div>
-
-                        {/* 2. 그린리모델링(정부 이자지원 사업) 섹션 */}
-                        <div id="section-green" className="bg-[#064e3b] rounded-2xl p-4 md:p-8 shadow-2xl relative overflow-hidden border border-white/5">
-                            <div className="absolute top-0 right-0 w-64 h-64 bg-green-500/5 rounded-full blur-3xl -mr-32 -mt-32"></div>
-                            
-                            <div className="relative z-10 space-y-6">
-                                <div className="flex items-center gap-4">
-                                    <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center text-green-400 shadow-inner">
-                                        <ShieldCheck size={24} />
-                                    </div>
-                                    <div>
-                                        <h4 className="text-lg md:text-xl font-black text-white tracking-tight">그린리모델링</h4>
-                                        <p className="text-white/40 text-[10px] font-medium">정부 이자지원 사업 (4.5%~5.5% 지원)</p>
-                                    </div>
-                                </div>
-
-                                <div className="bg-white/5 backdrop-blur-md rounded-2xl p-4 md:p-6 border border-white/10 space-y-4">
-                                    <div className="space-y-2">
-                                        <p className="text-[10px] font-black text-green-300 uppercase tracking-widest px-1">그린리모델링 사업이란?</p>
-                                        <p className="text-[12px] font-bold text-white/80 leading-relaxed break-keep bg-green-900/40 p-3 rounded-xl border border-green-800/30">
-                                            기존 건축물의 에너지 성능 개선 공사비에 대해 취급 금융기관과 대출 약정 체결 시, 지원 기준에 따라 정부가 이자를 일부(4.5%~5.5%) 지원하는 사업입니다.
-                                        </p>
-                                    </div>
-
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                        <div className="space-y-1">
-                                            <label className="text-[9px] font-black text-white/40 uppercase tracking-widest ml-1">선납금 설정</label>
-                                            <div className="relative">
-                                                <input
-                                                    type="text"
-                                                    inputMode="numeric"
-                                                    value={new Intl.NumberFormat('ko-KR').format(rentalForm.greenDownPayment)}
-                                                    onChange={(e) => {
-                                                        const val = Number(e.target.value.replace(/[^0-9]/g, ''));
-                                                        if (val <= data.finalBenefit) {
-                                                            setRentalForm({ 
-                                                                ...rentalForm, 
-                                                                greenDownPayment: val,
-                                                                greenBalance: data.finalBenefit - val
-                                                            });
-                                                        }
-                                                    }}
-                                                    className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 pr-8 text-sm font-black text-white outline-none focus:border-green-500 transition-all text-right"
-                                                />
-                                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-bold text-white/30">원</span>
-                                            </div>
-                                        </div>
-                                        <div className="space-y-1">
-                                            <label className="text-[9px] font-black text-white/40 uppercase tracking-widest ml-1">잔금 (신청 대상)</label>
-                                            <div className="relative">
-                                                <input
-                                                    type="text"
-                                                    readOnly
-                                                    value={new Intl.NumberFormat('ko-KR').format(data.finalBenefit - rentalForm.greenDownPayment)}
-                                                    className="w-full bg-black/20 border border-white/5 rounded-xl py-3 px-4 pr-8 text-sm font-black text-white/40 outline-none text-right"
-                                                />
-                                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-bold text-white/20">원</span>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="flex flex-col gap-3 pt-2">
+                            <form onSubmit={async (e) => {
+                                e.preventDefault();
+                                await executeSearch(searchForm.name, searchForm.phone, statusType);
+                                setShowSearchModal(false);
+                            }} className="space-y-4">
+                                <div className="grid grid-cols-3 gap-2 p-1 bg-gray-100 rounded-xl">
+                                    {['가견적', '책임견적', '최종견적'].map((type) => (
                                         <button
-                                            onClick={() => {
-                                                setApplicationType('green_remodeling');
-                                                setIsRentalMode(true);
-                                                setRentalStep(0);
-                                                setGreenFlow('intro');
-                                                setDraftId(null);
-                                                setRentalForm(prev => ({
-                                                    ...prev,
-                                                    isFullGreen: false,
-                                                    greenAmount: data.finalBenefit - prev.greenDownPayment,
-                                                    greenDownPayment: prev.greenDownPayment,
-                                                    greenBalance: data.finalBenefit - prev.greenDownPayment
-                                                }));
-                                            }}
-                                            className="group relative flex items-center justify-center gap-2 py-4 rounded-2xl text-xs font-black transition-all bg-white/5 border-2 border-white/10 text-white hover:bg-white/10 hover:border-green-400 shadow-xl"
+                                            key={type}
+                                            type="button"
+                                            onClick={() => setStatusType(type)}
+                                            className={`py-2 rounded-lg text-xs font-bold transition-all ${
+                                                statusType === type
+                                                    ? 'bg-[#192838] text-white shadow-sm'
+                                                    : 'text-gray-500 hover:text-gray-900'
+                                            }`}
                                         >
-                                            <ArrowRightLeft size={16} /> 잔금만 그린리모델링 신청
+                                            {type}
                                         </button>
-                                        <button
-                                            onClick={() => {
-                                                setApplicationType('green_remodeling');
-                                                setIsRentalMode(true);
-                                                setRentalStep(0);
-                                                setGreenFlow('intro');
-                                                setDraftId(null);
-                                                setRentalForm(prev => ({
-                                                    ...prev,
-                                                    isFullGreen: true,
-                                                    greenAmount: data.finalBenefit,
-                                                    greenDownPayment: 0,
-                                                    greenBalance: data.finalBenefit
-                                                }));
-                                            }}
-                                            className="group relative flex items-center justify-center gap-2 py-4 rounded-2xl text-xs font-black transition-all bg-green-600 border-2 border-green-400 text-white hover:bg-green-500 shadow-xl"
-                                        >
-                                            <Sparkles size={16} /> 전액 그린리모델링 신청
-                                        </button>
-                                    </div>
-
-                                    <p className="text-[10px] text-white/40 text-center font-bold px-4 leading-relaxed">
-                                        ※ 월 할부금은 실제 은행 대출 상품별로 이자가 다르기 때문에 신청 전에는 정확한 확인이 불가합니다.
-                                    </p>
+                                    ))}
                                 </div>
-                            </div>
-                        </div>
-
-                        {/* 2. 스마트 구독 서비스 섹션 */}
-                        <div className="bg-gradient-to-br from-[#1e1b4b] to-[#312e81] rounded-2xl p-4 md:p-8 shadow-2xl relative overflow-hidden border border-white/5">
-                            <div className="absolute bottom-0 left-0 w-64 h-64 bg-purple-500/10 rounded-full blur-3xl -ml-32 -mb-32"></div>
-                            
-                            <div className="relative z-10 space-y-6">
-                                <div className="flex items-center gap-4">
-                                    <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center text-purple-400 shadow-inner">
-                                        <Sparkles size={24} />
-                                    </div>
-                                    <div>
-                                        <h4 className="text-lg md:text-xl font-black text-white tracking-tight">스마트 구독 서비스</h4>
-                                        <p className="text-white/40 text-[10px] font-medium">목돈 부담 없이 월 구독료로 이용하는 효율적인 결제 방식입니다.</p>
-                                    </div>
+                                <div className="space-y-1">
+                                    <label className="text-[11px] font-bold text-gray-500 ml-1">성함</label>
+                                    <input
+                                        type="text"
+                                        required
+                                        placeholder="성함을 입력하세요"
+                                        value={searchForm.name}
+                                        onChange={(e) => setSearchForm(prev => ({ ...prev, name: e.target.value }))}
+                                        className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-[#192838] focus:border-[#ed7426] focus:outline-none"
+                                    />
                                 </div>
-
-                                <div className="bg-white/5 backdrop-blur-md rounded-2xl p-4 md:p-6 border border-white/10 space-y-4">
-                                    <div className="flex items-center justify-between mb-1">
-                                        <div className="flex items-center gap-2">
-                                            <div className="w-1.5 h-4 bg-purple-500 rounded-full"></div>
-                                            <span className="text-[10px] font-black text-purple-300 uppercase tracking-widest">구독 전환 계산기</span>
-                                        </div>
-                                        <div className="bg-purple-500/20 px-3 py-0.5 rounded-full">
-                                            <span className="text-[8px] font-black text-purple-200 animate-pulse">인기 선택</span>
-                                        </div>
-                                    </div>
-
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                        <div className="space-y-1">
-                                            <label className="text-[9px] font-black text-white/40 uppercase tracking-widest ml-1">선납금 설정</label>
-                                            <div className="relative">
-                                                <input
-                                                    type="text"
-                                                    inputMode="numeric"
-                                                    value={new Intl.NumberFormat('ko-KR').format(downPayment)}
-                                                    onChange={(e) => {
-                                                        const val = Number(e.target.value.replace(/[^0-9]/g, ''));
-                                                        if (val <= data.finalBenefit) {
-                                                            setDownPayment(val);
-                                                            setBalance(data.finalBenefit - val);
-                                                        }
-                                                    }}
-                                                    className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 pr-8 text-sm font-black text-white outline-none focus:border-purple-500 transition-all text-right"
-                                                />
-                                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-bold text-white/30">원</span>
-                                            </div>
-                                        </div>
-                                        <div className="space-y-1">
-                                            <label className="text-[9px] font-black text-white/40 uppercase tracking-widest ml-1">잔금 (구독 대상)</label>
-                                            <div className="relative">
-                                                <input
-                                                    type="text"
-                                                    readOnly
-                                                    value={new Intl.NumberFormat('ko-KR').format(balance)}
-                                                    className="w-full bg-black/20 border border-white/5 rounded-xl py-3 px-4 pr-8 text-sm font-black text-white/40 outline-none text-right"
-                                                />
-                                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-bold text-white/20">원</span>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="flex flex-col gap-3 pt-2">
-                                        <button
-                                            onClick={() => handleConversion('balance')}
-                                            className={`group relative flex items-center justify-center gap-2 py-4 rounded-2xl text-xs font-black transition-all shadow-xl overflow-hidden border-2 ${conversionMode === 'balance' 
-                                                ? 'bg-purple-600 border-purple-400 text-white' 
-                                                : 'bg-white/5 border-white/10 text-white hover:bg-white/10'}`}
-                                        >
-                                            <ArrowRightLeft size={16} /> 잔금만 구독 전환
-                                            {conversionMode === 'balance' && <div className="absolute inset-0 bg-white/10 animate-pulse"></div>}
-                                        </button>
-                                        <button
-                                            onClick={() => handleConversion('full')}
-                                            className={`group relative flex items-center justify-center gap-2 py-4 rounded-2xl text-xs font-black transition-all shadow-xl overflow-hidden border-2 ${conversionMode === 'full' 
-                                                ? 'bg-purple-600 border-purple-400 text-white' 
-                                                : 'bg-white/5 border-white/10 text-white hover:bg-white/10'}`}
-                                        >
-                                            <ArrowRightLeft size={16} /> 전액 구독 전환
-                                        </button>
-                                    </div>
-
-                                    {calculatedSubs && (
-                                        <div className="pt-6 border-t border-white/10 space-y-4">
-                                            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                                                {[24, 36, 48, 60].map(m => (
-                                                    <div 
-                                                        key={m} 
-                                                        className={`p-3 rounded-xl border text-center space-y-1 transition-all ${m === 60 ? 'bg-purple-500 border-purple-300 text-white shadow-lg scale-105' : 'bg-white/5 border-white/10 text-white/60'}`}
-                                                    >
-                                                        <p className="text-[8px] font-black uppercase opacity-60">{m}개월</p>
-                                                        <p className="text-[13px] font-black font-outfit">{new Intl.NumberFormat('ko-KR').format(calculatedSubs[m])}원</p>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                            <button
-                                                onClick={() => {
-                                                    setApplicationType('subscription');
-                                                    setIsRentalMode(true);
-                                                    setRentalStep(1);
-                                                    setDraftId(null);
-                                                    setRentalForm(prev => ({ 
-                                                        ...prev, 
-                                                        selectedAmount: 60,
-                                                        isConversion: true,
-                                                        conversionSubs: calculatedSubs,
-                                                        conversionMode: conversionMode,
-                                                        downPaymentToReport: conversionMode === 'balance' ? downPayment : 0
-                                                    }));
-                                                }}
-                                                className="w-full py-4 bg-[#facc15] text-[#1a1c23] text-sm font-black rounded-2xl hover:brightness-110 active:scale-[0.98] transition-all shadow-xl flex items-center justify-center gap-2"
-                                            >
-                                                스마트 구독 신청하기 <ChevronRight size={18} />
-                                            </button>
-                                        </div>
-                                    )}
+                                <div className="space-y-1">
+                                    <label className="text-[11px] font-bold text-gray-500 ml-1">연락처</label>
+                                    <input
+                                        type="tel"
+                                        inputMode="numeric"
+                                        required
+                                        placeholder="연락처를 입력하세요"
+                                        value={searchForm.phone}
+                                        onChange={handlePhoneChange}
+                                        className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-[#192838] focus:border-[#ed7426] focus:outline-none"
+                                    />
                                 </div>
-                            </div>
-                        </div>
-
-                        {/* 3. 60개월 렌탈 고정형 패키지 섹션 */}
-                        <div className="bg-[#1e293b] rounded-2xl p-4 md:p-8 shadow-2xl relative overflow-hidden border border-white/5">
-                            <div className="absolute top-0 right-0 w-64 h-64 bg-slate-500/5 rounded-full blur-3xl -mr-32 -mt-32"></div>
-                            
-                            <div className="relative z-10 space-y-6">
-                                <div className="space-y-2">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center text-white/80 shadow-inner shrink-0">
-                                            <Clock size={18} />
-                                        </div>
-                                        <h4 className="text-lg md:text-xl font-black text-white tracking-tight whitespace-nowrap">60개월 렌탈 고정 패키지</h4>
-                                    </div>
-                                    <p className="text-white/40 text-[10px] md:text-xs font-medium leading-relaxed break-keep">월 렌탈료를 고정하고 잔액만 먼저 납입하는 실속형 프로그램 입니다.</p>
-                                </div>
-
-                                <div className="grid grid-cols-1 gap-4">
-                                    {[
-                                        { id: 'A', val: 11, amount: '111,000' },
-                                        { id: 'B', val: 22, amount: '222,000' },
-                                        { id: 'C', val: 33, amount: '333,000' }
-                                    ].map((pkg) => {
-                                        const pkgAmount = calculatePackage(data.finalBenefit, pkg.val * 10000, pkg.val * 500000 / 1.1);
-                                        const isNotAvailable = pkgAmount === '해당없음';
-
-                                        return (
-                                            <div key={pkg.id} className={`bg-black/20 backdrop-blur-md border border-white/5 p-4 rounded-xl space-y-4 group transition-all text-center relative overflow-hidden ${isNotAvailable ? 'pointer-events-none' : 'hover:border-[#c5a059]/30'}`}>
-                                                {/* Sharply rendered overlay */}
-                                                {isNotAvailable && (
-                                                    <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/40">
-                                                        <div className="bg-[#facc15] px-6 py-2 rounded-xl shadow-[0_0_30px_rgba(250,204,21,0.4)] transform -rotate-12 border-2 border-white/20">
-                                                            <span className="text-[#001a3d] font-black text-base tracking-[0.2em] uppercase">해당없음</span>
-                                                        </div>
-                                                    </div>
-                                                )}
-                                                
-                                                {/* Blurred content container */}
-                                                <div className={`space-y-3 transition-all duration-500 ${isNotAvailable ? 'blur-[3px] grayscale opacity-30 select-none' : ''}`}>
-                                                    <div className="space-y-0.5 relative z-10">
-                                                        <div className="text-white text-2xl font-black tracking-tighter font-outfit">
-                                                            월 {pkg.amount}원
-                                                        </div>
-                                                        <p className="text-[9px] text-white/30 font-bold uppercase tracking-widest">X 60개월</p>
-                                                    </div>
-
-                                                    <div className="border-t border-dashed border-white/10 w-full px-4 relative z-10"></div>
-
-                                                    <div className="space-y-1 relative z-10">
-                                                        <p className="text-[9px] text-white/40 font-black uppercase tracking-widest">초기 납입액 (잔액)</p>
-                                                        <p className="text-xl font-black text-[#c5a059] font-outfit">
-                                                            {isNotAvailable ? '-' : pkgAmount}
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-
                                 <button
-                                    onClick={() => {
-                                        setApplicationType('rental');
-                                        setIsRentalMode(true);
-                                        setRentalStep(1);
-                                        setDraftId(null);
-                                    }}
-                                    className="w-full py-4 bg-[#c5a059] text-[#001a3d] text-sm font-black rounded-xl hover:brightness-110 active:scale-[0.98] transition-all shadow-xl flex items-center justify-center gap-2"
+                                    type="submit"
+                                    disabled={loading}
+                                    className="w-full bg-[#ed7426] text-white py-3.5 rounded-xl font-bold text-sm shadow hover:bg-[#d96018] active:scale-[0.99] transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                                 >
-                                    렌탈 패키지 신청하기 <ChevronRight size={18} />
+                                    {loading ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />}
+                                    {loading ? '조회 중...' : '견적 조회하기'}
                                 </button>
-                            </div>
+                            </form>
                         </div>
-                    </div>
-                </div>
-
-                {/* 4. 특별 무상 서비스 섹션 (Neon Border) */}
-                <div className="relative p-1 rounded-2xl overflow-hidden shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-1000 mt-6">
-                    {/* Neon Line Animation */}
-                    <div className="absolute inset-[-150%] bg-[conic-gradient(from_0deg,#ff0080,#ff1493,#ff69b4,transparent,transparent,#ff0080)] animate-[spin_1.5s_linear_infinite]"></div>
-                    
-                    <div className="relative z-10 bg-white rounded-xl p-8 md:p-10 space-y-6 text-center">
-                        <div className="space-y-5">
-                            <div className="relative inline-block mt-2">
-                                <div className="w-16 h-16 bg-[#c5a059] rounded-2xl flex items-center justify-center text-white mx-auto shadow-xl">
-                                    <Gift size={32} />
-                                </div>
-                                <div className="absolute -top-3 -right-3 text-[#ff69b4] animate-pulse">
-                                    <Sparkles size={20} />
-                                </div>
-                            </div>
-                            <div className="space-y-1.5">
-                                <h3 className="text-2xl md:text-3xl font-black text-[#001a3d]">특별 무상 서비스</h3>
-                                <p className="text-[#ff1493] text-[10px] md:text-[11px] font-black tracking-[0.25em] uppercase">PREMIUM BENEFIT CELEBRATION</p>
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-1 gap-5 max-w-sm mx-auto">
-                            {/* Option 1 */}
-                            <div className="bg-[#fffbef] border border-[#c5a059]/10 p-3.5 rounded-2xl flex items-center gap-4 shadow-sm relative group hover:scale-[1.02] transition-all duration-300">
-                                <div className="w-11 h-11 bg-white rounded-xl flex items-center justify-center text-[#c5a059] shadow-md border border-gray-100 group-hover:scale-110 transition-transform shrink-0">
-                                    <ShieldCheck size={24} />
-                                </div>
-                                <div className="space-y-0.5 text-left">
-                                    <p className="text-[8px] font-black text-[#ff1493]/70 uppercase tracking-widest">Upgrade Option 01</p>
-                                    <p className="text-[14px] font-black text-[#001a3d] leading-tight break-keep">고성능 더블로이유리<br />무상 업그레이드</p>
-                                </div>
-                            </div>
-
-                            {/* Option 2 */}
-                            <div className="bg-[#fffbef] border border-[#c5a059]/10 p-3.5 rounded-2xl flex items-center gap-4 shadow-sm relative group hover:scale-[1.02] transition-all duration-300">
-                                <div className="w-11 h-11 bg-white rounded-xl flex items-center justify-center text-[#c5a059] shadow-md border border-gray-100 group-hover:scale-110 transition-transform shrink-0">
-                                    <Sparkles size={24} />
-                                </div>
-                                <div className="space-y-0.5 text-left">
-                                    <p className="text-[8px] font-black text-[#ff1493]/70 uppercase tracking-widest">Upgrade Option 02</p>
-                                    <p className="text-[14px] font-black text-[#001a3d] leading-tight break-keep">최고급 블랙 STS 방충망<br />전면 교체</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* 5. LG전자 가전구독 프로모션 */}
-                <div className="purple-premium-gradient p-6 text-white relative overflow-hidden shadow-2xl flex flex-col justify-between rounded-3xl mt-6">
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-32 -mt-32 blur-4xl"></div>
-                    <div className="relative z-10 space-y-4">
-                        <div className="space-y-2 text-center">
-                            <span className="bg-[#facc15] text-[#311b92] px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest inline-block shadow-lg">Special Promotion</span>
-                            <div className="space-y-0.5">
-                                <p className="text-[11px] font-bold text-white/80">KCC홈씨씨 견적 고객 대상</p>
-                                <h3 className="text-xl font-black tracking-tight leading-tight">LG전자 가전구독료 할인 프로모션</h3>
-                            </div>
-                        </div>
-                        
-                        <div className="max-w-2xl mx-auto w-full">
-                            <div className="bg-white/10 backdrop-blur-xl border border-white/20 p-4 rounded-xl space-y-3 shadow-2xl relative overflow-hidden group">
-                                <div className="absolute top-0 right-0 p-3 opacity-20">
-                                    <img src="https://www.lge.co.kr/lg5-common/images/header/lg_logo_new.svg" alt="LG Logo" className="h-8 w-auto grayscale brightness-0 invert opacity-20" />
-                                </div>
-                                
-                                <div className="space-y-2">
-                                    <div className="flex items-center gap-3 p-2.5 bg-white/5 rounded-xl border border-white/10">
-                                        <div className="w-8 h-8 bg-[#facc15] text-[#311b92] rounded-lg flex items-center justify-center shrink-0 shadow-lg font-black text-xs font-outfit">10%</div>
-                                        <div>
-                                            <p className="text-sm font-black text-white leading-tight">LG전자 가전구독료 <span className="text-[#facc15]">매월 10%</span> 할인</p>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center gap-3 p-2.5 bg-white/5 rounded-xl border border-white/10">
-                                        <div className="w-8 h-8 bg-white/20 text-white rounded-lg flex items-center justify-center shrink-0 border border-white/20"><CheckCircle size={16} /></div>
-                                        <div>
-                                            <p className="text-sm font-black text-white leading-tight">LG전자 홈페이지 전제품 대상</p>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="space-y-3 pt-1 text-center">
-                                    <p className="text-[11px] font-bold text-white/90 leading-relaxed break-keep">
-                                        창호 교체하며 가전까지 고민 중이라면, <span className="text-[#facc15] underline underline-offset-4 decoration-[#facc15]/30">LG가전 구독료 10% 할인 혜택</span>을 놓치지 마세요!
-                                    </p>
-                                    <p className="text-[10px] font-black text-white/50 leading-relaxed">
-                                        신청 문의는 <span className="text-white">창호 상담사</span>를 통해서 가능합니다.
-                                    </p>
-                                    <div className="pt-1">
-                                        <a
-                                            href="https://www.lge.co.kr/care-solutions"
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="w-full bg-white text-[#311b92] py-3 rounded-xl font-black text-xs shadow-xl hover:bg-[#facc15] hover:scale-[1.02] transition-all flex items-center justify-center gap-2 group"
-                                        >
-                                            LG구독 홈페이지 바로가기
-                                            <ExternalLink size={14} className="transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-                                        </a>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* 6. 주방 상품 안내 섹션 */}
-                <div className="relative rounded-3xl overflow-hidden shadow-2xl group min-h-[500px] flex flex-col justify-end animate-in fade-in slide-in-from-bottom-6 duration-1000 mt-6 md:mt-10">
-                    <img 
-                        src="https://res.cloudinary.com/dx7l09wwu/image/upload/v1775396911/%EC%97%B0%EC%B6%9C_3_l0zfje.jpg" 
-                        alt="KCC 프리미엄 주방" 
-                        className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-[3000ms]" 
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent group-hover:via-black/60 transition-all duration-700"></div>
-                    
-                    <div className="relative z-10 p-8 md:p-14 space-y-10">
-                        <div className="space-y-6">
-                            <div className="flex items-center gap-3">
-                                <span className="bg-[#c5a059] text-white px-3 py-1 rounded-lg text-[10px] md:text-xs font-black tracking-widest shadow-lg">NEW</span>
-                                <span className="text-[#c5a059] text-[9px] md:text-xs font-black uppercase tracking-[0.25em]">Prestige Kitchen Collection</span>
-                            </div>
-                            
-                            <div className="space-y-3">
-                                <h3 className="text-3xl md:text-4xl font-black text-white leading-tight">혹시 주방도 고민<br />중이신가요?</h3>
-                                <p className="text-white/60 text-sm md:text-base font-bold break-keep leading-relaxed border-l-2 border-[#c5a059] pl-4">
-                                    창호 名家, KCC글라스가 만든<br className="md:hidden" /> 프리미엄 맞춤 주방이 출시 되었습니다!
-                                </p>
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
-                            {[
-                                { icon: <CheckCircle size={18} />, text: '최저가 맞춤 시공' },
-                                { icon: <ShieldCheck size={18} />, text: '본사 A/S 보장' },
-                                { icon: <Calendar size={18} />, text: '60개월 할부 지원' },
-                                { icon: <Sparkles size={18} />, text: 'LG빌트인 가전할인' }
-                            ].map((item, i) => (
-                                <div key={i} className="flex items-center gap-4 bg-black/40 backdrop-blur-xl border border-white/10 p-4 md:p-5 rounded-2xl hover:bg-white/10 transition-all cursor-default group/item">
-                                    <div className="w-10 h-10 bg-[#c5a059]/20 text-[#c5a059] rounded-xl flex items-center justify-center shadow-inner group-hover/item:scale-110 transition-transform">
-                                        {item.icon}
-                                    </div>
-                                    <span className="text-white/90 font-bold text-sm md:text-base">{item.text}</span>
-                                </div>
-                            ))}
-                        </div>
-
-                        <div className="space-y-4 pt-2">
-                            <a 
-                                href="https://kcchomecc-partner.com/products/hline2" 
-                                target="_blank" 
-                                rel="noopener noreferrer"
-                                className="w-full py-5 bg-[#c5a059] text-[#001a3d] rounded-2xl font-black text-base md:text-lg flex items-center justify-center gap-3 shadow-2xl hover:brightness-110 active:scale-[0.98] transition-all"
-                            >
-                                프리미엄 주방 자세히 보기 <ExternalLink size={22} />
-                            </a>
-                            <p className="text-white/30 text-[10px] md:text-xs text-center font-medium">※ 자세한 내용은 상담원에게 문의해 주세요.</p>
-                        </div>
-                    </div>
-                </div>
-
-
-                <div className="space-y-6 pt-4">
-                    <h3 className="text-lg font-black text-[#001a3d] flex items-center gap-2 px-1">
-                        <div className="w-8 h-8 bg-gray-100 text-[#001a3d] rounded-lg flex items-center justify-center shadow-sm"><CheckCircle2 size={18} /></div>
-                        상세 견적 내역
-                    </h3>
-
-                    <div className="luxury-card overflow-hidden border-none shadow-xl">
-                        <div className="bg-[#1e40af] px-6 py-3.5 flex justify-between items-center text-white">
-                            <span className="text-[11px] font-black uppercase tracking-widest">Item List</span>
-                            <span className="text-[10px] font-bold opacity-80">부가세 포함</span>
-                        </div>
-                        <div className="p-4 md:p-6 bg-[#f8fafc] grid grid-cols-1 md:grid-cols-2 gap-5">
-                            {data.items?.map((item, idx) => (
-                                <div key={idx} className="bg-white rounded-2xl flex flex-col justify-between shadow-sm border border-gray-100 group transition-all p-3 md:p-4">
-                                    <div className="flex justify-between items-start mb-2">
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-[9px] font-black bg-blue-50 text-blue-600 px-2 py-0.5 rounded-md font-outfit tracking-tighter transition-transform group-hover:scale-110">#{idx + 1}</span>
-                                            <h4 className="text-sm font-black text-[#001a3d]">{item.loc}</h4>
-                                        </div>
-                                        <div className="text-right">
-                                            <p className="text-lg font-black text-[#001a3d] font-outfit">{formatKrw(item.price)}</p>
-                                        </div>
-                                    </div>
-
-                                    <div className="bg-[#fcfcfd] border border-gray-100/80 p-2 rounded-xl space-y-2 shadow-inner relative overflow-hidden">
-                                        <div className="grid grid-cols-2 gap-y-2 gap-x-2 text-[11px] font-bold relative z-10">
-                                            <div className="space-y-0.5">
-                                                <p className="text-gray-400 text-[8px] uppercase tracking-widest font-black opacity-60">제품명</p>
-                                                <p className="text-[#2c3e50] font-extrabold truncate">{item.prod}</p>
-                                            </div>
-                                            <div className="space-y-0.5">
-                                                <p className="text-gray-400 text-[8px] uppercase tracking-widest font-black opacity-60">규격</p>
-                                                <p className="text-[#2c3e50] font-extrabold font-outfit tracking-tighter">{item.size}</p>
-                                            </div>
-                                            <div className="col-span-2 space-y-1">
-                                                <p className="text-gray-400 text-[8px] uppercase tracking-widest font-black opacity-60">창형태</p>
-                                                <div className="px-3 py-2 bg-white border border-gray-100 rounded-xl text-xs font-black text-[#2c3e50] tracking-tight flex items-center">
-                                                    {(item.winType && item.winType.trim() !== "") ? item.winType : '-'}
-                                                </div>
-                                            </div>
-                                            <div className="col-span-2 space-y-1">
-                                                <p className="text-gray-400 text-[8px] uppercase tracking-widest font-black opacity-60">{item.isEtc ? '상세내용' : '모델명'}</p>
-                                                <div className="px-3 py-2 bg-white border border-gray-100 rounded-xl text-xs font-black text-[#2c3e50] tracking-tight flex items-center">
-                                                    {(item.model && item.model.trim() !== "") ? item.model : '-'}
-                                                </div>
-                                            </div>
-
-                                            {/* 옵션 정보 (잠금장치/방충망) */}
-                                            {(item.handle || item.screen) && !item.isEtc && (
-                                                <div className="col-span-2 space-y-1 pt-1 border-t border-gray-100/50 mt-1">
-                                                    <p className="text-gray-400 text-[8px] uppercase tracking-widest font-black opacity-60">추가 옵션</p>
-                                                    <div className="grid grid-cols-2 gap-2">
-                                                        {item.handle && (
-                                                            <div className="p-2 bg-gray-50 rounded-lg text-[10px] font-bold text-gray-600 flex flex-col justify-center">
-                                                                <span className="text-[8px] text-gray-400 mb-0.5">핸들</span>
-                                                                <span className="break-keep leading-tight">{item.handle}</span>
-                                                            </div>
-                                                        )}
-                                                        {item.screen && (
-                                                            <div className="p-2 bg-gray-50 rounded-lg text-[10px] font-bold text-gray-600 flex flex-col justify-center">
-                                                                <span className="text-[8px] text-gray-400 mb-0.5">방충망</span>
-                                                                <span className="break-keep leading-tight">{item.screen}</span>
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            )}
-
-                                            {!item.isEtc && (
-                                                <div className="col-span-2 pt-2 border-t border-gray-100/50 space-y-3">
-
-                                                    {/* 1. 유리 사양 (스펙) - 한 줄에 파란색/핑크색 */}
-                                                    <div className="space-y-1">
-                                                        <p className="text-gray-400 text-[8px] uppercase tracking-widest font-black opacity-60">유리사양</p>
-                                                        <div className="grid grid-cols-2 gap-2">
-                                                            <div className="bg-[#ebf5ff] text-[#2563eb] px-2.5 py-2 rounded-lg border border-blue-50 flex flex-col justify-center">
-                                                                <span className="text-[8px] font-black opacity-50 uppercase tracking-tighter mb-0.5">Inner (내부)</span>
-                                                                <span className="text-[10px] font-black leading-tight break-keep">{item.glassIn || '-'}</span>
-                                                            </div>
-                                                            {item.glassOut && item.glassOut.trim() !== "" && (
-                                                                <div className="bg-[#fff0f6] text-[#db2777] px-2.5 py-2 rounded-lg border border-pink-50 flex flex-col justify-center">
-                                                                    <span className="text-[8px] font-black opacity-50 uppercase tracking-tighter mb-0.5">Outer (외부)</span>
-                                                                    <span className="text-[10px] font-black leading-tight break-keep">{item.glassOut}</span>
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    </div>
-
-                                                    {/* 2. 유리 두께/종류 (상세) - 한 줄에 파란색/핑크색 */}
-                                                    {(item.thickIn || item.typeIn || item.thickOut || item.typeOut) && (
-                                                        <div className="space-y-1">
-                                                            <p className="text-gray-400 text-[8px] uppercase tracking-widest font-black opacity-60">유리두께</p>
-                                                            <div className="grid grid-cols-2 gap-2">
-                                                                <div className="bg-[#ebf5ff] text-[#2563eb] px-2.5 py-2 rounded-lg border border-blue-50 flex flex-col justify-center opacity-90">
-                                                                    <span className="text-[8px] font-black opacity-50 uppercase tracking-tighter mb-0.5">Inner Thick</span>
-                                                                    <div className="text-[9px] font-bold flex gap-1.5 items-center">
-                                                                        <span>{item.thickIn || '-'}</span>
-                                                                    </div>
-                                                                </div>
-                                                                {(item.thickOut) && (
-                                                                    <div className="bg-[#fff0f6] text-[#db2777] px-2.5 py-2 rounded-lg border border-pink-50 flex flex-col justify-center opacity-90">
-                                                                        <span className="text-[8px] font-black opacity-50 uppercase tracking-tighter mb-0.5">Outer Thick</span>
-                                                                        <div className="text-[9px] font-bold flex gap-1.5 items-center">
-                                                                            <span>{item.thickOut || '-'}</span>
-                                                                        </div>
-                                                                    </div>
-                                                                )}
-                                                            </div>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                </div>
-
-                <div className="space-y-4 pt-4">
-                    <div className="luxury-card p-6 md:p-10 flex justify-center items-center bg-[#001a3d] text-white border-none shadow-2xl relative overflow-hidden group">
-                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4/5 h-4/5 bg-blue-500/5 rounded-full blur-[120px]"></div>
-                        <div className="flex flex-row items-center gap-4 md:gap-10 relative z-10 w-full justify-center">
-                            <div className="w-10 h-10 md:w-14 md:h-14 bg-white/10 rounded-xl md:rounded-2xl flex items-center justify-center text-[#c5a059] shadow-inner border border-white/10 shrink-0"><CheckCircle2 size={24} className="md:w-7 md:h-7" /></div>
-                            <div className="flex flex-col items-start gap-1">
-                                <p className="text-white/40 font-black text-[8px] md:text-[9px] uppercase tracking-[0.3em] font-outfit leading-none mb-0.5">Investment Total Summary</p>
-                                <div className="relative inline-block">
-                                    <p className="text-3xl md:text-5xl font-black text-[#c5a059] font-outfit tracking-tighter leading-none">{formatKrw(data.finalQuote)}</p>
-                                    <p className="text-[9px] text-white/40 font-bold absolute -right-0 -bottom-3.5 md:-bottom-4.5 whitespace-nowrap">부가세 포함</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    {data.pdfUrl && (
-                        <div className="flex justify-center pt-2">
-                            <a
-                                href={data.pdfUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="premium-btn w-full py-5 md:py-6 px-4 md:px-16 flex items-center justify-center gap-2 md:gap-4 shadow-xl text-base md:text-lg tracking-tight font-black hover:scale-[1.02] active:scale-95 transition-all whitespace-nowrap"
-                            >
-                                <Download size={20} className="md:w-6 md:h-6" /> 상세 견적서 PDF 다운로드
-                            </a>
-                        </div>
-                    )}
-
-
-            <div className="flex flex-wrap justify-center gap-4 pt-4">
-                {banners?.map((b, i) => (
-                    <a key={i} href={b.link} target="_blank" rel="noopener noreferrer" className="luxury-card overflow-hidden bg-white shadow-xl border-none transition-transform hover:scale-[1.01] duration-500 w-full md:max-w-[48%]">
-                        <img src={b.img} alt="광고 배너" className="w-full h-auto object-cover" />
-                    </a>
-                ))}
-            </div>
-
-            <footer className="pt-8 pb-4 text-center space-y-6">
-                <p className="text-gray-400 font-bold text-[9px] uppercase tracking-[0.6em] opacity-50">Main Project Partner</p>
-                <h4 className="text-lg md:text-2xl font-black text-[#001a3d] tracking-tighter decoration-luxury decoration-2 whitespace-nowrap px-2">
-                    (주)KCC글라스 홈씨씨 | (주)티유디지털
-                </h4>
-                <div className="max-w-2xl mx-auto space-y-4 text-[11px] font-extrabold text-gray-500 leading-relaxed px-4">
-                    <p className="opacity-80 text-center">서울시 가산디지털1로 83, 파트너스타워1, 802호<br />사업자등록번호: 220-87-15092 ｜ 김정열 대표이사</p>
-                    <div className="bg-gray-100/80 p-4 rounded-xl border border-gray-200/50 text-[#001a3d] shadow-inner inline-block min-w-[300px]">
-                        <span className="text-[9px] uppercase tracking-[0.4em] text-[#c5a059] font-black mb-1 inline-block border-b-2 border-[#c5a059]/10 pb-1">Deposit Info</span><br />
-                        <span className="text-base font-black font-outfit">(국민은행) 421737-04-015908</span><br />
-                        <span className="font-black text-[11px] opacity-80 mt-0.5 block tracking-wider">계좌주 : (주)티유디지털</span>
-                    </div>
-                </div>
-            </footer>
-
-            <div className="pt-2 border-t border-gray-100/30 text-center">
-                <img src="https://cdn.imweb.me/upload/S20250904697320f4fd9ed/87d2040aa0130.png" alt="하단 로고" className="w-full max-w-2xl mx-auto object-contain opacity-100 rounded-2xl" />
-            </div>
-        </div>
-    </div>
-
-            {/* Contact Menu - Centered for PC inside the 480px frame bounds */}
-            <div className="fixed inset-x-0 bottom-0 z-[60] flex justify-center pointer-events-none">
-                <div className="w-full max-w-[480px] relative h-24 pointer-events-none">
-                    <div className="absolute bottom-8 right-6 flex flex-col items-end gap-3 pointer-events-auto">
-                        {showContactMenu && (
-                            <div className="flex flex-col gap-2 animate-in slide-in-from-bottom-4 fade-in duration-200 mb-2">
-                                <a href="tel:01046057977" className="bg-white text-[#001a3d] p-3 rounded-xl shadow-xl flex items-center justify-between gap-2 min-w-[130px] border border-gray-100 hover:bg-gray-50 transition-colors">
-                                    <span className="font-bold text-xs">전화걸기</span>
-                            <div className="w-6 h-6 bg-green-500 text-white rounded-full flex items-center justify-center shadow-md"><Phone size={12} fill="currentColor" /></div>
-                        </a>
-                        <a href="sms:01046057977" className="bg-white text-[#001a3d] p-3 rounded-xl shadow-xl flex items-center justify-between gap-2 min-w-[130px] border border-gray-100 hover:bg-gray-50 transition-colors">
-                            <span className="font-bold text-xs">문자보내기</span>
-                            <div className="w-6 h-6 bg-yellow-400 text-white rounded-full flex items-center justify-center shadow-md"><MessageCircle size={12} fill="currentColor" /></div>
-                        </a>
-                        <a href="http://pf.kakao.com/_xiRTwn/chat" target="_blank" rel="noopener noreferrer" className="bg-white text-[#001a3d] p-3 rounded-xl shadow-xl flex items-center justify-between gap-2 min-w-[130px] border border-gray-100 hover:bg-gray-50 transition-colors">
-                            <span className="font-bold text-xs">카톡상담</span>
-                            <div className="w-6 h-6 bg-[#FAE100] text-[#371D1E] rounded-full flex items-center justify-center shadow-md">
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-3.5 h-3.5">
-                                    <path d="M12 3c-5.523 0-10 3.577-10 8.001 0 2.62 1.558 4.965 3.996 6.435-.16.575-.582 2.083-.665 2.45-.105.474.173.467.362.341 1.503-1.002 3.064-2.115 3.996-2.733.748.11 1.52.17 2.311.17 5.523 0 10-3.577 10-8.001S17.523 3 12 3z" />
-                                </svg>
-                            </div>
-                        </a>
                     </div>
                 )}
-                <button
-                    onClick={() => setShowContactMenu(!showContactMenu)}
-                    className="bg-[#001a3d] text-[#c5a059] p-3 rounded-xl shadow-2xl shadow-[#001a3d]/50 flex items-center gap-2 active:scale-90 transition-all border-2 border-white/10 group"
-                >
-                    <div className={`w-6 h-6 bg-[#c5a059] text-[#001a3d] rounded-lg flex items-center justify-center shadow-lg relative z-10 transition-transform duration-300 ${showContactMenu ? 'rotate-45' : 'group-hover:rotate-12'}`}>
-                        {showContactMenu ? <X size={16} /> : <MessageCircle size={16} />}
-                    </div>
-                    <span className="text-white font-black pr-1 text-[11px] tracking-tighter relative z-10 uppercase">
-                        {showContactMenu ? '닫기' : '문의하기'}
-                    </span>
-                </button>
-                    </div>
-                </div>
-            </div>
-
 
             {modalType && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">

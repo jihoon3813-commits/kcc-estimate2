@@ -1,0 +1,13 @@
+{
+  "name": "kcc-mobile-estimate-antigravity",
+  "version": "1.0.0",
+  "private": true,
+  "description": "KCC홈씨씨 모바일 견적서 디자인 및 개발 인계 패키지",
+  "type": "module",
+  "scripts": {
+    "dev": "node scripts/serve.mjs",
+    "start": "node scripts/serve.mjs",
+    "check": "node --check web/app.js && node --check scripts/serve.mjs"
+  },
+  "engines": { "node": ">=18" }
+}
