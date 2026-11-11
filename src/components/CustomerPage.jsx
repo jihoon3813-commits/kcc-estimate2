@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { Search, User, Phone, MapPin, Download, Gift, ShieldCheck, ChevronRight, MessageCircle, ExternalLink, X, Calendar, CheckCircle2, CheckCircle, Loader2, Upload, Calculator, ArrowRightLeft, Wallet, Clock, Sparkles, FileText, Camera, Check } from 'lucide-react';
-import { searchQuote, saveRentalDraft, saveSubscriptionDraft, saveGreenDraft, submitRentalApplication, submitSubscriptionApplication, submitGreenApplication, getRentalDraft, getSubscriptionDraft, getGreenDraft, uploadSingleFile, getLatestTemplateByType, getGreenLatestApplication, updateQuoteRemark } from '../lib/api';
+import { searchQuote, saveRentalDraft, saveSubscriptionDraft, saveGreenDraft, submitRentalApplication, submitSubscriptionApplication, submitGreenApplication, getRentalDraft, getSubscriptionDraft, getGreenDraft, uploadSingleFile, getLatestTemplateByType, getGreenLatestApplication, updateQuoteRemark, createInquiry } from '../lib/api';
 import KccMobileEstimate from './KccMobileEstimate';
 import logoImg from '../assets/logo.png';
 import { PDFDocument, rgb } from 'pdf-lib';
@@ -17,14 +17,28 @@ const CustomerPage = () => {
     const [modalType, setModalType] = useState(null); // 'A' or 'B'
 
     const handleSaveConsultation = async (consultData) => {
-        if (data?._id) {
-            try {
+        try {
+            // Save to dedicated inquiries table
+            await createInquiry({
+                quoteId: data?._id || undefined,
+                name: consultData.customerName || data?.name || '고객',
+                phone: consultData.customerPhone || data?.phone || '',
+                address: consultData.customerAddress || data?.address || '',
+                paymentMethod: consultData.paymentMethod || '일시불',
+                topics: consultData.topics || ['견적 전반 상담'],
+                preferredTime: consultData.preferredTime || '상관없음',
+                memo: consultData.memo || '',
+                createdAt: consultData.createdAt || new Date().toISOString(),
+            });
+
+            // Update local state remark if data exists
+            if (data?._id) {
                 const prevRemark = data.remark ? data.remark + '\n' : '';
-                const newRemark = `${prevRemark}[상담접수 ${new Date().toLocaleDateString('ko-KR')}] ${consultData.paymentMethod} / ${consultData.topics.join(', ')} / 시간: ${consultData.preferredTime} / 메모: ${consultData.memo || '없음'}`;
-                await updateQuoteRemark({ id: data._id, remark: newRemark });
-            } catch (err) {
-                console.error("Failed to save consultation remark:", err);
+                const newRemark = `${prevRemark}[상담접수 ${new Date().toLocaleDateString('ko-KR')}] ${consultData.paymentMethod} / ${(consultData.topics || []).join(', ')} / 시간: ${consultData.preferredTime} / 메모: ${consultData.memo || '없음'}`;
+                setData(prev => prev ? ({ ...prev, remark: newRemark }) : prev);
             }
+        } catch (err) {
+            console.error("Failed to save consultation remark:", err);
         }
     };
 

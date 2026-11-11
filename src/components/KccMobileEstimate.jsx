@@ -268,10 +268,11 @@ export default function KccMobileEstimate({
 
     const consultData = {
       quoteId: data._id,
-      customerName: data.name,
-      customerPhone: data.phone || '010-****-8355',
-      paymentMethod: selectedPlan,
-      topics: selectedTopics,
+      customerName: data.name || customerName,
+      customerPhone: data.phone || '010-3261-8355',
+      customerAddress: data.address || customerAddress,
+      paymentMethod: plans[selectedPlan]?.name || selectedPlan,
+      topics: selectedTopics.length > 0 ? selectedTopics : ['견적 상담'],
       preferredTime: preferredTime,
       memo: memo,
       createdAt: new Date().toISOString()

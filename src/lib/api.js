@@ -670,3 +670,61 @@ export const migrateInterestRates = async () => {
     }
 };
 
+/**
+ * 고객 문의 / 상담 신청 API
+ */
+export const createInquiry = async (params) => {
+    try {
+        const id = await convex.mutation(api.inquiries.createInquiry, params);
+        return { success: true, id };
+    } catch (error) {
+        return { success: false, message: error.message };
+    }
+};
+
+export const getInquiryList = async () => {
+    try {
+        const data = await convex.query(api.inquiries.listInquiries);
+        return { success: true, data };
+    } catch (error) {
+        return { success: false, message: error.message };
+    }
+};
+
+export const getInquiriesByQuote = async (quoteId) => {
+    try {
+        const data = await convex.query(api.inquiries.getInquiriesByQuote, { quoteId });
+        return { success: true, data };
+    } catch (error) {
+        return { success: false, message: error.message };
+    }
+};
+
+export const updateInquiryStatus = async (id, status, adminMemo) => {
+    try {
+        await convex.mutation(api.inquiries.updateInquiryStatus, { id, status, adminMemo });
+        return { success: true };
+    } catch (error) {
+        return { success: false, message: error.message };
+    }
+};
+
+export const updateInquiryAdminMemo = async (id, adminMemo) => {
+    try {
+        await convex.mutation(api.inquiries.updateInquiryAdminMemo, { id, adminMemo });
+        return { success: true };
+    } catch (error) {
+        return { success: false, message: error.message };
+    }
+};
+
+export const deleteInquiry = async (id) => {
+    try {
+        await convex.mutation(api.inquiries.deleteInquiry, { id });
+        return { success: true };
+    } catch (error) {
+        return { success: false, message: error.message };
+    }
+};
+
+

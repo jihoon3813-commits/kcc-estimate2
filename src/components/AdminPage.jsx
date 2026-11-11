@@ -1,9 +1,15 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Upload, FileText, Calculator, Save, CheckCircle, Loader2, RefreshCw, ExternalLink, Search, ShieldCheck, Download, X, Trash2, Calendar, ChevronDown, FileArchive, AlignLeft, AlignCenter, AlignRight, Menu } from 'lucide-react';
+import { Upload, FileText, Calculator, Save, CheckCircle, Loader2, RefreshCw, ExternalLink, Search, ShieldCheck, Download, X, Trash2, Calendar, ChevronDown, FileArchive, AlignLeft, AlignCenter, AlignRight, Menu, MessageSquare, Clock, PhoneCall, MessageCircle, CheckCheck, AlertCircle } from 'lucide-react';
 import { parseExcelEstimate } from '../lib/excelParser';
-import { saveQuote, updateRentalStatus, updateSubscriptionStatus, updateGreenStatus, getAdminQuoteList, getRentalApplicationList, getSubscriptionApplicationList, getGreenApplicationList, getTemplatePdfUrl, uploadTemplatePdf, savePdfTemplate, getTemplateList, deletePdfTemplate, getLatestTemplateByType, migrateInterestRates } from '../lib/api';
+import { saveQuote, updateRentalStatus, updateSubscriptionStatus, updateGreenStatus, getAdminQuoteList, getRentalApplicationList, getSubscriptionApplicationList, getGreenApplicationList, getTemplatePdfUrl, uploadTemplatePdf, savePdfTemplate, getTemplateList, deletePdfTemplate, getLatestTemplateByType, migrateInterestRates, getInquiryList, updateInquiryStatus, updateInquiryAdminMemo, deleteInquiry } from '../lib/api';
 import { PDFDocument, rgb } from 'pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
+
+const INQUIRY_STATUS_OPTIONS = [
+    { label: '접수대기', value: 'pending', color: 'bg-amber-100 text-amber-800' },
+    { label: '상담진행중', value: 'in_progress', color: 'bg-blue-100 text-blue-700' },
+    { label: '상담완료', value: 'completed', color: 'bg-emerald-100 text-emerald-700' },
+];
 
 const RENTAL_STATUS_OPTIONS = [
     { label: '임시저장', value: '임시저장', color: 'bg-gray-100 text-gray-500' },
@@ -76,6 +82,14 @@ const AdminPage = () => {
     const [greenList, setGreenList] = useState([]);
     const [filteredGreenList, setFilteredGreenList] = useState([]);
     const [templateList, setTemplateList] = useState([]);
+
+    // Inquiry States
+    const [inquiryList, setInquiryList] = useState([]);
+    const [filteredInquiryList, setFilteredInquiryList] = useState([]);
+    const [selectedInquiry, setSelectedInquiry] = useState(null);
+    const [inquiryStatusFilter, setInquiryStatusFilter] = useState('all');
+    const [onlyWithInquiries, setOnlyWithInquiries] = useState(false);
+    const [inquiryAdminMemoInput, setInquiryAdminMemoInput] = useState('');
     const [isTemplateModal, setIsTemplateModal] = useState(false);
     const [currentTemplate, setCurrentTemplate] = useState({
         name: '',
@@ -349,10 +363,20 @@ const AdminPage = () => {
     const fetchList = useCallback(async () => {
         setLoading(true);
         try {
+            // Always refresh inquiry list in background
+            getInquiryList().then(res => {
+                if (res.success) setInquiryList(res.data);
+            }).catch(console.error);
+
             if (activeTab === 'lookup') {
                 const result = await getAdminQuoteList();
                 if (result.success) {
                     setQuoteList(result.data);
+                }
+            } else if (activeTab === 'inquiry') {
+                const result = await getInquiryList();
+                if (result.success) {
+                    setInquiryList(result.data);
                 }
             } else if (activeTab === 'rental') {
                 const result = await getRentalApplicationList();
@@ -382,11 +406,31 @@ const AdminPage = () => {
         }
     }, [activeTab]);
 
+    // Initial background load of inquiries
     useEffect(() => {
-        if (activeTab === 'lookup' || activeTab === 'rental' || activeTab === 'subscription' || activeTab === 'green_remodeling' || activeTab === 'document') {
+        getInquiryList().then(res => {
+            if (res.success) setInquiryList(res.data);
+        }).catch(console.error);
+    }, []);
+
+    useEffect(() => {
+        if (activeTab === 'lookup' || activeTab === 'inquiry' || activeTab === 'rental' || activeTab === 'subscription' || activeTab === 'green_remodeling' || activeTab === 'document') {
             fetchList();
         }
     }, [activeTab, fetchList]);
+
+    // Helper to find inquiries related to a specific quote
+    const getInquiriesForQuote = useCallback((quote) => {
+        if (!quote) return [];
+        const cleanPhone = (quote.phone || '').replace(/[^0-9]/g, '');
+        const normName = (quote.name || '').trim().normalize('NFC').toLowerCase();
+        return inquiryList.filter(inq => {
+            if (inq.quoteId && (inq.quoteId === quote.id || inq.quoteId === quote._id)) return true;
+            const inqCleanPhone = (inq.phone || '').replace(/[^0-9]/g, '');
+            const inqNormName = (inq.name || '').trim().normalize('NFC').toLowerCase();
+            return normName && inqNormName === normName && (!cleanPhone || !inqCleanPhone || cleanPhone === inqCleanPhone);
+        });
+    }, [inquiryList]);
 
     // Filtering Logic
     useEffect(() => {
@@ -454,6 +498,10 @@ const AdminPage = () => {
             });
         }
 
+        if (onlyWithInquiries) {
+            tempQuotes = tempQuotes.filter(item => getInquiriesForQuote(item).length > 0);
+        }
+
         tempQuotes.sort((a, b) => {
             const dateA = new Date(a.date).getTime();
             const dateB = new Date(b.date).getTime();
@@ -466,6 +514,29 @@ const AdminPage = () => {
         });
 
         setFilteredList(tempQuotes);
+
+        // Filtering for Inquiry List
+        let tempInquiries = [...inquiryList];
+        if (searchTerm) {
+            const normalizedSearch = searchTerm.trim().normalize('NFC').toLowerCase();
+            tempInquiries = tempInquiries.filter(item => {
+                const name = (item.name || '').normalize('NFC').toLowerCase();
+                const phone = (item.phone || '').toLowerCase();
+                const address = (item.address || '').normalize('NFC').toLowerCase();
+                const memo = (item.memo || '').normalize('NFC').toLowerCase();
+                const topics = (item.topics || []).join(' ').normalize('NFC').toLowerCase();
+                return name.includes(normalizedSearch) || phone.includes(normalizedSearch) || address.includes(normalizedSearch) || memo.includes(normalizedSearch) || topics.includes(normalizedSearch);
+            });
+        }
+        if (inquiryStatusFilter !== 'all') {
+            tempInquiries = tempInquiries.filter(item => (item.status || 'pending') === inquiryStatusFilter);
+        }
+        tempInquiries.sort((a, b) => {
+            const dateA = new Date(a.createdAt).getTime();
+            const dateB = new Date(b.createdAt).getTime();
+            return sortOrder === 'desc' ? dateB - dateA : dateA - dateB;
+        });
+        setFilteredInquiryList(tempInquiries);
 
         // Filtering for Rental List
         let tempRentals = [...rentalList];
@@ -520,7 +591,7 @@ const AdminPage = () => {
             return sortOrder === 'desc' ? dateB - dateA : dateA - dateB;
         });
         setFilteredGreenList(tempGreen);
-    }, [quoteList, rentalList, subscriptionList, greenList, searchTerm, filterBranch, filterType, filterDate, sortOrder, fetchList]);
+    }, [quoteList, rentalList, subscriptionList, greenList, inquiryList, searchTerm, filterBranch, filterType, filterDate, sortOrder, inquiryStatusFilter, onlyWithInquiries, getInquiriesForQuote, fetchList]);
 
     // 그린리모델링 신청서 PDF 생성 및 다운로드 (신청서 + 동의서 통합)
     const handleDownloadGreenPdf = async (item) => {
@@ -1206,6 +1277,77 @@ const AdminPage = () => {
         }
     };
 
+    // === INQUIRY HANDLERS ===
+    const handleInquiryStatusChange = async (item, newStatus) => {
+        setInquiryList(prev => prev.map(i => (i.id === item.id || i._id === item._id) ? { ...i, status: newStatus } : i));
+        if (selectedInquiry && (selectedInquiry.id === item.id || selectedInquiry._id === item._id)) {
+            setSelectedInquiry(prev => ({ ...prev, status: newStatus }));
+        }
+        try {
+            const res = await updateInquiryStatus(item.id || item._id, newStatus);
+            if (!res.success) {
+                alert("상태 저장 실패: " + res.message);
+                fetchList();
+            }
+        } catch (e) {
+            console.error("Inquiry status update failed", e);
+            fetchList();
+        }
+    };
+
+    const handleSaveInquiryAdminMemo = async (item, adminMemo) => {
+        try {
+            const res = await updateInquiryAdminMemo(item.id || item._id, adminMemo);
+            if (res.success) {
+                setInquiryList(prev => prev.map(i => (i.id === item.id || i._id === item._id) ? { ...i, adminMemo } : i));
+                if (selectedInquiry && (selectedInquiry.id === item.id || selectedInquiry._id === item._id)) {
+                    setSelectedInquiry(prev => ({ ...prev, adminMemo }));
+                }
+                alert("관리자 메모가 저장되었습니다.");
+            } else {
+                alert("메모 저장 실패: " + res.message);
+            }
+        } catch (e) {
+            console.error("Admin memo save failed:", e);
+        }
+    };
+
+    const handleDeleteInquiry = async (item) => {
+        if (!window.confirm(`${item.name} 고객님의 문의 내역을 삭제하시겠습니까?`)) return;
+        try {
+            const res = await deleteInquiry(item.id || item._id);
+            if (res.success) {
+                setInquiryList(prev => prev.filter(i => (i.id || i._id) !== (item.id || item._id)));
+                if (selectedInquiry && (selectedInquiry.id === item.id || selectedInquiry._id === item._id)) {
+                    setSelectedInquiry(null);
+                }
+                alert("문의 내역이 삭제되었습니다.");
+            } else {
+                alert("삭제 실패: " + res.message);
+            }
+        } catch (e) {
+            console.error("Delete inquiry error:", e);
+        }
+    };
+
+    const formatDateTime = (isoStr) => {
+        if (!isoStr) return '-';
+        try {
+            const d = new Date(isoStr);
+            if (isNaN(d.getTime())) return isoStr;
+            const y = d.getFullYear();
+            const m = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            const h = String(d.getHours()).padStart(2, '0');
+            const min = String(d.getMinutes()).padStart(2, '0');
+            return `${y}.${m}.${day} ${h}:${min}`;
+        } catch {
+            return isoStr;
+        }
+    };
+
+    const pendingInquiryCount = inquiryList.filter(i => (i.status || 'pending') === 'pending').length;
+
     // === BATCH MIGRATION (Retroactive Item Price Fix) ===
     const handleBatchMigration = async () => {
         if (!window.confirm("주의! 모든 견적 데이터의 상세 항목 금액을 '최종 견적가' 비율에 맞춰 재계산합니다.\n\n이 작업은 되돌릴 수 없으며, 기존에 저장된 상세 항목의 금액이 변경됩니다.\n(기타 잡비는 변경되지 않음)\n\n진행하시겠습니까?")) return;
@@ -1448,6 +1590,7 @@ const AdminPage = () => {
                     {[
                         { id: 'send', label: '견적발송', icon: <Calculator size={18} />, color: 'hover:bg-[#c5a059]/20 hover:text-[#c5a059]', active: 'bg-[#c5a059] text-white' },
                         { id: 'lookup', label: '견적조회', icon: <FileText size={18} />, color: 'hover:bg-[#c5a059]/20 hover:text-[#c5a059]', active: 'bg-[#c5a059] text-white' },
+                        { id: 'inquiry', label: '고객문의 내역', icon: <MessageSquare size={18} />, color: 'hover:bg-amber-500/20 hover:text-amber-400', active: 'bg-amber-500 text-white', badge: pendingInquiryCount },
                         { id: 'rental', label: '렌탈신청 내역', icon: <ShieldCheck size={18} />, color: 'hover:bg-blue-500/20 hover:text-blue-400', active: 'bg-blue-600 text-white' },
                         { id: 'subscription', label: '할부신청 내역', icon: <Save size={18} />, color: 'hover:bg-teal-500/20 hover:text-teal-400', active: 'bg-teal-600 text-white' },
                         { id: 'green_remodeling', label: '그린리모델링 내역', icon: <ShieldCheck size={18} />, color: 'hover:bg-green-500/20 hover:text-green-400', active: 'bg-green-700 text-white' },
@@ -1467,6 +1610,11 @@ const AdminPage = () => {
                         >
                             {item.icon}
                             <span>{item.label}</span>
+                            {item.badge > 0 && (
+                                <span className="ml-auto px-2 py-0.5 bg-rose-500 text-white text-[10px] font-black rounded-full shadow-sm animate-pulse">
+                                    {item.badge}
+                                </span>
+                            )}
                         </button>
                     ))}
                 </nav>
@@ -1498,6 +1646,7 @@ const AdminPage = () => {
                             {
                                 activeTab === 'send' ? '새 견적 발송' :
                                 activeTab === 'lookup' ? '전체 견적 데이터' :
+                                activeTab === 'inquiry' ? '고객 문의 및 상담 신청 내역' :
                                 activeTab === 'rental' ? '렌탈 신청 현황' :
                                 activeTab === 'subscription' ? '할부 신청 현황' :
                                 activeTab === 'green_remodeling' ? '그린리모델링 신청 현황' : '문서 서식 매핑 에디터'
@@ -1849,6 +1998,21 @@ const AdminPage = () => {
                                 <option value="desc">최신순</option>
                                 <option value="asc">과거순</option>
                             </select>
+
+                            {/* Inquiries Filter Toggle */}
+                            <button
+                                type="button"
+                                onClick={() => setOnlyWithInquiries(prev => !prev)}
+                                className={`px-3 py-2.5 md:py-3 rounded-xl text-[10px] md:text-xs font-black transition-all flex items-center gap-1.5 cursor-pointer ${
+                                    onlyWithInquiries
+                                        ? 'bg-amber-500 text-white shadow-md'
+                                        : 'bg-gray-50 text-gray-600 hover:bg-amber-50 hover:text-amber-600'
+                                }`}
+                                title="문의/상담 신청이 있는 견적만 모아보기"
+                            >
+                                <MessageSquare size={14} />
+                                <span>문의건만 {inquiryList.length > 0 ? `(${inquiryList.length})` : ''}</span>
+                            </button>
                             
                             <button
                                 onClick={fetchList}
@@ -1904,7 +2068,35 @@ const AdminPage = () => {
                                                         {item.type}
                                                     </span>
                                                 </td>
-                                                <td className="px-4 py-4 text-center whitespace-nowrap font-bold text-blue-600 hover:text-blue-800 cursor-pointer underline decoration-wavy underline-offset-4" onClick={() => setSelectedQuote(item)}>{item.name}</td>
+                                                <td className="px-4 py-4 text-center whitespace-nowrap">
+                                                    {(() => {
+                                                        const matchingInquiries = getInquiriesForQuote(item);
+                                                        return (
+                                                            <div className="flex items-center justify-center gap-1.5">
+                                                                <span 
+                                                                    className="font-bold text-blue-600 hover:text-blue-800 cursor-pointer underline decoration-wavy underline-offset-4" 
+                                                                    onClick={() => setSelectedQuote(item)}
+                                                                >
+                                                                    {item.name}
+                                                                </span>
+                                                                {matchingInquiries.length > 0 && (
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            setSelectedInquiry(matchingInquiries[0]);
+                                                                        }}
+                                                                        className="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-500 text-white shadow-sm hover:bg-amber-600 transition-all cursor-pointer inline-flex items-center gap-1 animate-pulse"
+                                                                        title={`고객 문의 ${matchingInquiries.length}건 (클릭 시 확인)`}
+                                                                    >
+                                                                        <MessageSquare size={10} />
+                                                                        <span>문의 {matchingInquiries.length}건</span>
+                                                                    </button>
+                                                                )}
+                                                            </div>
+                                                        );
+                                                    })()}
+                                                </td>
                                                 <td className="px-4 py-4 text-center whitespace-nowrap text-gray-500 font-mono text-xs">{item.phone}</td>
                                                 <td className="px-4 py-4 max-w-[200px] truncate text-gray-500 text-xs" title={item.address}>{item.address}</td>
 
@@ -1948,6 +2140,309 @@ const AdminPage = () => {
                                                         placeholder="비고 입력"
                                                         className="w-full bg-transparent border-b border-gray-200 focus:border-[#c5a059] focus:bg-[#c5a059]/5 outline-none text-xs py-1 transition-all"
                                                     />
+                                                </td>
+                                            </tr>
+                                        ))
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* TAB CONTENT: INQUIRIES & CONSULTATIONS */}
+            {activeTab === 'inquiry' && (
+                <div className="space-y-6 animate-in fade-in">
+                    {/* Top Stat Cards */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6">
+                        <div className="bg-white p-5 rounded-2xl md:rounded-[2rem] border border-gray-100 shadow-sm flex items-center gap-4">
+                            <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                                <MessageSquare size={24} />
+                            </div>
+                            <div>
+                                <p className="text-xs font-bold text-gray-400">전체 문의</p>
+                                <p className="text-2xl font-black text-[#001a3d]">{inquiryList.length}<span className="text-sm font-medium text-gray-400 ml-1">건</span></p>
+                            </div>
+                        </div>
+
+                        <div className="bg-white p-5 rounded-2xl md:rounded-[2rem] border border-amber-200/80 shadow-sm flex items-center gap-4">
+                            <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+                                <Clock size={24} />
+                            </div>
+                            <div>
+                                <p className="text-xs font-bold text-amber-700">접수 대기</p>
+                                <p className="text-2xl font-black text-amber-600">
+                                    {inquiryList.filter(i => (i.status || 'pending') === 'pending').length}
+                                    <span className="text-sm font-medium text-gray-400 ml-1">건</span>
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="bg-white p-5 rounded-2xl md:rounded-[2rem] border border-gray-100 shadow-sm flex items-center gap-4">
+                            <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+                                <PhoneCall size={24} />
+                            </div>
+                            <div>
+                                <p className="text-xs font-bold text-gray-400">상담 진행중</p>
+                                <p className="text-2xl font-black text-indigo-600">
+                                    {inquiryList.filter(i => i.status === 'in_progress').length}
+                                    <span className="text-sm font-medium text-gray-400 ml-1">건</span>
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="bg-white p-5 rounded-2xl md:rounded-[2rem] border border-gray-100 shadow-sm flex items-center gap-4">
+                            <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                                <CheckCircle size={24} />
+                            </div>
+                            <div>
+                                <p className="text-xs font-bold text-gray-400">상담 완료</p>
+                                <p className="text-2xl font-black text-emerald-600">
+                                    {inquiryList.filter(i => i.status === 'completed').length}
+                                    <span className="text-sm font-medium text-gray-400 ml-1">건</span>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Filter & Search Bar */}
+                    <div className="glass-card p-3 md:p-4 rounded-2xl md:rounded-[2rem] flex flex-col md:flex-row gap-3 md:gap-4 items-stretch md:items-center">
+                        {/* Status Filter Tabs */}
+                        <div className="flex bg-gray-100/80 p-1 rounded-xl shrink-0 overflow-x-auto no-scrollbar">
+                            {[
+                                { id: 'all', label: '전체', count: inquiryList.length },
+                                { id: 'pending', label: '접수대기', count: inquiryList.filter(i => (i.status || 'pending') === 'pending').length },
+                                { id: 'in_progress', label: '상담진행중', count: inquiryList.filter(i => i.status === 'in_progress').length },
+                                { id: 'completed', label: '상담완료', count: inquiryList.filter(i => i.status === 'completed').length },
+                            ].map(tab => (
+                                <button
+                                    key={tab.id}
+                                    type="button"
+                                    onClick={() => setInquiryStatusFilter(tab.id)}
+                                    className={`px-3 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 cursor-pointer ${
+                                        inquiryStatusFilter === tab.id
+                                            ? 'bg-white text-[#001a3d] shadow-sm font-black'
+                                            : 'text-gray-500 hover:text-gray-900'
+                                    }`}
+                                >
+                                    <span>{tab.label}</span>
+                                    <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${
+                                        inquiryStatusFilter === tab.id
+                                            ? 'bg-[#001a3d] text-white'
+                                            : 'bg-gray-200 text-gray-600'
+                                    }`}>
+                                        {tab.count}
+                                    </span>
+                                </button>
+                            ))}
+                        </div>
+
+                        {/* Search Input */}
+                        <div className="flex-1 relative">
+                            <input
+                                type="text"
+                                placeholder="고객명, 연락처, 주소, 문의내용 검색"
+                                className="w-full pl-10 pr-4 py-2.5 md:py-3 bg-gray-50 rounded-xl border-none focus:ring-2 focus:ring-[#c5a059]/50 transition-all font-bold text-xs md:text-sm"
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                            />
+                            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                                <Search size={18} />
+                            </div>
+                        </div>
+
+                        {/* Controls */}
+                        <div className="flex gap-2">
+                            <select
+                                className="bg-gray-50 px-3 md:px-4 py-2.5 md:py-3 rounded-xl text-[10px] md:text-sm font-black text-[#001a3d] border-none cursor-pointer focus:ring-2 focus:ring-[#c5a059]/50"
+                                value={sortOrder}
+                                onChange={(e) => setSortOrder(e.target.value)}
+                            >
+                                <option value="desc">최신순</option>
+                                <option value="asc">과거순</option>
+                            </select>
+                            <button
+                                onClick={fetchList}
+                                className="p-2.5 md:p-3 bg-gray-50 text-gray-500 hover:text-[#001a3d] hover:bg-gray-100 rounded-xl transition-all cursor-pointer"
+                                title="새로고침"
+                            >
+                                <RefreshCw size={18} />
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Table View */}
+                    <div className="bg-white rounded-[2rem] shadow-xl overflow-hidden border border-gray-100">
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-sm min-w-[1400px]">
+                                <thead className="bg-[#192838] text-white">
+                                    <tr>
+                                        {[
+                                            "순번", "상태", "접수일시", "고객명", "연락처", "주소 / 견적",
+                                            "관심 결제방식", "상담 희망시간", "문의 주제", "고객 문의내용",
+                                            "관리자 메모", "관리"
+                                        ].map((th, i) => (
+                                            <th key={i} className="px-3 py-4 font-black whitespace-nowrap text-xs uppercase tracking-tight text-center first:pl-6 last:pr-6">{th}</th>
+                                        ))}
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-100">
+                                    {filteredInquiryList.length === 0 ? (
+                                        <tr>
+                                            <td colSpan="12" className="text-center py-20 text-gray-400 font-bold">
+                                                고객 문의 및 상담 신청 내역이 없습니다.
+                                            </td>
+                                        </tr>
+                                    ) : (
+                                        filteredInquiryList.map((item, idx) => (
+                                            <tr key={item.id || item._id || idx} className="hover:bg-amber-50/20 transition-colors">
+                                                <td className="px-3 py-4 text-center font-bold text-gray-400">
+                                                    {filteredInquiryList.length - idx}
+                                                </td>
+
+                                                {/* Status Select */}
+                                                <td className="px-3 py-4 text-center whitespace-nowrap">
+                                                    <select
+                                                        value={item.status || 'pending'}
+                                                        onChange={(e) => handleInquiryStatusChange(item, e.target.value)}
+                                                        className={`text-xs font-black px-2.5 py-1.5 rounded-xl border border-transparent cursor-pointer shadow-sm transition-all ${
+                                                            INQUIRY_STATUS_OPTIONS.find(opt => opt.value === (item.status || 'pending'))?.color || 'bg-gray-100 text-gray-600'
+                                                        }`}
+                                                    >
+                                                        {INQUIRY_STATUS_OPTIONS.map(opt => (
+                                                            <option key={opt.value} value={opt.value} className="bg-white text-gray-800">{opt.label}</option>
+                                                        ))}
+                                                    </select>
+                                                </td>
+
+                                                {/* Created At */}
+                                                <td className="px-3 py-4 text-center whitespace-nowrap text-xs text-gray-500 font-medium">
+                                                    {formatDateTime(item.createdAt)}
+                                                </td>
+
+                                                {/* Customer Name */}
+                                                <td className="px-3 py-4 text-center whitespace-nowrap">
+                                                    <span
+                                                        onClick={() => setSelectedInquiry(item)}
+                                                        className="font-black text-blue-600 hover:text-blue-800 cursor-pointer underline decoration-wavy underline-offset-4"
+                                                    >
+                                                        {item.name}
+                                                    </span>
+                                                </td>
+
+                                                {/* Phone with click-to-call */}
+                                                <td className="px-3 py-4 text-center whitespace-nowrap font-mono text-xs">
+                                                    <a
+                                                        href={`tel:${item.phone}`}
+                                                        className="inline-flex items-center gap-1 font-bold text-gray-700 hover:text-blue-600 bg-gray-50 hover:bg-blue-50 px-2 py-1 rounded-lg transition-colors"
+                                                        title="전화 걸기"
+                                                    >
+                                                        <PhoneCall size={12} className="text-gray-400" />
+                                                        {item.phone}
+                                                    </a>
+                                                </td>
+
+                                                {/* Address & Quote link */}
+                                                <td className="px-3 py-4 text-center max-w-[200px]">
+                                                    <div className="flex flex-col items-center gap-1">
+                                                        <span className="text-xs text-gray-600 truncate max-w-[180px]" title={item.address || '주소 정보 없음'}>
+                                                            {item.address || '-'}
+                                                        </span>
+                                                        {item.quote ? (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    const url = `${window.location.origin}/?n=${encodeURIComponent(item.name)}&p=${encodeURIComponent(item.phone)}&t=${encodeURIComponent(item.quote.type || '가견적')}`;
+                                                                    window.open(url, '_blank');
+                                                                }}
+                                                                className="text-[10px] font-bold text-blue-600 hover:underline inline-flex items-center gap-0.5 cursor-pointer"
+                                                            >
+                                                                <ExternalLink size={10} />
+                                                                견적서(WEB)
+                                                            </button>
+                                                        ) : null}
+                                                    </div>
+                                                </td>
+
+                                                {/* Payment Method */}
+                                                <td className="px-3 py-4 text-center whitespace-nowrap text-xs font-bold text-gray-700">
+                                                    <span className="px-2 py-1 rounded-md bg-gray-100 text-gray-700 text-[11px]">
+                                                        {item.paymentMethod || '일시불'}
+                                                    </span>
+                                                </td>
+
+                                                {/* Preferred Time */}
+                                                <td className="px-3 py-4 text-center whitespace-nowrap text-xs font-medium text-gray-600">
+                                                    <span className="px-2 py-1 rounded-md bg-blue-50 text-blue-700 font-bold text-[11px]">
+                                                        {item.preferredTime || '상관없음'}
+                                                    </span>
+                                                </td>
+
+                                                {/* Topics */}
+                                                <td className="px-3 py-4 text-center max-w-[220px]">
+                                                    <div className="flex flex-wrap justify-center gap-1">
+                                                        {(item.topics || []).map((t, tidx) => (
+                                                            <span key={tidx} className="px-2 py-0.5 rounded-md bg-amber-100/70 text-amber-900 text-[11px] font-bold whitespace-nowrap">
+                                                                #{t}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                </td>
+
+                                                {/* Customer Memo */}
+                                                <td className="px-3 py-4 max-w-[250px]">
+                                                    {item.memo ? (
+                                                        <div
+                                                            onClick={() => setSelectedInquiry(item)}
+                                                            className="bg-amber-50/70 hover:bg-amber-100/70 border border-amber-200/70 p-2 rounded-xl text-xs text-gray-800 line-clamp-2 cursor-pointer transition-colors"
+                                                            title={item.memo}
+                                                        >
+                                                            {item.memo}
+                                                        </div>
+                                                    ) : (
+                                                        <span className="text-gray-300 text-xs block text-center">-</span>
+                                                    )}
+                                                </td>
+
+                                                {/* Admin Memo */}
+                                                <td className="px-3 py-4 min-w-[180px]">
+                                                    <input
+                                                        type="text"
+                                                        defaultValue={item.adminMemo || ''}
+                                                        onBlur={(e) => {
+                                                            if (e.target.value !== (item.adminMemo || '')) {
+                                                                handleSaveInquiryAdminMemo(item, e.target.value);
+                                                            }
+                                                        }}
+                                                        onKeyDown={(e) => {
+                                                            if (e.key === 'Enter') e.target.blur();
+                                                        }}
+                                                        placeholder="상담 메모 입력..."
+                                                        className="w-full bg-transparent border-b border-gray-200 focus:border-blue-500 focus:bg-blue-50/20 outline-none text-xs py-1.5 transition-all"
+                                                    />
+                                                </td>
+
+                                                {/* Actions */}
+                                                <td className="px-3 py-4 text-center whitespace-nowrap">
+                                                    <div className="flex items-center justify-center gap-1.5">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setSelectedInquiry(item)}
+                                                            className="p-1.5 hover:bg-blue-50 text-blue-600 rounded-lg transition-colors font-bold text-xs cursor-pointer"
+                                                            title="상세보기"
+                                                        >
+                                                            상세
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleDeleteInquiry(item)}
+                                                            className="p-1.5 hover:bg-red-50 text-red-400 hover:text-red-600 rounded-lg transition-colors cursor-pointer"
+                                                            title="삭제"
+                                                        >
+                                                            <Trash2 size={14} />
+                                                        </button>
+                                                    </div>
                                                 </td>
                                             </tr>
                                         ))
@@ -2605,6 +3100,98 @@ const AdminPage = () => {
                                     </div>
                                 </div>
 
+                                {/* Customer Inquiries Section in Quote Detail Modal */}
+                                {(() => {
+                                    const inquiries = getInquiriesForQuote(selectedQuote);
+                                    return (
+                                        <div className="bg-gradient-to-br from-amber-50/60 to-orange-50/40 rounded-2xl p-5 mb-6 border border-amber-200/80 shadow-sm">
+                                            <div className="flex items-center justify-between mb-4">
+                                                <h4 className="font-black text-amber-950 flex items-center gap-2 text-sm uppercase tracking-wide">
+                                                    <MessageSquare size={16} className="text-amber-600" />
+                                                    모바일 견적서 고객 문의 및 상담 신청
+                                                    {inquiries.length > 0 && (
+                                                        <span className="px-2 py-0.5 rounded-full text-xs font-black bg-amber-500 text-white shadow-sm">
+                                                            {inquiries.length}건
+                                                        </span>
+                                                    )}
+                                                </h4>
+                                                {inquiries.length > 0 && (
+                                                    <span className="text-xs text-amber-700 font-bold">
+                                                        최근 접수: {formatDateTime(inquiries[0].createdAt)}
+                                                    </span>
+                                                )}
+                                            </div>
+
+                                            {inquiries.length === 0 ? (
+                                                <div className="text-center py-6 bg-white/80 rounded-xl border border-amber-100 text-gray-400 text-xs font-bold">
+                                                    고객이 남긴 문의 내역이 없습니다.
+                                                </div>
+                                            ) : (
+                                                <div className="space-y-3">
+                                                    {inquiries.map((inq, inqIdx) => (
+                                                        <div key={inq.id || inq._id || inqIdx} className="bg-white p-4 rounded-xl border border-amber-200 shadow-sm space-y-3">
+                                                            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 pb-2">
+                                                                <div className="flex flex-wrap items-center gap-2">
+                                                                    <span className="text-xs font-bold text-gray-400">#{inquiries.length - inqIdx}</span>
+                                                                    <span className="text-xs font-bold text-gray-600">{formatDateTime(inq.createdAt)}</span>
+                                                                    <span className="px-2 py-0.5 text-[10px] font-bold rounded bg-gray-100 text-gray-700">
+                                                                        결제: {inq.paymentMethod || '일시불'}
+                                                                    </span>
+                                                                    <span className="px-2 py-0.5 text-[10px] font-bold rounded bg-blue-50 text-blue-700">
+                                                                        희망시간: {inq.preferredTime || '상관없음'}
+                                                                    </span>
+                                                                </div>
+                                                                <div className="flex items-center gap-2">
+                                                                    <select
+                                                                        value={inq.status || 'pending'}
+                                                                        onChange={(e) => handleInquiryStatusChange(inq, e.target.value)}
+                                                                        className={`text-xs font-black px-2 py-1 rounded-lg border-none cursor-pointer ${
+                                                                            INQUIRY_STATUS_OPTIONS.find(o => o.value === (inq.status || 'pending'))?.color || 'bg-gray-100 text-gray-700'
+                                                                        }`}
+                                                                    >
+                                                                        {INQUIRY_STATUS_OPTIONS.map(opt => (
+                                                                            <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                                                        ))}
+                                                                    </select>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => setSelectedInquiry(inq)}
+                                                                        className="text-xs font-bold text-amber-700 hover:text-amber-800 underline px-1"
+                                                                    >
+                                                                        전체보기
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+
+                                                            <div className="flex flex-wrap gap-1.5">
+                                                                {(inq.topics || []).map((t, tidx) => (
+                                                                    <span key={tidx} className="px-2 py-0.5 rounded-md bg-amber-100 text-amber-900 text-xs font-bold">
+                                                                        #{t}
+                                                                    </span>
+                                                                ))}
+                                                            </div>
+
+                                                            {inq.memo && (
+                                                                <div className="p-3 bg-amber-50/60 rounded-lg text-xs text-gray-700 font-medium leading-relaxed border border-amber-100">
+                                                                    <span className="font-bold text-amber-900 mr-1.5">[고객 문의내용]</span>
+                                                                    {inq.memo}
+                                                                </div>
+                                                            )}
+
+                                                            {inq.adminMemo && (
+                                                                <div className="p-2.5 bg-blue-50/60 rounded-lg text-xs text-blue-900 font-medium border border-blue-100">
+                                                                    <span className="font-bold text-blue-700 mr-1.5">[관리자 메모]</span>
+                                                                    {inq.adminMemo}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })()}
+
                                 {/* 4. 60-Month Rental Fixed Package */}
                                 <div className="bg-gray-50 rounded-2xl p-4 mb-6 border border-gray-100">
                                     <h4 className="font-bold text-gray-700 mb-3 flex items-center gap-2 text-sm uppercase tracking-wide opacity-70">
@@ -3017,6 +3604,173 @@ const AdminPage = () => {
                                         ))}
                                     </div>
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Inquiry Detail Modal */}
+            {selectedInquiry && (
+                <div
+                    className="fixed inset-0 z-[160] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in p-4"
+                    onClick={() => setSelectedInquiry(null)}
+                >
+                    <div
+                        className="bg-white w-full max-w-2xl max-h-[90vh] rounded-[2rem] shadow-2xl overflow-hidden flex flex-col"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {/* Modal Header */}
+                        <div className="p-6 bg-[#192838] text-white flex justify-between items-center shrink-0">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-xl bg-amber-500 flex items-center justify-center text-white shrink-0">
+                                    <MessageSquare size={20} />
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-black">{selectedInquiry.name} 고객님 문의 상세</h3>
+                                    <p className="text-xs text-white/60 font-medium mt-0.5">
+                                        접수일시: {formatDateTime(selectedInquiry.createdAt)}
+                                    </p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => setSelectedInquiry(null)}
+                                className="p-2 hover:bg-white/10 rounded-full transition-colors text-white cursor-pointer"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        {/* Modal Body */}
+                        <div className="p-6 space-y-6 overflow-y-auto custom-scrollbar flex-1">
+                            {/* Status Change Selector */}
+                            <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100 flex items-center justify-between">
+                                <span className="text-xs font-black text-gray-600">처리 상태</span>
+                                <div className="flex gap-2">
+                                    {INQUIRY_STATUS_OPTIONS.map(opt => (
+                                        <button
+                                            key={opt.value}
+                                            type="button"
+                                            onClick={() => handleInquiryStatusChange(selectedInquiry, opt.value)}
+                                            className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                                                (selectedInquiry.status || 'pending') === opt.value
+                                                    ? 'bg-[#192838] text-white shadow-md'
+                                                    : 'bg-white text-gray-500 hover:bg-gray-200 border border-gray-200'
+                                            }`}
+                                        >
+                                            {opt.label}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Customer Profile & Contact */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100 space-y-1">
+                                    <p className="text-[11px] font-bold text-gray-400">고객명 / 연락처</p>
+                                    <p className="text-base font-black text-[#001a3d]">{selectedInquiry.name}</p>
+                                    <a
+                                        href={`tel:${selectedInquiry.phone}`}
+                                        className="inline-flex items-center gap-1.5 text-sm font-bold text-blue-600 hover:underline pt-1"
+                                    >
+                                        <PhoneCall size={14} />
+                                        {selectedInquiry.phone}
+                                    </a>
+                                </div>
+
+                                <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100 space-y-1">
+                                    <p className="text-[11px] font-bold text-gray-400">현장 주소</p>
+                                    <p className="text-sm font-bold text-gray-700 leading-snug">{selectedInquiry.address || '주소 정보 없음'}</p>
+                                </div>
+                            </div>
+
+                            {/* Preferences: Payment & Preferred Time */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                                    <p className="text-[11px] font-bold text-gray-400 mb-1">관심 결제 방식</p>
+                                    <p className="text-sm font-black text-gray-800">{selectedInquiry.paymentMethod || '일시불 할인 결제'}</p>
+                                </div>
+                                <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                                    <p className="text-[11px] font-bold text-gray-400 mb-1">상담 희망 시간</p>
+                                    <p className="text-sm font-black text-blue-700">{selectedInquiry.preferredTime || '상관없음'}</p>
+                                </div>
+                            </div>
+
+                            {/* Inquiry Topics */}
+                            <div>
+                                <p className="text-xs font-black text-gray-600 mb-2">상담 문의 주제</p>
+                                <div className="flex flex-wrap gap-2">
+                                    {(selectedInquiry.topics || []).map((t, idx) => (
+                                        <span key={idx} className="px-3 py-1.5 bg-amber-100 text-amber-900 font-black text-xs rounded-xl">
+                                            #{t}
+                                        </span>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Customer Memo */}
+                            <div>
+                                <p className="text-xs font-black text-gray-600 mb-2">고객 추가 문의 내용 (메모)</p>
+                                <div className="p-4 bg-amber-50/70 rounded-2xl border border-amber-200 text-sm text-gray-800 leading-relaxed font-medium">
+                                    {selectedInquiry.memo || '작성된 추가 문의 내용이 없습니다.'}
+                                </div>
+                            </div>
+
+                            {/* Admin Memo Editor */}
+                            <div>
+                                <p className="text-xs font-black text-gray-600 mb-2">관리자 상담 기록 및 조치 메모</p>
+                                <div className="space-y-2">
+                                    <textarea
+                                        rows={3}
+                                        defaultValue={selectedInquiry.adminMemo || ''}
+                                        onChange={(e) => setInquiryAdminMemoInput(e.target.value)}
+                                        placeholder="상담 결과, 특이사항, 후속 조치 등을 입력하세요..."
+                                        className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium text-gray-800 outline-none focus:border-blue-500 focus:bg-white transition-all"
+                                    />
+                                    <div className="flex justify-end">
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                const memoToSave = inquiryAdminMemoInput !== '' ? inquiryAdminMemoInput : (selectedInquiry.adminMemo || '');
+                                                handleSaveInquiryAdminMemo(selectedInquiry, memoToSave);
+                                            }}
+                                            className="px-4 py-2 bg-[#192838] text-white text-xs font-black rounded-xl hover:bg-blue-900 transition-colors cursor-pointer"
+                                        >
+                                            메모 저장
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Modal Footer */}
+                        <div className="p-4 bg-gray-50 border-t border-gray-100 flex items-center justify-between shrink-0">
+                            <button
+                                type="button"
+                                onClick={() => handleDeleteInquiry(selectedInquiry)}
+                                className="px-4 py-2.5 text-red-500 hover:bg-red-50 text-xs font-bold rounded-xl transition-colors flex items-center gap-1 cursor-pointer"
+                            >
+                                <Trash2 size={14} /> 삭제하기
+                            </button>
+
+                            <div className="flex gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        const url = `${window.location.origin}/?n=${encodeURIComponent(selectedInquiry.name)}&p=${encodeURIComponent(selectedInquiry.phone)}`;
+                                        window.open(url, '_blank');
+                                    }}
+                                    className="px-4 py-2.5 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer"
+                                >
+                                    <ExternalLink size={14} /> 고객 견적서 보기
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setSelectedInquiry(null)}
+                                    className="px-5 py-2.5 bg-gray-200 hover:bg-gray-300 text-gray-700 text-xs font-bold rounded-xl transition-colors cursor-pointer"
+                                >
+                                    닫기
+                                </button>
                             </div>
                         </div>
                     </div>

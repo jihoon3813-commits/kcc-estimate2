@@ -165,4 +165,21 @@ export default defineSchema({
         })),
         createdAt: v.string(),
     }),
+
+    inquiries: defineTable({
+        quoteId: v.optional(v.id("quotes")),
+        name: v.string(),
+        phone: v.string(),
+        address: v.optional(v.string()),
+        paymentMethod: v.optional(v.string()),
+        topics: v.array(v.string()),
+        preferredTime: v.optional(v.string()),
+        memo: v.optional(v.string()),
+        status: v.string(), // "pending", "in_progress", "completed"
+        adminMemo: v.optional(v.string()),
+        createdAt: v.string(),
+    }).index("by_quoteId", ["quoteId"])
+      .index("by_name_phone", ["name", "phone"])
+      .index("by_status", ["status"])
+      .index("by_createdAt", ["createdAt"]),
 });
