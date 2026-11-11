@@ -279,6 +279,53 @@ const CustomerPage = () => {
         }
     };
 
+    const handleGuestEnter = async () => {
+        setLoading(true);
+        try {
+            const result = await searchQuote('주원', '010-3261-8355');
+            if (result.success && result.data) {
+                setData(result.data);
+                if (result.data.type) setStatusType(result.data.type);
+                if (result.config?.banners) setBanners(result.config.banners);
+                if (result.config?.appliances) setAppliances(result.config.appliances);
+                setIsLoggedIn(true);
+                return;
+            }
+        } catch (e) {
+            console.error("Guest enter error:", e);
+        } finally {
+            setLoading(false);
+        }
+
+        // Fallback sample quote
+        setData({
+            name: '주원',
+            phone: '010-3261-8355',
+            address: '용인시 수지구 51평',
+            type: '가견적',
+            date: '2026.07.08',
+            kccPrice: 11556600,
+            finalBenefit: 10500000,
+            finalQuote: 11556600,
+            discountRate: 9,
+            extraDiscount: 16600,
+            marginAmt: 1568759,
+            marginRate: 14.9,
+            sub24: 512000,
+            sub36: 356000,
+            sub48: 279000,
+            sub60: 233000,
+            items: []
+        });
+        setIsLoggedIn(true);
+    };
+
+    const handleQuickLogin = (name, phone, type = '가견적') => {
+        setSearchForm({ name, phone });
+        setStatusType(type);
+        executeSearch(name, phone, type);
+    };
+
     // Auto-Search Effect
     React.useEffect(() => {
         const params = new URLSearchParams(window.location.search);
@@ -1089,11 +1136,44 @@ const CustomerPage = () => {
                         <button
                             type="submit"
                             disabled={loading}
-                            className="w-full bg-[#ed7426] hover:bg-[#d96018] text-white text-sm font-black py-4 rounded-xl shadow-lg active:scale-[0.98] transition-all flex items-center justify-center gap-2 mt-4 disabled:opacity-50"
+                            className="w-full bg-[#ed7426] hover:bg-[#d96018] text-white text-sm font-black py-4 rounded-xl shadow-lg active:scale-[0.98] transition-all flex items-center justify-center gap-2 mt-4 disabled:opacity-50 cursor-pointer"
                         >
                             {loading ? <Loader2 size={18} className="animate-spin" /> : <Search size={18} />}
                             {loading ? '조회 중...' : '견적서 확인하기'}
                         </button>
+
+                        {/* Guest / Direct Enter Button */}
+                        <button
+                            type="button"
+                            onClick={handleGuestEnter}
+                            disabled={loading}
+                            className="w-full bg-white/10 hover:bg-white/20 text-white text-xs font-bold py-3.5 rounded-xl border border-white/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm"
+                        >
+                            <Sparkles size={15} className="text-[#ed7426]" />
+                            <span>입력 없이 바로 견적서 둘러보기 (원클릭)</span>
+                        </button>
+
+                        {/* Quick Test Accounts */}
+                        <div className="pt-2">
+                            <p className="text-[10px] text-white/50 font-bold mb-1.5 text-center">테스트용 계정 원클릭 조회</p>
+                            <div className="grid grid-cols-3 gap-1.5">
+                                {[
+                                    { name: '주원', phone: '010-3261-8355', type: '가견적' },
+                                    { name: '오영진', phone: '010-6358-7521', type: '가견적' },
+                                    { name: '신선마3', phone: '010-3958-0170', type: '최종견적' },
+                                ].map((acc) => (
+                                    <button
+                                        key={acc.name}
+                                        type="button"
+                                        onClick={() => handleQuickLogin(acc.name, acc.phone, acc.type)}
+                                        className="py-2 px-1.5 rounded-lg bg-white/5 hover:bg-white/15 border border-white/10 text-[10px] text-white/80 font-bold transition-all text-center truncate cursor-pointer hover:border-[#ed7426]/50"
+                                        title={`${acc.name} (${acc.phone})`}
+                                    >
+                                        {acc.name}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
                     </form>
 
                     <div className="mt-8 text-center border-t border-white/10 pt-4 space-y-1">
