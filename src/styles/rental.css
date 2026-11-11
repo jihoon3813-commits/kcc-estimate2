@@ -4,45 +4,71 @@
 .rental-option .pay-card {
   width: 100%;
 }
+.kcc-scope .rental-actions,
 .rental-actions {
   display: grid;
   grid-template-columns: 1fr 1.7fr;
   gap: 8px;
   margin-top: 10px;
 }
+.kcc-scope .rental-actions button,
 .rental-actions button {
-  border-radius: 9px;
-  min-height: 51px;
-  font-size: 14px;
-  font-weight: 700;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: transform 0.1s, background-color 0.15s;
+  border-radius: 10px !important;
+  min-height: 52px !important;
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  cursor: pointer !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: transform 0.1s, background-color 0.15s, box-shadow 0.15s !important;
 }
+.kcc-scope .rental-actions button.rental-consult,
+.rental-actions button.rental-consult,
 .rental-consult {
-  border: 1px solid #dce2e7;
-  background: white;
-  color: #192c41;
+  border: 1px solid #dce2e7 !important;
+  background: #ffffff !important;
+  color: #192c41 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
 }
+.kcc-scope .rental-actions button.rental-consult:hover,
+.rental-actions button.rental-consult:hover,
 .rental-consult:hover {
-  background: #f7f9fa;
+  background: #f6f8fa !important;
+  border-color: #cbd5e1 !important;
 }
+.kcc-scope .rental-actions button.rental-apply,
+.rental-actions button.rental-apply,
 .rental-apply {
-  background: #ec7229;
-  color: white;
-  border: none;
-  box-shadow: 0 5px 14px rgba(237, 116, 38, 0.25);
+  background: #ed7426 !important;
+  color: #ffffff !important;
+  border: none !important;
+  box-shadow: 0 4px 14px rgba(237, 116, 38, 0.35) !important;
+  font-weight: 750 !important;
 }
+.kcc-scope .rental-actions button.rental-apply:hover,
+.rental-actions button.rental-apply:hover,
 .rental-apply:hover {
-  background: #d86119;
+  background: #d86119 !important;
+  color: #ffffff !important;
+  box-shadow: 0 6px 18px rgba(216, 97, 25, 0.45) !important;
 }
+.kcc-scope .rental-actions button.rental-apply span,
+.rental-actions button.rental-apply span,
 .rental-apply span {
-  margin-left: 8px;
+  margin-left: 8px !important;
+  font-size: 15px !important;
+  color: #ffffff !important;
+  display: inline-block !important;
+  transition: transform 0.15s ease !important;
 }
+.kcc-scope .rental-actions button.rental-apply:hover span,
+.rental-actions button.rental-apply:hover span {
+  transform: translateX(3px) !important;
+}
+.kcc-scope .rental-actions button:active,
 .rental-actions button:active {
-  transform: translateY(1px);
+  transform: translateY(1px) !important;
 }
 
 /* Modal Overlay & Dialog */

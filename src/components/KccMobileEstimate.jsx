@@ -558,6 +558,16 @@ export default function KccMobileEstimate({
                     <button
                       type="button"
                       className="rental-consult"
+                      style={{
+                        background: '#ffffff',
+                        color: '#192838',
+                        border: '1px solid #dce2e7',
+                        borderRadius: '10px',
+                        minHeight: '52px',
+                        fontWeight: 700,
+                        fontSize: '14px',
+                        cursor: 'pointer'
+                      }}
                       onClick={() => openConsult('결제 방식 비교', `${plans.lowupfront.name} · ${plans.lowupfront.detail}`)}
                     >
                       상담하기
@@ -565,12 +575,23 @@ export default function KccMobileEstimate({
                     <button
                       type="button"
                       className="rental-apply"
+                      style={{
+                        background: '#ed7426',
+                        color: '#ffffff',
+                        border: 'none',
+                        borderRadius: '10px',
+                        minHeight: '52px',
+                        fontWeight: 750,
+                        fontSize: '14px',
+                        boxShadow: '0 4px 14px rgba(237, 116, 38, 0.35)',
+                        cursor: 'pointer'
+                      }}
                       onClick={() => {
                         setRentalPlanKey('lowupfront');
                         setIsRentalModalOpen(true);
                       }}
                     >
-                      렌탈 신청하기 <span aria-hidden="true">→</span>
+                      렌탈 신청하기 <span aria-hidden="true" style={{ marginLeft: '6px' }}>→</span>
                     </button>
                   </div>
                 )}
@@ -611,6 +632,16 @@ export default function KccMobileEstimate({
                     <button
                       type="button"
                       className="rental-consult"
+                      style={{
+                        background: '#ffffff',
+                        color: '#192838',
+                        border: '1px solid #dce2e7',
+                        borderRadius: '10px',
+                        minHeight: '52px',
+                        fontWeight: 700,
+                        fontSize: '14px',
+                        cursor: 'pointer'
+                      }}
                       onClick={() => openConsult('결제 방식 비교', `${plans.lowmonthly.name} · ${plans.lowmonthly.detail}`)}
                     >
                       상담하기
@@ -618,12 +649,23 @@ export default function KccMobileEstimate({
                     <button
                       type="button"
                       className="rental-apply"
+                      style={{
+                        background: '#ed7426',
+                        color: '#ffffff',
+                        border: 'none',
+                        borderRadius: '10px',
+                        minHeight: '52px',
+                        fontWeight: 750,
+                        fontSize: '14px',
+                        boxShadow: '0 4px 14px rgba(237, 116, 38, 0.35)',
+                        cursor: 'pointer'
+                      }}
                       onClick={() => {
                         setRentalPlanKey('lowmonthly');
                         setIsRentalModalOpen(true);
                       }}
                     >
-                      렌탈 신청하기 <span aria-hidden="true">→</span>
+                      렌탈 신청하기 <span aria-hidden="true" style={{ marginLeft: '6px' }}>→</span>
                     </button>
                   </div>
                 )}
