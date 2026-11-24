@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Upload, FileText, Calculator, Save, CheckCircle, Loader2, RefreshCw, ExternalLink, Search, ShieldCheck, Download, X, Trash2, Calendar, ChevronDown, FileArchive, AlignLeft, AlignCenter, AlignRight, Menu, MessageSquare, Clock, PhoneCall, MessageCircle, CheckCheck, AlertCircle, AlertTriangle, Inbox, Check } from 'lucide-react';
 import { parseExcelEstimate } from '../lib/excelParser';
-import { saveQuote, updateRentalStatus, updateRentalReview, updateSubscriptionStatus, updateGreenStatus, getAdminQuoteList, getRentalApplicationList, getSubscriptionApplicationList, getGreenApplicationList, getTemplatePdfUrl, uploadTemplatePdf, savePdfTemplate, getTemplateList, deletePdfTemplate, getLatestTemplateByType, migrateInterestRates, getInquiryList, updateInquiryStatus, updateInquiryAdminMemo, deleteInquiry } from '../lib/api';
+import { saveQuote, updateQuote, updateRentalStatus, updateRentalReview, updateSubscriptionStatus, updateGreenStatus, getAdminQuoteList, getRentalApplicationList, getSubscriptionApplicationList, getGreenApplicationList, getTemplatePdfUrl, uploadTemplatePdf, savePdfTemplate, getTemplateList, deletePdfTemplate, getLatestTemplateByType, migrateInterestRates, getInquiryList, updateInquiryStatus, updateInquiryAdminMemo, deleteInquiry } from '../lib/api';
 import { PDFDocument, rgb } from 'pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
 import '../styles/rental-admin.css';
@@ -108,6 +108,8 @@ const AdminPage = () => {
 
     // Confirmation State
     const [isConfirmMode, setIsConfirmMode] = useState(false);
+    const [editingQuoteId, setEditingQuoteId] = useState(null);
+    const [editingQuoteMeta, setEditingQuoteMeta] = useState(null);
 
     // === NEW ADMIN LOOKUP STATE ===
     const [activeTab, setActiveTab] = useState('send'); // 'send' | 'lookup' | 'rental'
@@ -167,18 +169,74 @@ const AdminPage = () => {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const pdfContainerRef = React.useRef(null);
 
+    const extractQuoteConditions = useCallback((quote) => {
+        if (!quote) return null;
+
+        let parsedItems = [];
+        try {
+            parsedItems = typeof quote.items === 'string' ? JSON.parse(quote.items || '[]') : (Array.isArray(quote.items) ? quote.items : []);
+        } catch (e) {
+            console.error("Failed to parse quote items:", e);
+            parsedItems = [];
+        }
+
+        const kccPrice = Number(quote.kccPrice) || 0;
+        const totalEtc = quote.totalEtc !== undefined
+            ? Number(quote.totalEtc)
+            : parsedItems.filter(i => i.isEtc).reduce((sum, i) => sum + (Number(i.price) || 0), 0);
+        const totalMaterial = quote.totalMaterial !== undefined
+            ? Number(quote.totalMaterial)
+            : Math.max(0, kccPrice - totalEtc);
+
+        const finalQuote = Number(quote.finalQuote) || 0;
+        const finalBenefitSaved = Number(quote.finalBenefit) || 0;
+        const supplyCost = quote.supplyCost !== undefined
+            ? Number(quote.supplyCost)
+            : (quote.marginAmt !== undefined ? Math.max(0, finalBenefitSaved - Number(quote.marginAmt)) : kccPrice);
+
+        const materialCost = Math.max(0, supplyCost - totalEtc);
+        let priceMultiplier = 1.35;
+        if (quote.priceMultiplier !== undefined && !isNaN(Number(quote.priceMultiplier))) {
+            priceMultiplier = Number(quote.priceMultiplier);
+        } else if (materialCost > 0 && finalQuote > totalEtc) {
+            priceMultiplier = Math.round(((finalQuote - totalEtc) / materialCost) * 100) / 100;
+        }
+
+        const restoredItems = parsedItems.map(item => {
+            if (item.isEtc) return item;
+            const itemPrice = Number(item.price) || 0;
+            return {
+                ...item,
+                price: priceMultiplier > 0 ? Math.round(itemPrice / priceMultiplier) : itemPrice
+            };
+        });
+
+        return {
+            parsedItems,
+            restoredItems,
+            kccPrice,
+            totalEtc,
+            totalMaterial,
+            supplyCost,
+            priceMultiplier,
+            discountRate: Number(quote.discountRate ?? 0),
+            extraDiscount: Number(quote.extraDiscount ?? 0),
+        };
+    }, []);
+
     const modalCalculations = useMemo(() => {
         if (!selectedQuote) return null;
 
+        const cond = extractQuoteConditions(selectedQuote);
         const discountRate = isEditingModal ? modalEditData.discountRate : selectedQuote.discountRate;
         const extraDiscount = isEditingModal ? modalEditData.extraDiscount : selectedQuote.extraDiscount;
 
         const finalQuote = Number(selectedQuote.finalQuote);
-        const kccPrice = Number(selectedQuote.kccPrice);
+        const supplyCost = cond ? cond.supplyCost : Number(selectedQuote.kccPrice);
 
         const discountAmt = Math.floor((finalQuote * (discountRate / 100)) / 100) * 100;
         const finalBenefit = finalQuote - discountAmt - extraDiscount;
-        const marginAmount = finalBenefit - kccPrice;
+        const marginAmount = finalBenefit - supplyCost;
         const marginRate = finalBenefit > 0 ? (marginAmount / finalBenefit) * 100 : 0;
 
         const annualRate = 0.094;
@@ -195,9 +253,13 @@ const AdminPage = () => {
             extraDiscount,
             marginAmount,
             marginRate,
+            supplyCost,
+            priceMultiplier: cond ? cond.priceMultiplier : 1.35,
+            totalMaterial: cond ? cond.totalMaterial : 0,
+            totalEtc: cond ? cond.totalEtc : 0,
             subs
         };
-    }, [selectedQuote, isEditingModal, modalEditData]);
+    }, [selectedQuote, isEditingModal, modalEditData, extractQuoteConditions]);
 
     useEffect(() => {
         console.log("AdminPage Mounted and Ready");
@@ -340,8 +402,57 @@ const AdminPage = () => {
     }, [estimateData, supplyCost, priceMultiplier, discountRate, extraDiscount]);
 
 
+    const handleLoadQuoteForEdit = (quote) => {
+        const cond = extractQuoteConditions(quote);
+        if (!cond) return;
+
+        setEditingQuoteId(quote._id || quote.id);
+        setEditingQuoteMeta({
+            date: quote.date,
+            pdfUrl: quote.pdfUrl || '',
+            name: quote.name,
+            type: quote.type
+        });
+        setBranch(quote.branch || '인천지점');
+        setStatusType(quote.type || '가견적');
+        setCustomerPhone(quote.phone || '');
+        setPriceMultiplier(cond.priceMultiplier);
+        setSupplyCost(cond.supplyCost);
+        setDiscountRate(cond.discountRate);
+        setExtraDiscount(cond.extraDiscount);
+        setFile(null);
+        setPdfFile(null);
+        setIsConfirmMode(false);
+        setEstimateData({
+            customerName: quote.name || '',
+            customerPhone: quote.phone || '',
+            address: quote.address || '',
+            items: cond.restoredItems,
+            totalMaterial: cond.totalMaterial,
+            totalEtc: cond.totalEtc,
+            totalSum: cond.kccPrice
+        });
+        setSelectedQuote(null);
+        setIsEditingModal(false);
+        setActiveTab('send');
+    };
+
+    const handleCancelEdit = () => {
+        setEditingQuoteId(null);
+        setEditingQuoteMeta(null);
+        setFile(null);
+        setPdfFile(null);
+        setEstimateData(null);
+        setSupplyCost(0);
+        setPriceMultiplier(1.35);
+        setDiscountRate(8);
+        setExtraDiscount(0);
+        setCustomerPhone('');
+        setIsConfirmMode(false);
+    };
+
     const handleRegisterClick = () => {
-        if (!file) {
+        if (!file && !editingQuoteId) {
             alert("엑셀 견적서가 필요합니다.");
             return;
         }
@@ -351,7 +462,7 @@ const AdminPage = () => {
         setIsConfirmMode(true);
     };
 
-    const handleFinalSubmit = async () => {
+    const handleFinalSubmit = async (saveAsNew = false) => {
         setIsConfirmMode(false);
         const handleSubmit = async () => {
             // Prepare Data
@@ -384,21 +495,37 @@ const AdminPage = () => {
 
                 marginAmount: calculations.marginAmount,
                 marginRate: calculations.marginRate,
+                priceMultiplier,
+                supplyCost,
+                totalMaterial: estimateData.totalMaterial,
+                totalEtc: estimateData.totalEtc,
 
                 subs: calculations.subs,
 
                 items: processedItems
             };
 
-            const data = await saveQuote(payload, pdfFile);
+            const isUpdatingExisting = Boolean(editingQuoteId && !saveAsNew);
+            const data = isUpdatingExisting
+                ? await updateQuote(editingQuoteId, payload, pdfFile)
+                : await saveQuote(payload, pdfFile);
+
             if (data.success) {
-                alert("성공적으로 저장되었습니다.");
+                alert(isUpdatingExisting ? "견적이 성공적으로 수정되었습니다." : "성공적으로 저장되었습니다.");
                 // Reset
+                setEditingQuoteId(null);
+                setEditingQuoteMeta(null);
                 setFile(null);
                 setPdfFile(null);
                 setEstimateData(null);
                 setSupplyCost(0);
+                setPriceMultiplier(1.35);
+                setDiscountRate(8);
+                setExtraDiscount(0);
                 setCustomerPhone('');
+                if (isUpdatingExisting) {
+                    setActiveTab('lookup');
+                }
             } else {
                 alert("저장 실패: " + data.message);
             }
@@ -1829,7 +1956,7 @@ const AdminPage = () => {
                         </button>
                         <h2 className="text-sm md:text-xl font-black text-[#001a3d] truncate max-w-[150px] md:max-w-none">
                             {
-                                activeTab === 'send' ? '새 견적 발송' :
+                                activeTab === 'send' ? (editingQuoteId ? '기존 견적 수정' : '새 견적 발송') :
                                 activeTab === 'lookup' ? '전체 견적 데이터' :
                                 activeTab === 'inquiry' ? '고객 문의 및 상담 신청 내역' :
                                 activeTab === 'rental' ? '렌탈 신청 현황' :
@@ -1881,6 +2008,41 @@ const AdminPage = () => {
             {/* TAB CONTENT: SEND QUOTE */}
             {activeTab === 'send' && (
                 <div className="space-y-6 animate-in fade-in">
+                    {editingQuoteId && (
+                        <div className="bg-amber-50 border-2 border-[#c5a059] rounded-2xl p-4 md:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
+                            <div className="flex items-start sm:items-center gap-3">
+                                <div className="p-2.5 bg-[#c5a059] text-white rounded-xl shrink-0">
+                                    <Calculator size={18} />
+                                </div>
+                                <div>
+                                    <div className="flex flex-wrap items-center gap-2">
+                                        <span className="text-xs font-black px-2 py-0.5 rounded-md bg-[#001a3d] text-white">견적 수정 모드</span>
+                                        <span className="text-sm font-black text-[#001a3d]">
+                                            {editingQuoteMeta?.name || estimateData?.customerName} 고객님 ({editingQuoteMeta?.type || statusType})
+                                        </span>
+                                        {editingQuoteMeta?.date && (
+                                            <span className="text-xs font-bold text-gray-500">· 기존 등록일: {editingQuoteMeta.date}</span>
+                                        )}
+                                    </div>
+                                    <p className="text-xs text-amber-900/80 font-medium mt-1">
+                                        기존에 입력했던 견적 및 마진 조건(배율·공급가·할인율·추가할인)을 불러왔습니다. 수정 후 저장하세요.
+                                        {editingQuoteMeta?.pdfUrl && (
+                                            <a href={editingQuoteMeta.pdfUrl} target="_blank" rel="noopener noreferrer" className="ml-2 text-blue-700 underline font-bold">
+                                                기존 PDF 확인
+                                            </a>
+                                        )}
+                                    </p>
+                                </div>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={handleCancelEdit}
+                                className="px-4 py-2.5 rounded-xl bg-white border border-amber-200 text-xs font-black text-gray-700 hover:bg-gray-100 transition-colors shrink-0"
+                            >
+                                수정 취소 (새 견적 작성)
+                            </button>
+                        </div>
+                    )}
 
                     {/* Branch & Status Selection */}
                     <div className="flex flex-col sm:flex-row justify-end gap-3 mb-4">
@@ -1974,14 +2136,25 @@ const AdminPage = () => {
                                 <div className="flex justify-between items-center mb-6">
                                     <h3 className="font-bold flex items-center gap-2 text-lg">
                                         <CheckCircle size={20} className="text-green-400" />
-                                        자동 분석 데이터
+                                        {editingQuoteId && !file ? '불러온 견적 데이터' : '자동 분석 데이터'}
                                     </h3>
-                                    <span className="bg-white/20 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest">Excel Parsing</span>
+                                    <span className="bg-white/20 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest">
+                                        {editingQuoteId && !file ? 'Loaded Quote' : 'Excel Parsing'}
+                                    </span>
                                 </div>
                                 <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
                                     <div>
                                         <p className="text-xs text-white/50 mb-1">고객명</p>
-                                        <p className="text-xl font-bold">{estimateData.customerName}</p>
+                                        {editingQuoteId ? (
+                                            <input
+                                                type="text"
+                                                value={estimateData.customerName}
+                                                onChange={(e) => setEstimateData(prev => ({ ...prev, customerName: e.target.value }))}
+                                                className="bg-white/10 border border-white/20 rounded-lg px-3 py-1 text-white text-sm font-bold w-full focus:outline-none focus:bg-white/20"
+                                            />
+                                        ) : (
+                                            <p className="text-xl font-bold">{estimateData.customerName}</p>
+                                        )}
                                     </div>
                                     <div>
                                         <p className="text-xs text-white/50 mb-1">연락처 (직접 입력 가능)</p>
@@ -2096,15 +2269,27 @@ const AdminPage = () => {
                                 {isConfirmMode ? (
                                     <div className="glass-card p-6 rounded-3xl border-2 border-[#c5a059] animate-in fade-in zoom-in-95">
                                         <div className="text-center space-y-4">
-                                            <h3 className="text-xl font-black text-[#001a3d]">정말 등록하시겠습니까?</h3>
-                                            <div className="flex gap-3 justify-center">
+                                            <h3 className="text-xl font-black text-[#001a3d]">
+                                                {editingQuoteId ? '기존 견적 내용을 수정하시겠습니까?' : '정말 등록하시겠습니까?'}
+                                            </h3>
+                                            <div className="flex flex-wrap gap-3 justify-center">
                                                 <button onClick={() => setIsConfirmMode(false)} className="px-8 py-4 rounded-2xl bg-gray-100 text-gray-500 font-bold hover:bg-gray-200">취소</button>
-                                                <button onClick={handleFinalSubmit} className="px-8 py-4 rounded-2xl bg-[#001a3d] text-white font-black hover:bg-blue-900 flex items-center gap-2"><CheckCircle size={20} /> 확인 및 등록</button>
+                                                <button onClick={() => handleFinalSubmit(false)} className="px-8 py-4 rounded-2xl bg-[#001a3d] text-white font-black hover:bg-blue-900 flex items-center gap-2">
+                                                    <CheckCircle size={20} /> {editingQuoteId ? '확인 및 수정 저장' : '확인 및 등록'}
+                                                </button>
+                                                {editingQuoteId && (
+                                                    <button onClick={() => handleFinalSubmit(true)} className="px-8 py-4 rounded-2xl bg-[#c5a059] text-white font-black hover:bg-[#b08d48] flex items-center gap-2">
+                                                        <Save size={20} /> 새 견적으로 별도 등록
+                                                    </button>
+                                                )}
                                             </div>
                                         </div>
                                     </div>
                                 ) : (
-                                    <button onClick={handleRegisterClick} className="w-full bg-[#001a3d] text-white h-20 rounded-3xl text-xl font-black shadow-2xl hover:bg-blue-900 flex items-center justify-center gap-2"><Save size={28} /><span>견적 데이터 등록하기</span></button>
+                                    <button onClick={handleRegisterClick} className="w-full bg-[#001a3d] text-white h-20 rounded-3xl text-xl font-black shadow-2xl hover:bg-blue-900 flex items-center justify-center gap-2">
+                                        <Save size={28} />
+                                        <span>{editingQuoteId ? '수정된 견적 저장하기' : '견적 데이터 등록하기'}</span>
+                                    </button>
                                 )}
                             </div>
                         </div>
@@ -2228,7 +2413,7 @@ const AdminPage = () => {
                                             "공급가", "최종견적", "최종혜택", "할인율", "추가할인",
                                             "마진금액", "마진율",
                                             "24개월", "36개월", "48개월", "60개월",
-                                            "PDF", "비고"
+                                            "PDF", "수정", "비고"
                                         ].map((th, i) => (
                                             <th key={i} className="px-4 py-4 text-[#001a3d] font-black whitespace-nowrap text-xs uppercase tracking-tight first:pl-8 last:pr-8 text-center">{th}</th>
                                         ))}
@@ -2237,7 +2422,7 @@ const AdminPage = () => {
                                 <tbody className="divide-y divide-gray-100">
                                     {filteredList.length === 0 ? (
                                         <tr>
-                                            <td colSpan="20" className="text-center py-20 text-gray-400 font-bold">데이터가 없습니다.</td>
+                                            <td colSpan="21" className="text-center py-20 text-gray-400 font-bold">데이터가 없습니다.</td>
                                         </tr>
                                     ) : (
                                         filteredList.map((item, idx) => (
@@ -2305,6 +2490,17 @@ const AdminPage = () => {
                                                     {item.pdfUrl ? (
                                                         <a href={item.pdfUrl} target="_blank" rel="noopener noreferrer" className="text-kcc-blue hover:text-blue-600 underline text-xs font-bold">확인</a>
                                                     ) : <span className="text-gray-300 text-xs">-</span>}
+                                                </td>
+
+                                                <td className="px-4 py-4 text-center whitespace-nowrap">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleLoadQuoteForEdit(item)}
+                                                        className="px-3 py-1.5 rounded-lg bg-[#001a3d]/5 hover:bg-[#c5a059] text-[#001a3d] hover:text-white text-xs font-black transition-colors inline-flex items-center gap-1"
+                                                        title="기존 견적/마진 조건을 불러와 수정"
+                                                    >
+                                                        <Calculator size={12} /> 견적 수정
+                                                    </button>
                                                 </td>
 
                                                 {/* Remark Edit */}
@@ -3268,6 +3464,15 @@ const AdminPage = () => {
                                     <p className="text-xs text-white/60 font-bold mt-1">{selectedQuote.date} | {selectedQuote.branch}</p>
                                 </div>
                                 <div className="flex items-center gap-2">
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleLoadQuoteForEdit(selectedQuote);
+                                        }}
+                                        className="px-4 py-2 bg-[#c5a059] hover:bg-[#b08d48] text-white rounded-lg text-xs font-black transition-colors flex items-center gap-1.5 shadow-sm"
+                                    >
+                                        <Calculator size={14} /> 견적 수정
+                                    </button>
                                     {!isEditingModal ? (
                                         <button
                                             onClick={(e) => {
@@ -3278,9 +3483,9 @@ const AdminPage = () => {
                                                 });
                                                 setIsEditingModal(true);
                                             }}
-                                            className="px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5"
+                                            className="px-3 py-2 bg-white/15 hover:bg-white/25 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5"
                                         >
-                                            <Calculator size={14} /> 수정하기
+                                            할인 빠른수정
                                         </button>
                                     ) : (
                                         <button
@@ -3331,11 +3536,25 @@ const AdminPage = () => {
                                         가격 및 마진 분석
                                     </h4>
                                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                        {/* Row 1 */}
+                                        {/* Row 1: Cost & Margin Conditions */}
                                         <div className="bg-white p-3 rounded-xl border border-gray-100">
-                                            <p className="text-[10px] text-gray-400 font-bold mb-1">공급가 (VAT포함)</p>
+                                            <p className="text-[10px] text-gray-400 font-bold mb-1">KCC 원가 (VAT포함)</p>
                                             <p className="text-sm font-medium text-gray-600">{formatKrw(selectedQuote.kccPrice)}</p>
                                         </div>
+                                        <div className="bg-white p-3 rounded-xl border border-gray-100">
+                                            <p className="text-[10px] text-gray-400 font-bold mb-1">공급가/매입가 (VAT포함)</p>
+                                            <p className="text-sm font-bold text-[#001a3d]">{formatKrw(modalCalculations.supplyCost)}</p>
+                                        </div>
+                                        <div className="bg-white p-3 rounded-xl border border-gray-100">
+                                            <p className="text-[10px] text-gray-400 font-bold mb-1">자재비 배율</p>
+                                            <p className="text-sm font-black text-[#c5a059]">{modalCalculations.priceMultiplier}배</p>
+                                        </div>
+                                        <div className="bg-white p-3 rounded-xl border border-gray-100">
+                                            <p className="text-[10px] text-gray-400 font-bold mb-1">자재비 / 기타비 (원가)</p>
+                                            <p className="text-xs font-bold text-gray-600">{formatKrw(modalCalculations.totalMaterial)} / {formatKrw(modalCalculations.totalEtc)}</p>
+                                        </div>
+
+                                        {/* Row 2: Discounts & Margin Rate */}
                                         <div className="bg-white p-3 rounded-xl border border-gray-100">
                                             <p className="text-[10px] text-gray-400 font-bold mb-1">할인율</p>
                                             {isEditingModal ? (

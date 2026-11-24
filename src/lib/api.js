@@ -71,6 +71,10 @@ export const saveQuote = async (data, file) => {
         extraDiscount: Number(data.extraDiscount) || 0,
         marginAmt: Number(data.marginAmount) || 0,
         marginRate: Number(data.marginRate) || 0,
+        priceMultiplier: data.priceMultiplier !== undefined ? Number(data.priceMultiplier) : undefined,
+        supplyCost: data.supplyCost !== undefined ? Number(data.supplyCost) : undefined,
+        totalMaterial: data.totalMaterial !== undefined ? Number(data.totalMaterial) : undefined,
+        totalEtc: data.totalEtc !== undefined ? Number(data.totalEtc) : undefined,
         sub24: Number(data.subs[24]) || 0,
         sub36: Number(data.subs[36]) || 0,
         sub48: Number(data.subs[48]) || 0,
@@ -141,6 +145,63 @@ export const updateQuoteFinancials = async (params) => {
         await convex.mutation(api.quotes.updateFinancials, params);
         return { success: true };
     } catch (error) {
+        return { success: false, message: error.message };
+    }
+};
+
+/**
+ * 기존 견적 전체 수정 (조건/마진/구분/PDF 등)
+ */
+export const updateQuote = async (id, data, file) => {
+    let storageId = undefined;
+
+    if (file) {
+        try {
+            const postUrl = await convex.mutation(api.quotes.generateUploadUrl);
+            const result = await fetch(postUrl, {
+                method: "POST",
+                headers: { "Content-Type": file.type },
+                body: file,
+            });
+            if (!result.ok) throw new Error("File upload failed");
+            const { storageId: sid } = await result.json();
+            storageId = sid;
+        } catch (error) {
+            console.error("PDF Upload Error:", error);
+        }
+    }
+
+    const params = {
+        id,
+        branch: data.branch || "",
+        type: data.statusType || "가견적",
+        name: data.customerName || "",
+        phone: data.customerPhone || "",
+        address: data.address || "",
+        kccPrice: Number(data.totalSum) || 0,
+        finalQuote: Number(data.finalQuote) || 0,
+        finalBenefit: Number(data.finalBenefit) || 0,
+        discountRate: Number(data.discountRate) || 0,
+        extraDiscount: Number(data.extraDiscount) || 0,
+        marginAmt: Number(data.marginAmount) || 0,
+        marginRate: Number(data.marginRate) || 0,
+        priceMultiplier: data.priceMultiplier !== undefined ? Number(data.priceMultiplier) : undefined,
+        supplyCost: data.supplyCost !== undefined ? Number(data.supplyCost) : undefined,
+        totalMaterial: data.totalMaterial !== undefined ? Number(data.totalMaterial) : undefined,
+        totalEtc: data.totalEtc !== undefined ? Number(data.totalEtc) : undefined,
+        sub24: Number(data.subs[24]) || 0,
+        sub36: Number(data.subs[36]) || 0,
+        sub48: Number(data.subs[48]) || 0,
+        sub60: Number(data.subs[60]) || 0,
+        items: JSON.stringify(data.items || []),
+        storageId: storageId || undefined,
+    };
+
+    try {
+        await convex.mutation(api.quotes.updateQuote, params);
+        return { success: true, id };
+    } catch (error) {
+        console.error("Convex Update Error:", error);
         return { success: false, message: error.message };
     }
 };
