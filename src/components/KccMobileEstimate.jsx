@@ -695,6 +695,62 @@ export default function KccMobileEstimate({
               아직 고민되세요? <b>결제 방법 함께 비교하기</b>
               <svg><use href="#i-arrow" /></svg>
             </button>
+
+            <div
+              className="green-remodeling-notice"
+              role="note"
+              aria-label="그린리모델링 별도 안내"
+              style={{
+                marginTop: '14px',
+                padding: '14px 16px',
+                borderRadius: '12px',
+                background: '#f2f8f5',
+                border: '1px solid #cde3d6',
+                textAlign: 'left'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
+                <span
+                  style={{
+                    display: 'inline-block',
+                    padding: '2px 8px',
+                    borderRadius: '999px',
+                    background: '#166534',
+                    color: '#ffffff',
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    letterSpacing: '-0.01em'
+                  }}
+                >
+                  렌탈과 별도 안내
+                </span>
+                <strong style={{ fontSize: '13.5px', fontWeight: 700, color: '#14532d' }}>
+                  그린리모델링을 원하시나요?
+                </strong>
+              </div>
+              <p style={{ margin: 0, fontSize: '12.5px', lineHeight: 1.55, color: '#334155' }}>
+                위의 <b>60개월 렌탈</b>과는 별도로, 정부 이자지원 사업인 <b>그린리모델링</b>을 희망하시는 경우 전담 상담사에게 상세 조건 및 진행 방법을 안내받으실 수 있습니다.
+              </p>
+              <button
+                type="button"
+                onClick={() => openConsult('결제 방식 비교', '그린리모델링 안내 요청 (일반 렌탈과 별도)')}
+                style={{
+                  marginTop: '8px',
+                  padding: 0,
+                  border: 'none',
+                  background: 'transparent',
+                  color: '#166534',
+                  fontSize: '12.5px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}
+              >
+                상담사에게 그린리모델링 안내받기 <span aria-hidden="true">→</span>
+              </button>
+            </div>
           </section>
 
           {/* Section 02: Included & Upgrades */}
