@@ -17,10 +17,6 @@ export const saveQuote = mutation({
         extraDiscount: v.number(),
         marginAmt: v.optional(v.number()),
         marginRate: v.optional(v.number()),
-        priceMultiplier: v.optional(v.number()),
-        supplyCost: v.optional(v.number()),
-        totalMaterial: v.optional(v.number()),
-        totalEtc: v.optional(v.number()),
         sub24: v.number(),
         sub36: v.number(),
         sub48: v.number(),
@@ -53,10 +49,6 @@ export const internalSaveQuote = internalMutation({
         extraDiscount: v.number(),
         marginAmt: v.optional(v.number()),
         marginRate: v.optional(v.number()),
-        priceMultiplier: v.optional(v.number()),
-        supplyCost: v.optional(v.number()),
-        totalMaterial: v.optional(v.number()),
-        totalEtc: v.optional(v.number()),
         sub24: v.number(),
         sub36: v.number(),
         sub48: v.number(),
@@ -108,47 +100,6 @@ export const updateFinancials = mutation({
     handler: async (ctx, args) => {
         const { id, ...updates } = args;
         await ctx.db.patch(id, updates);
-    },
-});
-
-export const updateQuote = mutation({
-    args: {
-        id: v.id("quotes"),
-        branch: v.optional(v.string()),
-        type: v.string(),
-        name: v.string(),
-        phone: v.string(),
-        address: v.optional(v.string()),
-        kccPrice: v.number(),
-        finalQuote: v.number(),
-        finalBenefit: v.number(),
-        discountRate: v.number(),
-        extraDiscount: v.number(),
-        marginAmt: v.optional(v.number()),
-        marginRate: v.optional(v.number()),
-        priceMultiplier: v.optional(v.number()),
-        supplyCost: v.optional(v.number()),
-        totalMaterial: v.optional(v.number()),
-        totalEtc: v.optional(v.number()),
-        sub24: v.number(),
-        sub36: v.number(),
-        sub48: v.number(),
-        sub60: v.number(),
-        items: v.string(),
-        storageId: v.optional(v.id("_storage")),
-    },
-    handler: async (ctx, args) => {
-        const { id, ...updates } = args;
-        const normalizedName = updates.name.trim().normalize("NFC");
-        const patchData: Record<string, unknown> = {
-            ...updates,
-            name: normalizedName,
-        };
-        if (updates.storageId === undefined) {
-            delete patchData.storageId;
-        }
-        await ctx.db.patch(id, patchData);
-        return id;
     },
 });
 
